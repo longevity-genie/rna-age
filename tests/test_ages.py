@@ -115,3 +115,14 @@ def test_find_age_none():
 def test_split_characteristics():
     assert split_characteristics("tissue: liver\tage: 54\tmale") == [("tissue", "liver"), ("age", "54"), ("", "male")]
     assert split_characteristics("a: 1,b: 2", sep=",") == [("a", "1"), ("b", "2")]
+
+
+def test_archs4_split_items():
+    from rna_age.sources.archs4 import split_items
+
+    assert split_items("tissue: liver,age: 54,treatment: IL-4, IL-13") == [
+        ("tissue", "liver"),
+        ("age", "54"),
+        ("treatment", "IL-4, IL-13"),
+    ]
+    assert split_items("cell type: T cells\tage (years): 33") == [("cell type", "T cells"), ("age (years)", "33")]

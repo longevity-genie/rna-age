@@ -1,6 +1,6 @@
 # rna-age status
 
-_Last update: 2026-11-09 23:25 CET (overnight session)._
+_Last update: 2026-11-09 23:15 CET (overnight session)._
 
 ## Done
 - Scaffold: uv package (Python 3.12, src layout), typer CLI `rna-age fetch|parse|summary`, polars/parquet,
@@ -10,14 +10,18 @@ _Last update: 2026-11-09 23:25 CET (overnight session)._
   state, publisher checksum (GCS md5, S3 multipart ETag) or own sha256, `gzip -t`, `.meta.json` sidecars.
 - `rna_age.ages`: age parser (exact / binned / censored, months/weeks/days, rejects gestational age,
   passage, time post infection, NA, adult, prenatal values) with tests.
-- GTEx v10 fetched and verified (`data/download/gtex/`, 0.98 GB): 19,788 RNA-seq samples, 946 donors,
-  68 tissues; age bins 20-29 … 70-79 (`binned`).
+- GTEx v10 fetched and verified (`data/download/gtex/`, 0.98 GB) and parsed (Slurm job 6423309, ~1 min):
+  `data/input/gtex/` = 19,788 samples × 58,988 genes (1.4 GB parquet); 946 donors, 68 tissues, age bins
+  20-29 … 70-79 (`binned`); 19,461 eligible (327 EBV lymphocyte samples excluded as cell line).
+- `rna-age summary` → `data/output/summary/*.parquet` (tracked).
+- ARCHS4 parser written (`sources/archs4.py`, `annotate.py`: sex/tissue/disease/tumour/cell line/stem/prenatal/
+  single-cell flags), waiting for the download.
 
 ## Running
 - ARCHS4 download: `uv run rna-age fetch archs4 --connections 12`, log `data/logs/fetch-archs4.log`
   (64.4 GB at ~16 MB/s; started 22:54, expected ~23:55).
-- Slurm job `parse-gtex` (6423309), log `slurm/logs/rna-age-parse-gtex-6423309.out`: pending — the shared
-  account is at its CPU cap (318/320 used by other users' jobs), so it waits for cores to free up.
+- The shared Slurm account is often at its 320-CPU cap (other users' jobs); small jobs (4 cores, 48 GB, 4 h)
+  start once a few cores free up.
 
 ## Decisions
 - Through the proxy one connection gets ~2–4 MB/s; parallel ranges stack (12 → ~16 MB/s).
@@ -43,6 +47,5 @@ _Last update: 2026-11-09 23:25 CET (overnight session)._
 ## Next
 1. ARCHS4: when the download finishes, read sample metadata (light), parse ages, choose eligible samples,
    extract their counts in a Slurm job.
-2. GTEx parse job (waiting for cores); then `rna-age summary`.
 3. Curated GEO cohorts list (Fleischer 2018, Shokhirev & Johnson 2021 series), `ncbi_geo`, `bgee`.
 4. Census pseudobulk; then stretch (BulkFormer-Atlas smoke test + baseline).
