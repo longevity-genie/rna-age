@@ -79,6 +79,31 @@ def baseline(
 
 
 @app.command()
+def embed(
+    sources: str = typer.Argument(..., help="comma-separated sources"),
+    shard: int = typer.Option(0),
+    n_shards: int = typer.Option(1),
+    batch_size: int = typer.Option(8),
+) -> None:
+    """Frozen BulkFormer-Atlas CLS embeddings (GPU job) → data/interim/embeddings/atlas/."""
+    from rna_age.train.embed import embed as _embed
+
+    _embed(sources.split(","), shard, n_shards, batch_size=batch_size)
+
+
+@app.command()
+def probe(
+    features: str = typer.Option("cls", help="cls | cls+hvg"),
+    model: str = typer.Option("ridge", help="ridge | mlp"),
+    n_hvg: int = typer.Option(1200),
+) -> None:
+    """Rung 3 probe on frozen Atlas embeddings; writes a run under data/output/runs/."""
+    from rna_age.train.probes import run_probe
+
+    run_probe(features, model, n_hvg)
+
+
+@app.command()
 def summary() -> None:
     """Write data/output/summary/*.parquet from data/input/*."""
     from rna_age.summary import write_summary

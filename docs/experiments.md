@@ -38,3 +38,14 @@ One dated entry per decision: hypothesis → what ran → result → next. Run d
 - **Result**: n = 551; Pearson r of tAge vs (age − stratum mean age, bin midpoints) = 0.38 (scaled), 0.33
   (YuGene). No GTEx in tAge training. Relative output in years.
 - **Next**: run on full ARCHS4/GTEx test sets once counts exist; same delta metric for our models.
+
+### 2026-11-10 00:35 · GPU probe
+- GPU jobs run on a requeue-capable partition (settings only in the git-ignored `slurm/env.local.sh`), so
+  every GPU job must resume from its own outputs (embedding shards are skipped when present).
+- Probe: **NVIDIA GeForce RTX 2080 Ti, 11 GB, compute capability 7.5**; torch 2.15 (CUDA 13.2 build) works.
+  Matmul: fp32 3.2, fp16 10.2, bf16 6.8 TFLOP/s (bf16 is emulated) → **fp16 autocast** for Atlas, with an
+  fp16-vs-fp32 CLS cosine check logged on the first chunk of every embedding job.
+- Implication: Atlas (242 M params, 4,097 tokens) costs ~0.4 s/sample forward on this card → ~100k samples
+  ≈ 11 GPU-h (≈ 3 h on 4 GPUs). Full fine-tuning on 11 GB cards is impractical tonight; rung 4 starts with
+  head + last blocks on a training subsample.
+- **Next**: Atlas panel (train only) → embedding jobs (val/test first) → probes; ridge baselines on CPU meanwhile.

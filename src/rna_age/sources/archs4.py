@@ -240,7 +240,7 @@ def _read_block(sel: np.ndarray) -> np.ndarray:
 
 def local_copy(path: Path) -> Path:
     """Copy the HDF5 to node-local scratch (random chunk reads on the shared filesystem are slow)."""
-    tmp = os.environ.get("RNA_AGE_LOCAL_TMP") or os.environ.get("SLURM_TMPDIR") or os.environ.get("TMPDIR")
+    tmp = os.environ.get("RNA_AGE_LOCAL_TMP")  # opt-in only: $TMPDIR may be tmpfs (counts as job memory)
     if not tmp:
         return path
     Path(tmp).mkdir(parents=True, exist_ok=True)
