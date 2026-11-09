@@ -1,0 +1,14 @@
+__pycache__/
+*.py[cod]
+.venv/
+.pytest_cache/
+.ruff_cache/
+*.egg-info/
+# data: everything ignored except small tracked summaries
+data/*
+!data/output/
+data/output/*
+!data/output/summary/
+# cluster-specific settings never go in git
+slurm/env.local.sh
+slurm/logs/
