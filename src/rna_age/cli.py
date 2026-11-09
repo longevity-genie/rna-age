@@ -128,6 +128,20 @@ def atlas_panel(n_genes: int = typer.Option(4096)) -> None:
 
 
 @app.command()
+def figures(
+    run_id: str = typer.Argument("", help="run directory name; empty = data overview + run comparison"),
+) -> None:
+    """Write PNG/SVG figures to data/output/figures/."""
+    from rna_age import figures as f
+
+    if run_id:
+        f.run_plots(run_id)
+    else:
+        f.data_overview()
+        f.compare_runs()
+
+
+@app.command()
 def summary() -> None:
     """Write data/output/summary/*.parquet from data/input/*."""
     from rna_age.summary import write_summary
