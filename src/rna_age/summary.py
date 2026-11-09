@@ -4,7 +4,9 @@
 - ``age_hist.parquet``: eligible samples per source × 10-year bin of the age point estimate.
 - ``by_tissue.parquet``: eligible samples per source × tissue.
 - ``health.parquet``: samples per source × is_healthy × is_tumor × is_cell_line × exclude_reason.
-- ``duplicates.parquet``: GEO samples present in more than one source (by GSM).
+- ``duplicates.parquet``: samples present in more than one source (by GSM; after ``rna-age merge`` also by
+  SRA experiment, with the source the kept copy is in).
+- ``splits.parquet`` / ``cohorts.parquet`` (after ``rna-age merge``): split sizes by source, named cohorts.
 - ``downloads.parquet``: every downloaded file with size, checksum and fetch time.
 
 "Eligible" = has an age, ``exclude_reason`` is null and not a tumour (cancer is out of scope for now).
@@ -17,7 +19,7 @@ import logging
 
 import polars as pl
 
-from rna_age.paths import DOWNLOAD, INPUT, OUTPUT
+from rna_age.paths import DOWNLOAD, INPUT, INTERIM, OUTPUT
 from rna_age.schema import age_mid
 
 log = logging.getLogger(__name__)
@@ -47,7 +49,7 @@ def write_summary() -> dict[str, pl.DataFrame]:
             samples=pl.len(),
             eligible=pl.col("eligible").sum(),
             studies=pl.col("study_id").filter("eligible").n_unique(),
-            donors=pl.col("donor_id").filter("eligible").n_unique(),
+            donors=pl.col("donor_id").filter("eligible").drop_nulls().n_unique(),
             healthy_eligible=(pl.col("eligible") & pl.col("is_healthy").fill_null(False)).sum(),
             pseudobulk=pl.col("is_pseudobulk").sum(),
         )
@@ -78,6 +80,28 @@ def write_summary() -> dict[str, pl.DataFrame]:
         .agg(samples=pl.len())
         .sort("samples", descending=True)
     )
+    merged = INTERIM / "samples_all.parquet"
+    if merged.exists():
+        m = pl.read_parquet(merged)
+        tables["splits"] = (
+            m.filter(pl.col("split").is_not_null())
+            .group_by("source", "is_pseudobulk", "age_type", "split")
+            .agg(samples=pl.len(), groups=pl.col("group").n_unique(), age_median=pl.col("age_mid").median())
+            .sort("source", "age_type", "split")
+        )
+        tables["duplicates"] = (
+            m.filter(pl.col("duplicate_of").is_not_null())
+            .with_columns(kept_in=pl.col("duplicate_of").str.split(":").list.first())
+            .group_by("source", "kept_in")
+            .agg(samples=pl.len())
+            .sort("samples", descending=True)
+        )
+        tables["cohorts"] = (
+            m.filter(pl.col("cohort").is_not_null())
+            .group_by("source", "cohort")
+            .agg(samples=pl.len(), eligible=pl.col("eligible").sum())
+            .sort("source", "samples", descending=[False, True])
+        )
     rows = []
     for meta in sorted(DOWNLOAD.rglob("*.meta.json")):
         m = json.loads(meta.read_text())

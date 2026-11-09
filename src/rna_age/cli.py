@@ -47,6 +47,14 @@ def census_pseudobulk(dataset_id: str = typer.Argument(..., help="Census dataset
 
 
 @app.command()
+def merge() -> None:
+    """Merge all sources into data/interim/samples_all.parquet with dedup, cohort labels and splits."""
+    from rna_age.merge import merge as _merge
+
+    _merge()
+
+
+@app.command()
 def summary() -> None:
     """Write data/output/summary/*.csv from data/input/*."""
     from rna_age.summary import write_summary

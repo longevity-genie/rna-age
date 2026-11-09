@@ -1,0 +1,123 @@
+"""``rna-age merge``: one harmonised sample table and study-grouped splits in ``data/interim/``.
+
+- ``samples_all.parquet``: every ``data/input/*/samples.parquet`` row plus
+  ``eligible`` (has age, no exclusion, not tumour), ``duplicate_of`` (``source:sample_id`` of the copy that is
+  kept when the same GEO sample / SRA experiment appears in several bulk sources; ARCHS4 > NCBI GEO > Bgee),
+  ``cohort`` filled from :mod:`rna_age.sources.geo_cohorts`, and ``split``.
+- ``splits.parquet``: ``source, sample_id, group, split`` for eligible, non-duplicate samples.
+
+Splits: the grouping unit is ``study_id`` (GSE / Bgee experiment / Census dataset), except GTEx where it is
+the donor. A group goes wholly to train / val / test by a stable hash of ``source:group`` (70/15/15), so adding
+sources never reshuffles existing assignments, and no donor or series is on both sides. Pseudobulk sources get
+the same treatment but are reported separately (domain shift).
+"""
+
+from __future__ import annotations
+
+import hashlib
+import logging
+
+import polars as pl
+
+from rna_age.paths import INPUT, INTERIM
+from rna_age.schema import age_mid
+from rna_age.summary import eligible, load_samples
+
+log = logging.getLogger(__name__)
+
+PRIORITY = {"archs4": 0, "ncbi_geo": 1, "bgee": 2}
+SPLIT_FRACTIONS = (0.70, 0.15)  # train, val; rest test
+
+
+def _split_of(key: str) -> str:
+    h = int(hashlib.sha1(key.encode()).hexdigest()[:8], 16) / 0xFFFFFFFF
+    if h < SPLIT_FRACTIONS[0]:
+        return "train"
+    if h < SPLIT_FRACTIONS[0] + SPLIT_FRACTIONS[1]:
+        return "val"
+    return "test"
+
+
+def _duplicates(df: pl.DataFrame) -> pl.DataFrame:
+    """``duplicate_of`` for bulk samples present in several sources (by GSM, then by SRX/SRR overlap)."""
+    df = df.with_columns(_prio=pl.col("source").replace_strict(PRIORITY, default=9, return_dtype=pl.Int32))
+    # same GSM in several sources
+    by_gsm = (
+        df.filter(pl.col("sample_id").str.starts_with("GSM"))
+        .sort("_prio")
+        .group_by("sample_id", maintain_order=True)
+        .agg(keep=pl.concat_str(pl.col("source").first(), pl.lit(":"), pl.col("sample_id").first()))
+    )
+    df = df.join(by_gsm, on="sample_id", how="left").with_columns(
+        duplicate_of=pl.when(pl.col("keep") != pl.concat_str("source", pl.lit(":"), "sample_id")).then("keep")
+    )
+    # Bgee libraries are SRX/ERX ids: match them to GEO samples' SRA relations
+    rel = (
+        df.filter(pl.col("srr_ids").is_not_null() & pl.col("sample_id").str.starts_with("GSM"))
+        .sort("_prio")
+        .select(
+            pl.col("srr_ids").str.split(",").alias("acc"),
+            pl.concat_str("source", pl.lit(":"), "sample_id").alias("geo_key"),
+        )
+        .explode("acc")
+        .unique("acc", keep="first")
+    )
+    df = df.join(rel, left_on="sample_id", right_on="acc", how="left").with_columns(
+        duplicate_of=pl.coalesce("duplicate_of", pl.when(pl.col("source") == "bgee").then("geo_key"))
+    )
+    return df.drop("_prio", "keep", "geo_key")
+
+
+def _cohorts(df: pl.DataFrame) -> pl.DataFrame:
+    d = INPUT / "geo_cohorts"
+    if not (d / "cohort_series.parquet").exists():
+        return df
+    series = pl.read_parquet(d / "cohort_series.parquet")
+    shok = (
+        pl.read_parquet(d / "shokhirev2021_samples.parquet")
+        .select(sample_id=pl.col("gsm"), shokhirev_age=pl.col("age_years"), in_shokhirev2021=pl.lit(True))
+        .unique("sample_id")
+    )
+    df = df.join(series.rename({"gse": "study_id", "cohort": "_cohort"}), on="study_id", how="left")
+    df = df.join(shok, on="sample_id", how="left").with_columns(
+        cohort=pl.coalesce(
+            "cohort",
+            "_cohort",
+            pl.when(pl.col("in_shokhirev2021")).then(pl.lit("shokhirev2021")),
+        ),
+        in_shokhirev2021=pl.col("in_shokhirev2021").fill_null(False),
+    )
+    return df.drop("_cohort")
+
+
+def merge() -> pl.DataFrame:
+    INTERIM.mkdir(parents=True, exist_ok=True)
+    df = load_samples()
+    df = df.with_columns(eligible=eligible(df), age_mid=age_mid(df))
+    df = _duplicates(df)
+    df = _cohorts(df)
+    df = df.with_columns(
+        group=pl.when(pl.col("source") == "gtex").then(pl.col("donor_id")).otherwise(pl.col("study_id"))
+    )
+    use = pl.col("eligible") & pl.col("duplicate_of").is_null()
+    groups = df.filter(use).select("source", "group").unique()
+    groups = groups.with_columns(
+        split=pl.Series([_split_of(f"{s}:{g}") for s, g in groups.iter_rows()], dtype=pl.String)
+    )
+    df = df.join(groups, on=["source", "group"], how="left").with_columns(split=pl.when(use).then(pl.col("split")))
+    df.write_parquet(INTERIM / "samples_all.parquet", compression="zstd")
+    splits = df.filter(use).select("source", "sample_id", "group", "split", "age_type", "age_mid", "is_pseudobulk")
+    splits.write_parquet(INTERIM / "splits.parquet", compression="zstd")
+    shok = (
+        df.filter(pl.col("in_shokhirev2021") & pl.col("age_years").is_not_null())
+        if "in_shokhirev2021" in df.columns
+        else None
+    )
+    if shok is not None and shok.height:
+        agree = (shok["age_years"] - shok["shokhirev_age"]).abs() <= 1
+        log.info("age audit vs Shokhirev 2021 curation: %d/%d samples within 1 year", agree.sum(), shok.height)
+    log.info(
+        "merged: %d samples, %d eligible non-duplicate; splits %s",
+        df.height, splits.height, splits.group_by("split").len().sort("split").to_dicts(),
+    )  # fmt: skip
+    return df
