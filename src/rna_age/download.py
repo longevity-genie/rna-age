@@ -212,9 +212,12 @@ def fetch(
 
     size = remote.size
     if size is None:
-        size, _ = head(remote.url)
+        try:
+            size, _ = head(remote.url)
+        except httpx.HTTPError:
+            size = None
     if size is None:
-        raise ValueError(f"cannot determine size of {remote.url}")
+        return _fetch_stream(remote, dest)
 
     if dest.exists() and dest.stat().st_size == size:
         # A finished file without a sidecar (or with a stale one): verify instead of re-downloading.
@@ -275,6 +278,41 @@ def fetch(
     if part != dest:
         part.replace(dest)
         dest.with_name(dest.name + ".part.json").unlink(missing_ok=True)
+    meta = {
+        "url": remote.url,
+        "file": dest.name,
+        "size": size,
+        "checksum": checksum,
+        "checksum_source": "publisher" if remote.checksum else "computed",
+        "fetched_at": datetime.now(UTC).isoformat(timespec="seconds"),
+    }
+    meta_path(dest).write_text(json.dumps(meta, indent=2) + "\n")
+    log.info("fetched %s (%s, %s)", dest.name, human(size), checksum)
+    return dest
+
+
+def _fetch_stream(remote: Remote, dest: Path, retries: int = 5) -> Path:
+    """Single-stream download for URLs without a known size or Range support (e.g. NCBI GEO dynamic files)."""
+    part = dest.with_name(dest.name + ".part")
+    for attempt in range(1, retries + 1):
+        try:
+            with client(timeout=300) as c, c.stream("GET", remote.url) as r:
+                r.raise_for_status()
+                with part.open("wb") as f:
+                    for chunk in r.iter_bytes(4 * MiB):
+                        f.write(chunk)
+            break
+        except httpx.HTTPError as e:
+            if attempt == retries:
+                raise
+            wait = 60 * attempt
+            log.warning("%s: %s; retry %d in %ds", remote.name, e, attempt, wait)
+            time.sleep(wait)
+    size = part.stat().st_size
+    checksum = verify(part, remote.checksum)
+    if remote.name.endswith(".gz") and not gzip_ok(part):
+        raise ValueError(f"{part} fails gzip -t")
+    part.replace(dest)
     meta = {
         "url": remote.url,
         "file": dest.name,
