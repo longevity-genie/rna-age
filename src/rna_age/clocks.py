@@ -73,10 +73,30 @@ def run(source: str, split: str = "test", max_samples: int | None = None) -> pl.
     out = OUTPUT / "clocks"
     out.mkdir(parents=True, exist_ok=True)
     res.write_parquet(out / f"tage_{source}_{split}.parquet")
+    rows = []
     for col in [c for c in pred.columns if "tAge" in c or "Chronoage" in c]:
         for name, sub in (("all", res), ("not_in_training", res.filter(~pl.col("in_tage_training")))):
             sub = sub.drop_nulls([col, "age_delta"])
             if sub.height > 2:
-                r = np.corrcoef(sub[col].to_numpy(), sub["age_delta"].to_numpy())[0, 1]
+                r = float(np.corrcoef(sub[col].to_numpy(), sub["age_delta"].to_numpy())[0, 1])
+                rows.append({"source": source, "split": split, "model": col, "subset": name, "n": sub.height,
+                             "r_delta": r, "strata": sub["stratum"].n_unique()})  # fmt: skip
                 log.info("tAge %s %s/%s %s: n=%d, r(delta)=%.3f", col, source, split, name, sub.height, r)
+    pl.DataFrame(rows).write_parquet(out / f"tage_{source}_{split}_summary.parquet")
     return res
+
+
+def compare_run(run_id: str, source: str, split: str = "test") -> pl.DataFrame:
+    """Score one of our runs on the tAge samples/strata: r of (pred − stratum mean pred) with age_delta."""
+    t = pl.read_parquet(OUTPUT / "clocks" / f"tage_{source}_{split}.parquet")
+    p = pl.read_parquet(OUTPUT / "runs" / run_id / "predictions.parquet").select("sample_id", "pred")
+    j = t.join(p, on="sample_id").with_columns(pred_delta=pl.col("pred") - pl.col("pred").mean().over("stratum"))
+    rows = []
+    for name, sub in (("all", j), ("not_in_training", j.filter(~pl.col("in_tage_training")))):
+        if sub.height > 2:
+            r = float(np.corrcoef(sub["pred_delta"].to_numpy(), sub["age_delta"].to_numpy())[0, 1])
+            rows.append({"source": source, "split": split, "model": run_id, "subset": name, "n": sub.height,
+                         "r_delta": r, "strata": sub["stratum"].n_unique()})  # fmt: skip
+    out = pl.DataFrame(rows)
+    out.write_parquet(OUTPUT / "clocks" / f"tage_{source}_{split}_vs_{run_id}_summary.parquet")
+    return out

@@ -142,6 +142,22 @@ def figures(
         f.compare_runs()
 
 
+@app.command("report-tables")
+def report_tables() -> None:
+    """Markdown tables from the parquet summaries → data/output/summary/report_tables.md."""
+    from rna_age.report import write
+
+    print(write())
+
+
+@app.command("compare-tage")
+def compare_tage(run_id: str, source: str = "gtex", split: str = "test") -> None:
+    """Score a run on the tAge samples/strata (relative-age correlation)."""
+    from rna_age.clocks import compare_run
+
+    print(compare_run(run_id, source, split))
+
+
 @app.command()
 def summary() -> None:
     """Write data/output/summary/*.parquet from data/input/*."""
