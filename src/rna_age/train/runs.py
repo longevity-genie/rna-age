@@ -8,6 +8,7 @@ the config). One row per run is appended to ``data/output/summary/experiments.pa
 from __future__ import annotations
 
 import json
+import os
 import subprocess
 from datetime import datetime
 from pathlib import Path
@@ -25,9 +26,14 @@ def new_run(name: str, config: dict) -> Path:
     run_id = f"{datetime.now().strftime('%Y%m%d-%H%M')}-{name}"
     d = RUNS / run_id
     d.mkdir(parents=True, exist_ok=True)
-    commit = subprocess.run(
-        ["git", "rev-parse", "--short", "HEAD"], capture_output=True, text=True, cwd=REPO_ROOT
-    ).stdout.strip()
+    commit = os.environ.get("RNA_AGE_COMMIT", "")
+    if not commit:
+        try:
+            commit = subprocess.run(
+                ["git", "rev-parse", "--short", "HEAD"], capture_output=True, text=True, cwd=REPO_ROOT
+            ).stdout.strip()
+        except FileNotFoundError:  # compute nodes have no git; submit.sh passes RNA_AGE_COMMIT
+            commit = "unknown"
     config = {"run_id": run_id, "commit": commit, "checkpoint_dir": str(INTERIM / "checkpoints" / run_id), **config}
     (d / "config.json").write_text(json.dumps(config, indent=2, default=str))
     return d

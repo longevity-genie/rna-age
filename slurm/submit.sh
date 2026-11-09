@@ -24,4 +24,4 @@ else
 fi
 # EXTRA="--tmp=80G ..." passes further sbatch flags (node-local disk, dependencies, ...)
 [ -n "${EXTRA:-}" ] && read -r -a extra <<<"$EXTRA" && flags+=("${extra[@]}")
-sbatch "${flags[@]}" --export="ALL,REPO=$REPO,RNA_AGE_JOB_KIND=$kind,CUDA_DEVICE=${CUDA_DEVICE:-}" "$HERE/job.sbatch" "$@"
+sbatch "${flags[@]}" --export="ALL,REPO=$REPO,RNA_AGE_COMMIT=$(git -C "$REPO" rev-parse --short HEAD 2>/dev/null),RNA_AGE_JOB_KIND=$kind,CUDA_DEVICE=${CUDA_DEVICE:-}" "$HERE/job.sbatch" "$@"

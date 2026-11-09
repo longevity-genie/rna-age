@@ -64,7 +64,7 @@ def run_baseline(
     Xs = scaler.transform(X).astype(np.float32)
     val = (split == "val") & (allx["age_type"].to_numpy() == "exact")
     grid = (
-        [{"alpha": a} for a in (1, 10, 100, 1000, 10000)]
+        [{"alpha": a} for a in (1e2, 1e3, 1e4, 3e4, 1e5, 3e5, 1e6)]
         if model == "ridge"
         else [{"alpha": a, "l1_ratio": r} for a in (0.01, 0.05, 0.2) for r in (0.1, 0.5)]
     )

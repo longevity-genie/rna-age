@@ -85,7 +85,7 @@ def run_probe(features: str = "cls", model: str = "ridge", n_hvg: int = 1200, gt
     Xs = StandardScaler().fit(X[train]).transform(X).astype(np.float32)
     if model == "ridge":
         best = None
-        for a in (1, 10, 100, 1000, 10000):
+        for a in (1, 10, 100, 1e3, 1e4, 1e5, 1e6):
             est = Ridge(alpha=a).fit(Xs[train], y[train])
             mae = float(np.mean(np.abs(est.predict(Xs[val]) - y[val])))
             log.info("ridge alpha=%g val MAE %.2f", a, mae)
