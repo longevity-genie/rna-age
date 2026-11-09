@@ -119,6 +119,14 @@ def finetune(
           run_name=name or None)  # fmt: skip
 
 
+@app.command("atlas-panel")
+def atlas_panel(n_genes: int = typer.Option(4096)) -> None:
+    """Choose the fixed Atlas input panel on training samples only (CPU)."""
+    from rna_age.train.embed import make_panel
+
+    make_panel(n_genes)
+
+
 @app.command()
 def summary() -> None:
     """Write data/output/summary/*.parquet from data/input/*."""
