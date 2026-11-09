@@ -1,7 +1,7 @@
 #!/bin/bash
 # slurm/submit.sh cpu|gpu NAME COMMAND...   e.g.
 #   slurm/submit.sh cpu parse-gtex rna-age parse gtex
-#   CPUS=8 MEM=64G TIME=08:00:00 slurm/submit.sh cpu parse-archs4 rna-age parse archs4
+#   CPUS=8 MEM=64G EXTRA=--tmp=80G RNA_AGE_LOCAL_TMP=/scratch/rna-age slurm/submit.sh cpu parse-archs4 rna-age parse archs4
 # Builds sbatch flags from slurm/env.sh (and the git-ignored env.local.sh) and runs job.sbatch.
 set -euo pipefail
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -19,4 +19,6 @@ else
   [ -n "$RNA_AGE_CPU_PARTITION" ] || { echo "set RNA_AGE_CPU_PARTITION in slurm/env.local.sh" >&2; exit 2; }
   flags+=(--partition="$RNA_AGE_CPU_PARTITION" --cpus-per-task="${CPUS:-$RNA_AGE_CPU_CPUS}" --mem="${MEM:-$RNA_AGE_CPU_MEM}")
 fi
+# EXTRA="--tmp=80G ..." passes further sbatch flags (node-local disk, dependencies, ...)
+[ -n "${EXTRA:-}" ] && read -r -a extra <<<"$EXTRA" && flags+=("${extra[@]}")
 sbatch "${flags[@]}" --export="ALL,REPO=$REPO,RNA_AGE_JOB_KIND=$kind,CUDA_DEVICE=${CUDA_DEVICE:-}" "$HERE/job.sbatch" "$@"

@@ -1,6 +1,11 @@
 # rna-age status
 
-_Last update: 2026-11-10 00:05 CET (overnight session)._
+_Last update: 2026-11-10 00:30 CET (overnight session)._
+
+## Mode (Anton, 2026-11-10 ~00:10)
+Fully autonomous overnight: data → baselines → BulkFormer embeddings/probes → fine-tuning, logging every run
+(`data/output/runs/`, `docs/experiments.md`, `data/output/summary/experiments.parquet`); the loop does not
+stop before Anton is back; 07:00 report, then keep updating; one tabbed artifact (link here once published).
 
 ## Done
 - Scaffold: uv package (Python 3.12, src layout), typer CLI `rna-age fetch|parse|summary`, polars/parquet,
@@ -47,6 +52,11 @@ _Last update: 2026-11-10 00:05 CET (overnight session)._
   single-cell flags), waiting for the download.
 
 ## Running
+- ARCHS4 counts: Slurm 6423641 (8 cores, node-local copy in /scratch after an OOM: /tmp is tmpfs and the
+  60 GB copy counted as memory), log `slurm/logs/rna-age-parse-archs4-6423641.out`; 75,169 samples.
+- Terekhova parse: Slurm 6423688. GPU probe: Slurm 6423662 (queued).
+- BulkFormer Atlas + Latest weights downloaded from Google Drive → `data/download/models/bulkformer/`.
+- Census tier 2 fetch: `data/logs/fetch-census-tier2.log`.
 - ARCHS4 download: `uv run rna-age fetch archs4 --connections 12`, log `data/logs/fetch-archs4.log`
   (64.4 GB at ~16 MB/s; started 22:54, expected ~23:55).
 - The shared Slurm account is often at its 320-CPU cap (other users' jobs); small jobs (4 cores, 48 GB, 4 h)
@@ -88,6 +98,10 @@ _Last update: 2026-11-10 00:05 CET (overnight session)._
   HLCA, PsychENCODE HBCC/RADC, lupus PBMC, COVID PBMC, Indonesia PBMC, fibroblasts, HLiCA, Immune Health
   Atlas, CellRef, HSPCs, microglia, ILD, kidney); tier 2 (~96 GB: MSSM brain 1,042 donors, Immunobiology of
   Aging PBMC, HBCA) after tier 1 (`RNA_AGE_CENSUS_TIER=2`). Cancer atlases skipped.
+- Terekhova 2023 (update 2026-11-10 00:25): the Synapse token in `~/.synapseConfig` answers 401 from this
+  machine (also with the official `synapseclient`), so the raw-count archive (syn56693935) is not fetched;
+  following brief item 6 we use the HCA `all_pbmcs_rna.h5ad` and recover UMIs from log1p-CP10k if `X` is not
+  integral (checked on the first chunk). Not blocked. Parse job 6423688.
 - Terekhova 2023: not in CELLxGENE and Synapse/AWS refuse anonymous access, but the HCA Data Portal serves it
   openly (Anton, 2026-11-10): Azul catalog `dcp60`, project `896f377c-…`; `all_pbmcs.tar.gz` (17.1 GB) +
   metadata xlsx fetched through Azul's redirect, sha256-verified (`sources/terekhova2023.py`).

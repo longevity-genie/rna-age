@@ -9,14 +9,17 @@ authors = [
 requires-python = ">=3.12"
 dependencies = [
     "aiohttp>=3.14.5",
+    "bulkformer",
     "cellxgene-census>=1.18.0",
     "fsspec>=2026.9.0",
     "h5py>=3.16.0",
     "httpx>=0.28.1",
+    "matplotlib>=3.11.2",
     "numpy>=2.5.4",
     "polars>=2.1.0",
     "pyarrow>=26.0.1",
     "rich>=15.0.0",
+    "scikit-learn>=1.9.1",
     "typer>=0.29.0",
 ]
 
@@ -39,3 +42,6 @@ line-length = 120
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B"]
 ignore = ["E501"]
+
+[tool.uv.sources]
+bulkformer = { git = "https://github.com/KangBoming/BulkFormer", rev = "cec8b90" }

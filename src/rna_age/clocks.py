@@ -35,11 +35,16 @@ def prepare(source: str, split: str = "test", max_samples: int | None = None) ->
         (pl.col("source") == source) & (pl.col("split") == split) & (pl.col("age_type") == "exact")
         if source != "gtex"
         else (pl.col("source") == source) & (pl.col("split") == split)
-    ).with_columns(stratum=pl.col("study_id") + "|" + pl.col("tissue").fill_null("NA"))
-    sizes = sel.group_by("stratum").len()
-    sel = sel.join(sizes.filter(pl.col("len") >= MIN_STRATUM).select("stratum"), on="stratum")
+    ).with_columns(
+        # centring unit = dataset × tissue; all of GTEx is one dataset (each donor is its own study_id)
+        stratum=pl.when(pl.col("source") == "gtex").then(pl.lit("GTEx")).otherwise(pl.col("study_id"))
+        + "|"
+        + pl.col("tissue").fill_null("NA")
+    )
     if max_samples and sel.height > max_samples:
         sel = sel.sample(max_samples, seed=0)
+    sizes = sel.group_by("stratum").len()
+    sel = sel.join(sizes.filter(pl.col("len") >= MIN_STRATUM).select("stratum"), on="stratum")
     sel = sel.with_columns(age_delta=pl.col("age_mid") - pl.col("age_mid").mean().over("stratum"))
     out = INTERIM / "tage" / f"{source}_{split}"
     out.mkdir(parents=True, exist_ok=True)

@@ -21,7 +21,7 @@ rownames(meta) <- meta$sample_id
 meta <- meta[colnames(counts), , drop = FALSE]
 
 # Human-applicable clocks: multispecies multi-tissue Elastic Net chronological age (scaled + YuGene).
-clocks <- list_clocks(type = "EN", outcome = "Chronoage", species = "Multispecies", tissue = "Multi-Tissue")
+clocks <- list_clocks(type = "EN", outcome = "Chronological", species = "Multispecies", tissue = "Multi-Tissue")
 clocks <- download_clocks(clocks, dest_dir = clock_dir)
 
 eset <- make_ExpressionSet(counts, meta)
