@@ -71,11 +71,12 @@ def baseline(
     model: str = typer.Option("ridge", help="ridge | elasticnet"),
     n_genes: int = typer.Option(5000, help="HVGs chosen on train"),
     gtex_midpoints: bool = typer.Option(True, help="train on GTEx bin midpoints too"),
+    transform: str = typer.Option("none", help="none | horvath (log-linear age)"),
 ) -> None:
     """Rung 1 baseline on log-CPM HVGs; writes a run under data/output/runs/."""
     from rna_age.train.baselines import run_baseline
 
-    run_baseline(model, n_genes, gtex_midpoints)
+    run_baseline(model, n_genes, gtex_midpoints, transform=transform)
 
 
 @app.command()

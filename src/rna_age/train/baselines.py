@@ -27,12 +27,27 @@ PRED_COLS = ["sample_id", "source", "split", "study_id", "tissue", "age_type", "
              "is_healthy", "is_pseudobulk", "cohort", "in_tage_training", "in_longevitybench"]  # fmt: skip
 
 
+ADULT_AGE = 20.0
+
+
+def horvath(age: np.ndarray) -> np.ndarray:
+    """Horvath (2013) log-linear age transform: log below the adult age, linear above."""
+    a = np.asarray(age, dtype=np.float64)
+    return np.where(a <= ADULT_AGE, np.log(a + 1) - np.log(ADULT_AGE + 1), (a - ADULT_AGE) / (ADULT_AGE + 1))
+
+
+def horvath_inv(f: np.ndarray) -> np.ndarray:
+    f = np.asarray(f, dtype=np.float64)
+    return np.where(f <= 0, (ADULT_AGE + 1) * np.exp(f) - 1, (ADULT_AGE + 1) * f + ADULT_AGE)
+
+
 def run_baseline(
     model: str = "ridge",
     n_genes: int = 5000,
     gtex_midpoints: bool = True,
     hvg_sample: int = 20000,
     name: str | None = None,
+    transform: str = "none",
 ) -> dict:
     t0 = time.time()
     s = sample_table()
@@ -59,7 +74,9 @@ def run_baseline(
     del counts
     split = allx["split"].to_numpy()
     is_train = allx.select(train_mask.fill_null(False))[:, 0].to_numpy() & ~allx["is_pseudobulk"].to_numpy()
-    y = allx["target"].to_numpy()
+    y_years = allx["target"].to_numpy()
+    fwd, inv = (horvath, horvath_inv) if transform == "horvath" else (lambda a: a, lambda a: a)
+    y = fwd(np.nan_to_num(y_years, nan=30.0))
     scaler = StandardScaler().fit(X[is_train])
     Xs = scaler.transform(X).astype(np.float32)
     val = (split == "val") & (allx["age_type"].to_numpy() == "exact")
@@ -72,17 +89,17 @@ def run_baseline(
     for params in grid:
         est = Ridge(**params) if model == "ridge" else ElasticNet(max_iter=3000, tol=1e-3, **params)
         est.fit(Xs[is_train], y[is_train])
-        mae = float(np.mean(np.abs(est.predict(Xs[val]) - y[val])))
+        mae = float(np.mean(np.abs(inv(est.predict(Xs[val])) - y_years[val])))
         log.info("%s %s: val exact MAE %.2f", model, params, mae)
         if best is None or mae < best[0]:
             best = (mae, params, est)
     _, params, est = best
     pred = allx.select([c for c in PRED_COLS if c in allx.columns]).with_columns(
-        pred=pl.Series(est.predict(Xs).astype(np.float64))
+        pred=pl.Series(inv(est.predict(Xs)).astype(np.float64))
     )
     run_dir = new_run(
-        name or f"{model}-hvg{n_genes}{'-gtexmid' if gtex_midpoints else ''}",
-        {"model": model, "features": f"logCPM HVG {n_genes}", "params": params, "n_shared_genes": len(genes),
+        name or f"{model}-hvg{n_genes}{'-gtexmid' if gtex_midpoints else ''}{'-horvath' if transform == 'horvath' else ''}",
+        {"model": model, "features": f"logCPM HVG {n_genes}", "params": params, "target_transform": transform, "n_shared_genes": len(genes),
          "train_set": "bulk train, healthy-or-unknown, exact" + (" + GTEx midpoints" if gtex_midpoints else ""),
          "n_train": int(is_train.sum()), "hvg_sample": hv.height},
     )  # fmt: skip

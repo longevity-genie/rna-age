@@ -64,3 +64,22 @@ One dated entry per decision: hypothesis → what ran → result → next. Run d
   is valid (identical maths). fp16 vs fp32 CLS cosine = 1.000; throughput ≈ 0.1 s/sample/GPU.
 - **Note**: jobs started at the same moment on one node all picked the same "free" GPU; shards are now pinned
   to different nodes.
+
+### 2026-11-10 00:55 · Rung 1: ridge on log-CPM HVGs
+- **Bug fixed first**: the "healthy or unknown" filter used `is_healthy != False`, which in polars drops nulls
+  (training would have used only 5,208 explicitly healthy exact-age samples). Now `fill_null(True)`.
+- **Reference**: constant (train median 36 y) → val MAE 19.0, test MAE 18.2 (exact ages; std ≈ 22 y; ~22 %
+  children).
+- **Ran**: ridge, HVGs chosen on 20k train samples, alpha by val exact MAE; GTEx midpoints in training.
+
+| run | val MAE | test MAE | test r | bias slope | GTEx bin hit | GTEx MAE (mid) | transfer MAE / r |
+|---|---|---|---|---|---|---|---|
+| ridge 2k | 14.13 | 14.82 | 0.575 | −0.60 | 0.343 | 9.12 | 15.7 / 0.49 |
+| ridge 5k | 12.85 | 13.72 | 0.614 | −0.51 | 0.376 | 8.10 | 16.7 / 0.51 |
+| ridge 10k | 12.11 | 13.06 | 0.653 | −0.47 | 0.400 | 7.46 | 15.8 / 0.44 |
+
+- **Reading**: more genes keep helping; strong regression to the mean (children +14 y, 80+ −20 y); whole ARCHS4
+  studies are off together (study batch effects); bulk→pseudobulk transfer is poor, and one Census dataset
+  (probably single-nucleus brain) sits 20–30 y below the rest.
+- **Next**: ridge 20k genes; Horvath log-linear age target (for the young end); ElasticNet 5k running; Atlas
+  probes when embeddings land.
