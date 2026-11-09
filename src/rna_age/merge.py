@@ -25,6 +25,13 @@ from rna_age.summary import eligible, load_samples
 
 log = logging.getLogger(__name__)
 
+# Human training data of the tAge clocks (Tyshkovskiy et al., Nature 2026, Supp Table 1c): GEO series (plus MESA,
+# dbGaP, not public). Samples from these series flatter tAge in an evaluation; flag them.
+TAGE_TRAINING_SERIES = (
+    "GSE36192", "GSE190125", "GSE113957", "GSE134080", "GSE75337", "GSE123658", "GSE226189", "GSE5086",
+    "GSE183701", "GSE221178", "GSE53890", "GSE103232", "GSE40645", "GSE17612", "GSE21935", "GSE674",
+)  # fmt: skip
+
 PRIORITY = {"archs4": 0, "ncbi_geo": 1, "bgee": 2}
 SPLIT_FRACTIONS = (0.70, 0.15)  # train, val; rest test
 
@@ -96,6 +103,17 @@ def merge() -> pl.DataFrame:
     df = df.with_columns(eligible=eligible(df), age_mid=age_mid(df))
     df = _duplicates(df)
     df = _cohorts(df)
+    df = df.with_columns(
+        in_tage_training=pl.col("series_ids")
+        .fill_null(pl.col("study_id"))
+        .str.split(",")
+        .list.eval(pl.element().is_in(TAGE_TRAINING_SERIES))
+        .list.any()
+        .fill_null(False)
+    )
+    lb = INPUT / "longevitybench" / "gtex_tasks.parquet"
+    lb_ids = pl.read_parquet(lb)["sample_id"].unique().to_list() if lb.exists() else []
+    df = df.with_columns(in_longevitybench=(pl.col("source") == "gtex") & pl.col("sample_id").is_in(lb_ids))
     df = df.with_columns(
         group=pl.when(pl.col("source") == "gtex").then(pl.col("donor_id")).otherwise(pl.col("study_id"))
     )

@@ -1,6 +1,6 @@
 # rna-age status
 
-_Last update: 2026-11-09 23:30 CET (overnight session)._
+_Last update: 2026-11-09 23:40 CET (overnight session)._
 
 ## Done
 - Scaffold: uv package (Python 3.12, src layout), typer CLI `rna-age fetch|parse|summary`, polars/parquet,
@@ -25,6 +25,20 @@ _Last update: 2026-11-09 23:30 CET (overnight session)._
   fibroblast atlas (108k cells → 186 donor × tissue groups in 8 s; 74 pass ≥ 200 cells / ≥ 500k UMIs).
 - tAge R env build started (`scripts/setup_tage_env.sh`, micromamba conda-forge R 4.4 in `data/envs/tage`),
   log `data/logs/setup-tage.log`.
+- Clock controls (priority 4) groundwork:
+  - LongevityBench (HF `insilicomedicine/longebench`, CC-BY-NC) fetched + parsed: its transcriptomic tasks are
+    GTEx-only, 10-year-bin labels, text prompts for LLMs (LB-0014 multiclass, LB-0018 pairwise, LB-0022
+    ternary; accuracy). 1,193 GTEx sample IDs → `data/input/longevitybench/gtex_tasks.parquet`; 1,062 are in
+    our GTEx v10 set and flagged `in_longevitybench` in the merge. Published per-task baselines not verified
+    (Cell page blocked).
+  - ClockBase: no bulk dump; per-GSE JSON API (`/api/gse/{GSE}/clocks`, keyed by GSM). Human RNA outputs are
+    two tAge clocks on ARCHS4 counts, control-centred (relative, not years). `sources/clockbase.py` queries
+    only our held-out series.
+  - tAge: no human-only clock; human-applicable = Multispecies Multi-Tissue EN/BR Chronoage (scaled / YuGene;
+    Zenodo 22166800, MGB non-commercial licence). Outputs are **relative to a reference group** centred per
+    dataset × tissue, so we compare deltas or add back the reference mean age. Published CV MAE ≈ 5 % of max
+    lifespan (≈ 6 y in humans), r ≈ 0.95 (pooled species). Human training data: 16 GEO series + MESA (no
+    GTEx) → samples from those series are flagged `in_tage_training` in the merge.
 - NCBI GEO module `sources/ncbi_geo.py` (throttled: 1 request at a time, 4 s pauses, 20-min back-off on
   403/429, ≤ 400 new files per run): esearch lists ~27.7k human series with NCBI counts; targets =
   30 largest age-annotated ARCHS4 series (cross-check) + series missing from ARCHS4 (metadata text first,
