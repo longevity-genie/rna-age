@@ -1,6 +1,6 @@
 # rna-age status
 
-_Last update: 2026-11-09 23:25 CET (overnight session)._
+_Last update: 2026-11-09 23:30 CET (overnight session)._
 
 ## Done
 - Scaffold: uv package (Python 3.12, src layout), typer CLI `rna-age fetch|parse|summary`, polars/parquet,
@@ -16,6 +16,15 @@ _Last update: 2026-11-09 23:25 CET (overnight session)._
 - `rna-age summary` → `data/output/summary/*.parquet` (tracked).
 - Bgee 15.2 fetched (`data/download/bgee/`, 1.3 GB: library annotation + 40 non-GTEx experiments with
   `NN-year-old` / decade stages, ~790 exact-age libraries); parser `sources/bgee.py` (kallisto counts rounded).
+- Bgee parsed (job 6423376): 1,253 libraries (exact + decade stages) from 40 experiments → `data/input/bgee/`.
+- `geo_cohorts` (labels only, no counts): 17 verified aging cohorts in GEO (Fleischer 2018 GSE113957, 500FG,
+  MAGNet heart, retina, brain, blood, muscle GESTALT, ...) + Shokhirev & Johnson 2021 compilation from
+  Mendeley (6,471 samples, 3,060 in the paper's set, curated age/sex/condition) → `data/input/geo_cohorts/`.
+  The cohort series are always NCBI cross-check targets.
+- `census_pseudobulk`: module + `rna-age census-pseudobulk <dataset_id>` Slurm step tested on the dermal
+  fibroblast atlas (108k cells → 186 donor × tissue groups in 8 s; 74 pass ≥ 200 cells / ≥ 500k UMIs).
+- tAge R env build started (`scripts/setup_tage_env.sh`, micromamba conda-forge R 4.4 in `data/envs/tage`),
+  log `data/logs/setup-tage.log`.
 - NCBI GEO module `sources/ncbi_geo.py` (throttled: 1 request at a time, 4 s pauses, 20-min back-off on
   403/429, ≤ 400 new files per run): esearch lists ~27.7k human series with NCBI counts; targets =
   30 largest age-annotated ARCHS4 series (cross-check) + series missing from ARCHS4 (metadata text first,
@@ -61,6 +70,13 @@ _Last update: 2026-11-09 23:25 CET (overnight session)._
   `census_pseudobulk` uses the pinned LTS release's h5ad copies over HTTPS
   (`cell-census/2025-11-08/h5ads/<dataset_id>.h5ad`, S3 ETags) and the CELLxGENE Discover API for dataset
   metadata (development stages, donors) to choose datasets; pseudobulk with h5py in Slurm jobs.
+- Census datasets: tier 1 = 16 non-cancer datasets with many exact-age donors (~130 GB: OneK1K, AIDA v2,
+  HLCA, PsychENCODE HBCC/RADC, lupus PBMC, COVID PBMC, Indonesia PBMC, fibroblasts, HLiCA, Immune Health
+  Atlas, CellRef, HSPCs, microglia, ILD, kidney); tier 2 (~96 GB: MSSM brain 1,042 donors, Immunobiology of
+  Aging PBMC, HBCA) after tier 1 (`RNA_AGE_CENSUS_TIER=2`). Cancer atlases skipped.
+- **Terekhova 2023 is blocked on Anton**: not in CELLxGENE; Synapse syn49637038 needs a (free) Synapse
+  login/token for downloads, and the AWS open-data bucket denies anonymous listing. Needs a Synapse token
+  in the environment (`SYNAPSE_AUTH_TOKEN`) to proceed.
 - Bgee: GTEx inside Bgee (SRP012682) is skipped (same bins as our GTEx source).
 
 ## Next

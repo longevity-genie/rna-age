@@ -88,20 +88,36 @@ def file_digest(path: Path, algo: str, block: int = 16 * MiB) -> str:
     return h.hexdigest()
 
 
-def s3_etag(path: Path, n_parts: int) -> str:
-    """Recompute an S3 multipart ETag ``md5(md5(part1)+md5(part2)+...)-N`` for a guessed part size."""
+def s3_etag_candidates(size: int, n_parts: int) -> list[int]:
+    """Part sizes (bytes) that split ``size`` into ``n_parts``: whole MiB first, then the exact quotient."""
+    out = [m * MiB for m in range(5, 5121) if -(-size // (m * MiB)) == n_parts]
+    exact = -(-size // n_parts)
+    if exact not in out and -(-size // exact) == n_parts:
+        out.append(exact)
+    return out
+
+
+def s3_etag(path: Path, n_parts: int, expected: str | None = None) -> str:
+    """Recompute an S3 multipart ETag ``md5(md5(part1)+md5(part2)+...)-N``.
+
+    The part size is not published, so every size giving ``n_parts`` parts is tried (one pass per candidate,
+    standard sizes first); returns the first match with ``expected`` (or the first candidate's ETag).
+    """
     size = path.stat().st_size
-    for part_mib in (5, 8, 16, 32, 64, 128, 256, 512, 1024):
-        part = part_mib * MiB
-        if -(-size // part) == n_parts:
-            break
-    else:
-        raise ValueError(f"no standard part size gives {n_parts} parts for {size} bytes")
-    digests = []
-    with path.open("rb") as f:
-        while chunk := f.read(part):
-            digests.append(hashlib.md5(chunk).digest())
-    return f"{hashlib.md5(b''.join(digests)).hexdigest()}-{n_parts}"
+    candidates = s3_etag_candidates(size, n_parts)
+    if not candidates:
+        raise ValueError(f"no part size gives {n_parts} parts for {size} bytes")
+    first = None
+    for part in candidates[:8]:
+        digests = []
+        with path.open("rb") as f:
+            while chunk := f.read(part):
+                digests.append(hashlib.md5(chunk).digest())
+        got = f"{hashlib.md5(b''.join(digests)).hexdigest()}-{n_parts}"
+        first = first or got
+        if expected is None or got == expected:
+            return got
+    return first
 
 
 def verify(path: Path, checksum: str | None) -> str:
@@ -114,7 +130,7 @@ def verify(path: Path, checksum: str | None) -> str:
         got = file_digest(path, kind)
     elif kind == "s3etag":
         if "-" in value:
-            got = s3_etag(path, int(value.rsplit("-", 1)[1]))
+            got = s3_etag(path, int(value.rsplit("-", 1)[1]), expected=value)
         else:
             got = file_digest(path, "md5")
     else:

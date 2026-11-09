@@ -138,7 +138,9 @@ def parse() -> None:
             long = pl.read_csv(
                 f.read(), separator="\t", columns=["Library ID", "Gene ID", "Read count"], quote_char='"'
             )
-        wide = long.pivot(on="Library ID", index="Gene ID", values="Read count").sort("Gene ID")
+        wide = (
+            long.pivot(on="Library ID", index="Gene ID", values="Read count").sort("Gene ID").fill_null(0).fill_nan(0)
+        )
         genes = wide["Gene ID"].to_list()
         if gene_order is None:
             gene_order = genes

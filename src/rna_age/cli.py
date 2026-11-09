@@ -38,6 +38,14 @@ def parse(source: str = typer.Argument(..., help=f"one of: {', '.join(sources.SO
     sources.get(source).parse()
 
 
+@app.command("census-pseudobulk")
+def census_pseudobulk(dataset_id: str = typer.Argument(..., help="Census dataset_id (h5ad already fetched)")) -> None:
+    """Pseudobulk one Census dataset (donor × tissue raw count sums); run as a Slurm job."""
+    from rna_age.sources.census_pseudobulk import pseudobulk
+
+    pseudobulk(dataset_id)
+
+
 @app.command()
 def summary() -> None:
     """Write data/output/summary/*.csv from data/input/*."""

@@ -126,6 +126,9 @@ def select_targets() -> pl.DataFrame:
         .head(CROSSCHECK_SERIES)["study_id"]
         .to_list()
     )
+    from rna_age.sources.geo_cohorts import COHORTS
+
+    top += [g for g in COHORTS if g in ncbi and g not in top]  # named aging cohorts are always cross-checked
     meta_all = pl.read_parquet(INPUT / "archs4" / "metadata_all.parquet", columns=["series_id"])
     in_archs4 = set(meta_all["series_id"].str.replace_all(r"\s+", "").str.split(",").explode().unique().to_list())
     missing = sorted(ncbi - in_archs4, key=lambda g: int(g[3:]))
