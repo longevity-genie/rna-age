@@ -113,7 +113,7 @@ def embed(sources: list[str], shard: int = 0, n_shards: int = 1, chunk: int = 25
         out_dir.mkdir(parents=True, exist_ok=True)
         for c, start in enumerate(range(0, len(ids), chunk)):
             path = out_dir / f"shard-{shard:02d}-{c:04d}.parquet"
-            if path.exists():
+            if path.exists() and path.with_suffix(".inputs.npz").exists():
                 continue
             t0 = time.time()
             part = ids[start : start + chunk]
@@ -134,6 +134,8 @@ def embed(sources: list[str], shard: int = 0, n_shards: int = 1, chunk: int = 25
                 [pl.Series(f"e{i:04d}", emb[:, i]) for i in range(emb.shape[1])]
             )
             df.write_parquet(path)
+            # the panel inputs themselves (log2 TPM+1, fp16) for fine-tuning without re-normalising counts
+            np.savez(path.with_suffix(".inputs.npz"), sample_id=np.array(part), x=x[:, panel].astype(np.float16))
             log.info("%s: %d/%d samples (%.1f s/chunk)", source, start + len(part), len(ids), time.time() - t0)
 
 

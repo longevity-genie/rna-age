@@ -104,6 +104,22 @@ def probe(
 
 
 @app.command()
+def finetune(
+    unfreeze: int = typer.Option(2, help="last N Atlas blocks to train (0 = head only)"),
+    epochs: int = typer.Option(6),
+    max_train: int = typer.Option(30000, help="training samples per epoch (after the per-study cap)"),
+    cap_per_study: int = typer.Option(200),
+    batch: int = typer.Option(4),
+    name: str = typer.Option("", help="run name (resumes an unfinished run of the same name)"),
+) -> None:
+    """Rung 4: fine-tune Atlas (GPU job, resumable)."""
+    from rna_age.train.finetune import train
+
+    train(unfreeze=unfreeze, epochs=epochs, max_train=max_train, cap_per_study=cap_per_study, batch=batch,
+          run_name=name or None)  # fmt: skip
+
+
+@app.command()
 def summary() -> None:
     """Write data/output/summary/*.parquet from data/input/*."""
     from rna_age.summary import write_summary
