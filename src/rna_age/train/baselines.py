@@ -41,7 +41,7 @@ def run_baseline(
     pseudo = s.filter(pl.col("is_pseudobulk")).with_columns(split=pl.lit("transfer"))
     train_mask = (
         (pl.col("split") == "train")
-        & (pl.col("is_healthy") != False)  # noqa: E712
+        & pl.col("is_healthy").fill_null(True)  # healthy or unknown
         & ((pl.col("age_type") == "exact") | (pl.lit(gtex_midpoints) & (pl.col("source") == "gtex")))
     )
     genes = shared_genes()

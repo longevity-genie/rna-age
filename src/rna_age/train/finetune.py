@@ -69,7 +69,7 @@ def train(
     m = m.with_columns(target=age_mid(m))
     m = m.with_columns(split=pl.when(pl.col("is_pseudobulk")).then(pl.lit("transfer")).otherwise(pl.col("split")))
     tr = m.filter(
-        (pl.col("split") == "train") & (pl.col("is_healthy") != False)  # noqa: E712
+        (pl.col("split") == "train") & pl.col("is_healthy").fill_null(True)  # healthy or unknown
         & pl.col("age_type").is_in(["exact", "binned"])
     )  # fmt: skip
     rng = np.random.default_rng(0)
