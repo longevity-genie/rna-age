@@ -56,6 +56,10 @@ def train(
     import torch
     from bulkformer import load_atlas
 
+    from rna_age.train.atlas_patch import patch_atlas_attention
+
+    patch_atlas_attention()
+
     t0 = time.time()
     torch.manual_seed(0)
     ids, X = load_inputs()

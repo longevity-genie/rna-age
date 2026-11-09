@@ -1,6 +1,6 @@
 # rna-age status
 
-_Last update: 2026-11-10 00:30 CET (overnight session)._
+_Last update: 2026-11-10 00:47 CET (overnight session)._
 
 ## Mode (Anton, 2026-11-10 ~00:10)
 Fully autonomous overnight: data → baselines → BulkFormer embeddings/probes → fine-tuning, logging every run
@@ -52,17 +52,17 @@ stop before Anton is back; 07:00 report, then keep updating; one tabbed artifact
   single-cell flags), waiting for the download.
 
 ## Running
-- ARCHS4 counts: Slurm 6423641 (8 cores, node-local copy in /scratch after an OOM: /tmp is tmpfs and the
-  60 GB copy counted as memory), log `slurm/logs/rna-age-parse-archs4-6423641.out`; 75,169 samples.
-- Terekhova parse: Slurm 6423688. GPU probe: Slurm 6423662 (queued).
-- BulkFormer Atlas + Latest weights downloaded from Google Drive → `data/download/models/bulkformer/`.
-- Census tier 2 fetch: `data/logs/fetch-census-tier2.log`.
-- ARCHS4 download: `uv run rna-age fetch archs4 --connections 12`, log `data/logs/fetch-archs4.log`
-  (64.4 GB at ~16 MB/s; started 22:54, expected ~23:55).
-- The shared Slurm account is often at its 320-CPU cap (other users' jobs); small jobs (4 cores, 48 GB, 4 h)
-  start once a few cores free up.
+- Atlas CLS embeddings: 4 GPU jobs (shards 0–3; logs `slurm/logs/rna-age-embed-*.out`), val/test first,
+  ~40 min each → `data/interim/embeddings/atlas/`.
+- Rung-1 baselines (ridge 2k/5k/10k HVG, ElasticNet 5k): CPU jobs queued behind the shared CPU cap.
+- Census tier-2 pseudobulk (MSSM brain, HBCA): jobs running; rerun `rna-age parse census_pseudobulk` +
+  `rna-age merge` after them.
+- tAge env built (tAge 1.5.0); `rna-age tage` works (GTEx smoke test).
 
-- Slurm job `parse-bgee` (6423354), log `slurm/logs/rna-age-parse-bgee-6423354.out`.
+## Results so far
+- 98,476 eligible de-duplicated samples (ARCHS4 74,293 exact; GTEx 19,461 binned; Census 2,958 + Terekhova
+  317 pseudobulk exact). Parsed ages vs Shokhirev 2021 curation: 5,370 / 5,371 within 1 year.
+- tAge (relative clock) on 551 GTEx test samples: r(delta) = 0.38 (scaled) / 0.33 (YuGene).
 
 ## Decisions
 - Through the proxy one connection gets ~2–4 MB/s; parallel ranges stack (12 → ~16 MB/s).

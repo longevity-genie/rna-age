@@ -96,9 +96,16 @@ def embed(sources: list[str], shard: int = 0, n_shards: int = 1, chunk: int = 25
     import torch
     from bulkformer import extract_atlas, load_atlas, prepare_atlas_input
 
+    from rna_age.train.atlas_patch import patch_atlas_attention
+
+    patch_atlas_attention()
+
     panel = pl.read_parquet(PANEL)["index"].to_numpy() if PANEL.exists() else make_panel()
     model, vocab, norm = load_atlas(str(MODEL_DIR / "atlas"), device="cuda")
-    precision = os.environ.get("RNA_AGE_PRECISION") or ("bf16" if torch.cuda.is_bf16_supported() else "fp16")
+    # fp16 by default: on pre-Ampere cards bf16 is reported as supported but emulated (slower)
+    precision = os.environ.get("RNA_AGE_PRECISION") or (
+        "bf16" if torch.cuda.get_device_capability(0)[0] >= 8 else "fp16"
+    )
     log.info("Atlas on %s, precision %s, batch %d", torch.cuda.get_device_name(0), precision, batch_size)
     m = pl.read_parquet(INTERIM / "samples_all.parquet").filter(pl.col("split").is_not_null())
     for source in sources:

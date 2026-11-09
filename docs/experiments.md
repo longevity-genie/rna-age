@@ -49,3 +49,18 @@ One dated entry per decision: hypothesis → what ran → result → next. Run d
   ≈ 11 GPU-h (≈ 3 h on 4 GPUs). Full fine-tuning on 11 GB cards is impractical tonight; rung 4 starts with
   head + last blocks on a training subsample.
 - **Next**: Atlas panel (train only) → embedding jobs (val/test first) → probes; ridge baselines on CPU meanwhile.
+
+### 2026-11-10 00:45 · Data merged; rung 1 submitted; Atlas embeddings running
+- **Data**: 98,476 eligible, de-duplicated samples with splits (train 66,609 / val 18,413 / test 13,454):
+  ARCHS4 74,293 exact (1,676 studies), GTEx 19,461 binned, Census pseudobulk 2,958 exact + 71 binned/censored,
+  Terekhova 317 exact, Bgee 72 not already in ARCHS4. Independent label check: parsed ARCHS4 ages agree with
+  Shokhirev & Johnson's curation within 1 year for 5,370 / 5,371 overlapping samples.
+- **Rung 1**: ridge on 2k / 5k / 10k HVGs and ElasticNet on 5k HVGs submitted as CPU jobs (queued behind the
+  shared CPU cap).
+- **Atlas panel**: 4,096 genes chosen on 3,299 training samples (1,500 ARCHS4, 1,500 GTEx, 299 Bgee) →
+  `data/interim/embeddings/atlas_panel.parquet`.
+- **Embeddings**: 4 GPU jobs. Fix needed: Atlas passes an all-true boolean mask to SDPA, which forces the
+  full-matrix kernel (OOM at batch 4 on 11 GB); `rna_age.train.atlas_patch` drops the mask when every position
+  is valid (identical maths). fp16 vs fp32 CLS cosine = 1.000; throughput ≈ 0.1 s/sample/GPU.
+- **Note**: jobs started at the same moment on one node all picked the same "free" GPU; shards are now pinned
+  to different nodes.
