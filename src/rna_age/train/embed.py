@@ -124,7 +124,15 @@ def embed(sources: list[str], shard: int = 0, n_shards: int = 1, chunk: int = 25
                 continue
             t0 = time.time()
             part = ids[start : start + chunk]
-            x, cov = prepare_atlas_input(_frame(source, part), vocab, norm, input_scale="counts")
+            frame = _frame(source, part)
+            matched = frame.columns.isin(norm.ensembl_gene)
+            empty = frame.loc[:, matched].sum(axis=1) <= 0
+            if empty.any():  # all-zero over the normalisation genes: cannot be normalised, skip (logged)
+                log.warning("%s: skipping %d samples with zero matched library: %s", source, int(empty.sum()),
+                            list(frame.index[empty])[:5])  # fmt: skip
+                frame = frame.loc[~empty]
+                part = list(frame.index)
+            x, cov = prepare_atlas_input(frame, vocab, norm, input_scale="counts")
             # panel genes a source lacks (pseudobulk gene sets) count as not detected (0), recorded per sample
             sub = x[:, panel]
             missing = (sub < 0).mean(axis=1)

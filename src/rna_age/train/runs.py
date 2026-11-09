@@ -56,6 +56,16 @@ def finish_run(run_dir: Path, predictions: pl.DataFrame, extra: dict | None = No
         d = dict(zip(m["metric"].to_list(), m["value"].to_list(), strict=True))
         row[f"test_{group}_exact_mae"] = d.get("exact_mae")
         row[f"test_{group}_exact_r"] = d.get("exact_pearson_r")
+    tr = headline(metrics, "transfer")
+    for k in ("exact_mae", "exact_pearson_r", "exact_n", "exact_mean_error"):
+        row[f"transfer_{k}"] = tr.get(k)
+    for grp in ("census_pseudobulk", "terekhova2023"):
+        m = metrics.filter(
+            (pl.col("split") == "transfer") & (pl.col("grouping") == "source") & (pl.col("group") == grp)
+        )
+        d = dict(zip(m["metric"].to_list(), m["value"].to_list(), strict=True))
+        row[f"transfer_{grp}_exact_mae"] = d.get("exact_mae")
+        row[f"transfer_{grp}_exact_r"] = d.get("exact_pearson_r")
     row |= extra or {}
     new = pl.DataFrame([row])
     if EXPERIMENTS.exists():
