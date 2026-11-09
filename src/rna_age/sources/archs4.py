@@ -209,17 +209,33 @@ def _init_worker(path: str) -> None:
     _H5 = h5py.File(path, "r", rdcc_nbytes=256 * 1024 * 1024)
 
 
+def _runs(sel: np.ndarray, max_gap: int = 64, max_width: int = 2000) -> list[tuple[int, int]]:
+    """Split sorted column indices into (start, end) index ranges of ``sel`` whose columns are close together."""
+    out, a = [], 0
+    for i in range(1, len(sel) + 1):
+        if i == len(sel) or sel[i] - sel[i - 1] > max_gap or sel[i] - sel[a] >= max_width:
+            out.append((a, i))
+            a = i
+    return out
+
+
 def _read_block(sel: np.ndarray) -> np.ndarray:
-    """genes × len(sel) counts for sorted sample indices ``sel`` (dense window read when the batch is dense)."""
+    """genes × len(sel) counts for sorted sample indices ``sel``.
+
+    h5py fancy indexing over scattered columns is slow and memory-hungry (~15 GB for 1,000 columns), so nearby
+    columns are read as bounded dense windows (≤ 2,000 columns, ~0.5 GB) and isolated ones one at a time.
+    """
     expr = _H5["data/expression"]
     t0 = time.time()
-    lo, hi = int(sel.min()), int(sel.max()) + 1
-    if hi - lo <= 4 * len(sel):
-        block = expr[:, lo:hi][:, sel - lo]
-    else:
-        block = expr[:, sel]
-    log.info("read %d samples (window %d) in %.1fs", len(sel), hi - lo, time.time() - t0)
-    return block
+    out = np.empty((expr.shape[0], len(sel)), dtype=expr.dtype)
+    for a, b in _runs(sel):
+        lo, hi = int(sel[a]), int(sel[b - 1]) + 1
+        if b - a == 1:
+            out[:, a] = expr[:, lo]
+        else:
+            out[:, a:b] = expr[:, lo:hi][:, sel[a:b] - lo]
+    log.info("read %d samples (span %d) in %.1fs", len(sel), int(sel[-1] - sel[0]) + 1, time.time() - t0)
+    return out
 
 
 def local_copy(path: Path) -> Path:

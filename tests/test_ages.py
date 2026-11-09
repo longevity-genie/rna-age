@@ -126,3 +126,13 @@ def test_archs4_split_items():
         ("treatment", "IL-4, IL-13"),
     ]
     assert split_items("cell type: T cells\tage (years): 33") == [("cell type", "T cells"), ("age (years)", "33")]
+
+
+def test_archs4_runs():
+    import numpy as np
+
+    from rna_age.sources.archs4 import _runs
+
+    sel = np.array([1, 2, 3, 200, 201, 5000])
+    assert _runs(sel, max_gap=64, max_width=2000) == [(0, 3), (3, 5), (5, 6)]
+    assert _runs(np.arange(0, 5000, 10), max_gap=64, max_width=2000)[0] == (0, 200)
