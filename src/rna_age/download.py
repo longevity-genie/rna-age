@@ -232,7 +232,7 @@ def fetch(
             size, _ = head(remote.url)
         except httpx.HTTPError:
             size = None
-    if size is None:
+    if not size:  # unknown, or a server answering HEAD with Content-Length: 0
         return _fetch_stream(remote, dest)
 
     if dest.exists() and dest.stat().st_size == size:

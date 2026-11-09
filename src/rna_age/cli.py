@@ -55,8 +55,20 @@ def merge() -> None:
 
 
 @app.command()
+def tage(
+    source: str = typer.Argument(..., help="source with counts, e.g. gtex or archs4"),
+    split: str = typer.Option("test", help="train | val | test"),
+    max_samples: int = typer.Option(0, help="subsample (0 = all)"),
+) -> None:
+    """Run the tAge clocks (isolated R env) on a split; relative predictions → data/output/clocks/."""
+    from rna_age.clocks import run
+
+    run(source, split, max_samples or None)
+
+
+@app.command()
 def summary() -> None:
-    """Write data/output/summary/*.csv from data/input/*."""
+    """Write data/output/summary/*.parquet from data/input/*."""
     from rna_age.summary import write_summary
 
     write_summary()

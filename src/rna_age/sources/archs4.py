@@ -13,10 +13,15 @@ HDF5):
 
 from __future__ import annotations
 
+import itertools
 import json
 import logging
+import os
 import re
+import shutil
 import time
+from collections import deque
+from concurrent.futures import ProcessPoolExecutor
 from pathlib import Path
 
 import h5py
@@ -196,9 +201,56 @@ def parse_metadata(meta: pl.DataFrame) -> tuple[pl.DataFrame, pl.DataFrame]:
     return conform(df), keep_extra
 
 
+_H5: h5py.File | None = None
+
+
+def _init_worker(path: str) -> None:
+    global _H5
+    _H5 = h5py.File(path, "r", rdcc_nbytes=256 * 1024 * 1024)
+
+
+def _read_block(sel: np.ndarray) -> np.ndarray:
+    """genes × len(sel) counts for sorted sample indices ``sel`` (dense window read when the batch is dense)."""
+    expr = _H5["data/expression"]
+    t0 = time.time()
+    lo, hi = int(sel.min()), int(sel.max()) + 1
+    if hi - lo <= 4 * len(sel):
+        block = expr[:, lo:hi][:, sel - lo]
+    else:
+        block = expr[:, sel]
+    log.info("read %d samples (window %d) in %.1fs", len(sel), hi - lo, time.time() - t0)
+    return block
+
+
+def local_copy(path: Path) -> Path:
+    """Copy the HDF5 to node-local scratch (random chunk reads on the shared filesystem are slow)."""
+    tmp = os.environ.get("RNA_AGE_LOCAL_TMP") or os.environ.get("SLURM_TMPDIR") or os.environ.get("TMPDIR")
+    if not tmp:
+        return path
+    Path(tmp).mkdir(parents=True, exist_ok=True)
+    dest = Path(tmp) / path.name
+    if not (dest.exists() and dest.stat().st_size == path.stat().st_size):
+        t0 = time.time()
+        if shutil.disk_usage(tmp).free < path.stat().st_size * 1.1:
+            log.warning("not enough space in %s for a local copy; reading %s in place", tmp, path)
+            return path
+        shutil.copyfile(path, dest)
+        log.info("copied %s to %s in %.0fs", path.name, tmp, time.time() - t0)
+    return dest
+
+
 def extract_counts(samples: pl.DataFrame, out: Path, path: Path | None = None, batch: int = 1000) -> None:
     """Write raw counts of ``samples`` (column ``sample_id`` = GSM) from the HDF5 as parquet parts."""
-    path = path or h5_path()
+    src = path or h5_path()
+    path = local_copy(src)
+    try:
+        _extract(samples, out, path, batch)
+    finally:
+        if path != src:
+            path.unlink(missing_ok=True)
+
+
+def _extract(samples: pl.DataFrame, out: Path, path: Path, batch: int) -> None:
     with h5py.File(path, "r") as h:
         gsm = _decode(h["meta/samples/geo_accession"][()])
         pos = {g: i for i, g in enumerate(gsm)}
@@ -218,7 +270,6 @@ def extract_counts(samples: pl.DataFrame, out: Path, path: Path | None = None, b
         log.info(
             "data/expression %s %s chunks=%s compression=%s", expr.shape, expr.dtype, expr.chunks, expr.compression
         )
-        genes_axis = 0 if expr.shape[0] == genes.height else 1
         ids = samples["sample_id"].to_list()
         idx = np.array([pos[s] for s in ids])
         order = np.argsort(idx)
@@ -236,21 +287,26 @@ def extract_counts(samples: pl.DataFrame, out: Path, path: Path | None = None, b
         gene_rows = np.sort(first)
         genes = genes[gene_rows]
 
-        def blocks():
-            for b in range(0, len(ids_sorted), batch):
-                sel = idx_sorted[b : b + batch]
-                t0 = time.time()
-                lo, hi = int(sel.min()), int(sel.max()) + 1
-                if hi - lo <= 4 * len(sel):
-                    # dense: read the whole window once, then pick columns
-                    block = expr[:, lo:hi] if genes_axis == 0 else expr[lo:hi, :].T
-                    block = block[:, sel - lo]
-                else:
-                    block = expr[:, sel] if genes_axis == 0 else expr[sel, :].T
-                log.info("read %d samples (window %d) in %.1fs", len(sel), hi - lo, time.time() - t0)
-                yield ids_sorted[b : b + batch], block[gene_rows]
+    batches = [(ids_sorted[b : b + batch], idx_sorted[b : b + batch]) for b in range(0, len(ids_sorted), batch)]
+    workers = int(os.environ.get("RNA_AGE_WORKERS", os.environ.get("SLURM_CPUS_PER_TASK", "4")))
+    log.info("ARCHS4: %d samples in %d batches, %d workers", len(ids_sorted), len(batches), workers)
 
-        write_parts(out, genes["gene_id"].to_list(), blocks())
+    def blocks():
+        # in-order results with a bounded window: at most 2 × workers blocks (~270 MB each) in memory
+        with ProcessPoolExecutor(max_workers=workers, initializer=_init_worker, initargs=(str(path),)) as pool:
+            pending: deque = deque()
+            it = iter(batches)
+            for ids_b, sel in itertools.islice(it, 2 * workers):
+                pending.append((ids_b, pool.submit(_read_block, sel)))
+            while pending:
+                ids_b, fut = pending.popleft()
+                block = fut.result()
+                nxt = next(it, None)
+                if nxt is not None:
+                    pending.append((nxt[0], pool.submit(_read_block, nxt[1])))
+                yield ids_b, block[gene_rows]
+
+    write_parts(out, genes["gene_id"].to_list(), blocks())
     genes.write_parquet(out / "genes.parquet")
 
 

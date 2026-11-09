@@ -3,7 +3,7 @@
 - ``data/download/<source>/``: raw bytes exactly as fetched, plus a ``<file>.meta.json`` sidecar each.
 - ``data/input/<source>/``: parsed per-source tables (``samples.parquet``, ``genes.parquet``, ``counts/``).
 - ``data/interim/``: merged tables, splits, embeddings.
-- ``data/output/``: results; ``data/output/summary/*.csv`` is tracked in git.
+- ``data/output/``: results; ``data/output/summary/*.parquet`` is tracked in git.
 """
 
 from __future__ import annotations

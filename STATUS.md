@@ -1,6 +1,6 @@
 # rna-age status
 
-_Last update: 2026-11-09 23:40 CET (overnight session)._
+_Last update: 2026-11-10 00:05 CET (overnight session)._
 
 ## Done
 - Scaffold: uv package (Python 3.12, src layout), typer CLI `rna-age fetch|parse|summary`, polars/parquet,
@@ -88,9 +88,15 @@ _Last update: 2026-11-09 23:40 CET (overnight session)._
   HLCA, PsychENCODE HBCC/RADC, lupus PBMC, COVID PBMC, Indonesia PBMC, fibroblasts, HLiCA, Immune Health
   Atlas, CellRef, HSPCs, microglia, ILD, kidney); tier 2 (~96 GB: MSSM brain 1,042 donors, Immunobiology of
   Aging PBMC, HBCA) after tier 1 (`RNA_AGE_CENSUS_TIER=2`). Cancer atlases skipped.
-- **Terekhova 2023 is blocked on Anton**: not in CELLxGENE; Synapse syn49637038 needs a (free) Synapse
-  login/token for downloads, and the AWS open-data bucket denies anonymous listing. Needs a Synapse token
-  in the environment (`SYNAPSE_AUTH_TOKEN`) to proceed.
+- Terekhova 2023: not in CELLxGENE and Synapse/AWS refuse anonymous access, but the HCA Data Portal serves it
+  openly (Anton, 2026-11-10): Azul catalog `dcp60`, project `896f377c-…`; `all_pbmcs.tar.gz` (17.1 GB) +
+  metadata xlsx fetched through Azul's redirect, sha256-verified (`sources/terekhova2023.py`).
+- **NCBI-generated GEO counts are blocked**: since 2026-11-09 ~23:55 NCBI's `/geo/download/` answers this
+  client with a Google reCAPTCHA challenge page (HTML) instead of the file; the GEO text metadata endpoint
+  still works. We do not work around bot protection. `ncbi_geo` is parked; its gap-filling would need Anton to
+  ask NCBI / use an approved route (e.g. GEO FTP if NCBI publishes these counts there later).
+- Controls: Anton confirmed tAge and ClockBase are the controls; LongevityBench is optional (kept, already
+  fetched; it costs nothing).
 - Bgee: GTEx inside Bgee (SRP012682) is skipped (same bins as our GTEx source).
 
 ## Next
