@@ -138,3 +138,17 @@ One dated entry per decision: hypothesis → what ran → result → next. Run d
 - A Census probe crashed when the Census re-merge rewrote count parts mid-read; rerun (CLS + HVG MLP), plus a
   panel-only MLP control.
 - **Next**: fine-tune results (u2, u4); then decide between more fine-tuning budget and the bulk→pseudobulk arm.
+
+### 2026-11-10 02:10 · Non-linear readouts; pseudobulk in training; first fine-tune epoch
+| run | val MAE | test MAE | test r | transfer MAE / r |
+|---|---|---|---|---|
+| **MLP on Atlas panel genes (4,096 log2 TPM, no encoder)** | **10.69** | **11.45** | **0.751** | 16.3 / 0.48 |
+| MLP on Atlas CLS + 1,200 HVG | 11.60 | 12.46 | 0.682 | 19.9 / 0.14 |
+| ridge 20k HVG + Horvath, trained with pseudobulk | 12.03 | 12.65 | 0.653 | (val Census 16.1 / 0.46) |
+| Atlas fine-tune, last 2 blocks, after epoch 0 (val subsample of 3k) | 15.95 | – | – | – |
+- **Reading**: a non-linear readout on the right genes is the biggest gain so far (−1.2 y test MAE vs the
+  ridge bar). The encoder still adds nothing on top of its inputs. Pseudobulk: Terekhova PBMC transfers well
+  from bulk-only ridge (MAE 8.1, r 0.88); the Census datasets do not, and training on 10 Census datasets does
+  not help the 4 held-out ones (dataset-level shift: assay, nuclei vs cells, tissue). No pseudobulk study fell
+  into the test split (few, large studies), so pseudobulk stays a transfer / val evaluation.
+- **Next**: MLP on log-CPM HVG 4,096 and 20,000 (is it the panel or the MLP?); fine-tuning continues (u2, u4).
