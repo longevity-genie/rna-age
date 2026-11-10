@@ -248,3 +248,18 @@ stratum mean (strata = dataset × tissue; tAge is a relative clock). Only sample
 - De-compressing predictions with a line fitted on val removes the regression to the mean completely but
   raises MAE by ~4 y: the MAE-optimal model shrinks towards the mean. Both versions are reported; the
   uncalibrated ensemble is the headline.
+
+### 2026-11-10 03:10 · Training on all health states (seeds + Horvath) → new best
+| run | val MAE | test MAE | test r | GTEx bin hit | transfer MAE / r |
+|---|---|---|---|---|---|
+| MLP 20k, all health states, seeds 0–3 | 9.14–9.48 | 9.40–10.28 | 0.765–0.796 | 0.44–0.46 | 14.9–16.5 |
+| MLP 20k, all health states, Horvath target | 9.22 | 10.14 | 0.767 | 0.456 | 13.6 / 0.71 |
+| **ensemble of the five** | **9.02** | **9.63** | **0.786** | **0.463** | 15.0 / 0.60 |
+- Test median AE 6.65 y, R² 0.61, bias slope −0.33; GTEx midpoint MAE 6.25 y. Disease samples add training
+  signal without hurting healthy test samples. For disease *age acceleration* the healthy-trained ensemble is
+  the right model (a model trained on disease learns to absorb it).
+- **LongevityBench** GTEx multiclass task (6 decade bins), samples in our held-out splits: bin accuracy 0.54
+  (val, n 114), 0.57 (test, n 74); chance ≈ 0.17, majority class ≈ 0.34. Published task baselines not verified.
+- **Atlas fine-tuning**: last 4 blocks val 14.14 → 11.59 after epoch 1 (improving fast); last 2 blocks plateaued
+  (15.95 → 13.34 → 13.27) and is being finalised from its best checkpoint. Final predictions now cover only
+  val/test/transfer samples (predicting all 99k would take ~2.7 GPU-hours).
