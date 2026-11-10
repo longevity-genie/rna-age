@@ -305,3 +305,20 @@ stratum mean (strata = dataset × tissue; tAge is a relative clock). Only sample
 - val MAE (3k val subsample) by epoch: 14.14, 11.59, 10.79, 12.22, **10.35** → best checkpoint = epoch 4; the
   run ends here (5 epochs × 12k samples) and predicts the evaluation samples (test/val/transfer).
 - Still improving at the end of its budget: a longer run over all training samples is the obvious next step.
+
+### 2026-11-10 05:35 · Rung 4 result: Atlas fine-tuning works, and complements the MLP
+| run | val MAE | test MAE | test r | bias slope | GTEx bin hit | transfer MAE / r |
+|---|---|---|---|---|---|---|
+| **Atlas fine-tune, last 4 blocks + head** (5 × 12k samples, healthy-or-unknown + GTEx intervals) | 10.35 | 10.85 | 0.763 | −0.40 | 0.307 | **13.8 / 0.66** |
+| Atlas fine-tune, last 2 blocks + head | 13.22 | 13.67 | 0.657 | −0.49 | 0.345 | 16.5 / 0.61 |
+| MLP 20k HVG, all health states, 5-model ensemble | **9.02** | 9.63 | 0.786 | −0.33 | 0.463 | 15.0 / 0.60 |
+| **mean of the two above** (MLP ensemble + Atlas FT u4) | 9.10 | **9.50** | **0.814** | −0.37 | 0.378 | **13.6 / 0.67** |
+| MLP 20k, all health states, seed 4 | 9.25 | 9.36 | 0.803 | −0.32 | 0.443 | 16.0 / 0.46 |
+- Unfreezing more of Atlas is what makes it work (2 blocks ≈ ridge; 4 blocks ≈ the healthy MLP ensemble,
+  with the best single-model transfer to pseudobulk). The fine-tuned encoder is complementary to the expression
+  MLP: averaging them lifts test r from 0.786 to 0.814 and improves transfer. By the protocol (selection on
+  val) the MLP ensemble remains the headline (val 9.02 vs 9.10); both are reported.
+- tAge on identical samples, within-stratum relative-age r: Atlas FT 0.61 vs tAge 0.33 (ARCHS4), 0.50 vs 0.32
+  (GTEx).
+- Caveat: the fine-tune trained on the health labels as they were at 01:30 (before the ctrl/HC fix) and on
+  60k samples in total; a longer run on all training samples is the next step.
