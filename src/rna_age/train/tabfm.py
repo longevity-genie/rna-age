@@ -26,7 +26,7 @@ from rna_age.train.runs import finish_run, new_run
 
 log = logging.getLogger(__name__)
 
-MODELS = ("tabicl", "tabpfn", "ridge")
+MODELS = ("tabicl", "tabfm", "geneicl", "geneicl-fast", "tabpfn", "ridge")
 
 
 def _estimator(model: str, seed: int):
@@ -34,6 +34,18 @@ def _estimator(model: str, seed: int):
         from tabicl import TabICLRegressor
 
         return TabICLRegressor(random_state=seed, device="cuda", batch_size=2)
+    if model == "tabfm":  # TabFM 1.1 weights (Hub) through the 1.0.1 package's loader (same module, decoder config)
+        from huggingface_hub import snapshot_download
+        from tabfm import TabFMRegressor
+        from tabfm.src.pytorch import tabfm_v1_0_0 as tabfm_pt
+
+        ckpt = snapshot_download("google/tabfm-1.1.0-pytorch", allow_patterns=["regression/*", "config.json"])
+        net = tabfm_pt.load(model_type="regression", checkpoint_path=f"{ckpt}/regression", device="cuda", dtype=None)
+        return TabFMRegressor(model=net, random_state=seed)
+    if model.startswith("geneicl"):  # transcriptome in-context model: log1p-CPM genes in, its own PCA inside
+        from geneicl import GeneICL
+
+        return GeneICL(mode="regression", inference="fast" if model.endswith("fast") else "normal", device="cuda")
     if model == "tabpfn":
         from tabpfn import TabPFNRegressor
 
@@ -68,6 +80,8 @@ def _features(kind: str, allx: pl.DataFrame, X: np.ndarray, is_train: np.ndarray
         cols = [c for c in emb.columns if c.startswith("e") and c[1:].isdigit()]
         joined = allx.select("sample_id").join(emb, on="sample_id", how="left")
         X = joined.select(cols).to_numpy().astype(np.float32)
+    elif kind == "logcpm":  # raw log1p-CPM of the HVGs, no scaling or PCA (GeneICL reduces itself)
+        return X, np.ones(len(X), dtype=bool)
     elif kind != "hvg-pca":
         raise ValueError(f"unknown features {kind!r}")
     have = ~np.isnan(X).any(axis=1)
@@ -112,9 +126,9 @@ def run_tabfm(
         .filter(pl.Series(keep))
     )
     run_dir = new_run(
-        name or f"tfm-{model}-{features}{n_components}-ctx{n_context // 1000}k",
+        name or f"tfm-{model}-{features}{'' if features == 'logcpm' else n_components}-ctx{n_context // 1000}k",
         {"model": model, "features": f"{features} ({n_components} PCs of logCPM HVG {n_genes})"
-         if features == "hvg-pca" else f"{features} ({n_components} PCs)",
+         if features == "hvg-pca" else f"logCPM HVG {n_genes}" if features == "logcpm" else f"{features} ({n_components} PCs)",
          "n_context": int(len(ctx)), "n_context_studies": n_studies, "cap_per_study": cap_per_study, "seed": seed, "hvg_sample": n_hv,
          "n_shared_genes": len(genes), "context_set": "train, healthy-or-unknown, exact + GTEx midpoints",
          "tuning": "none (zero-shot in-context)"},
