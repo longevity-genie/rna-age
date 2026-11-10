@@ -33,7 +33,7 @@ def _estimator(model: str, seed: int):
     if model == "tabicl":
         from tabicl import TabICLRegressor
 
-        return TabICLRegressor(random_state=seed)
+        return TabICLRegressor(random_state=seed, device="cuda", batch_size=2)
     if model == "tabpfn":
         from tabpfn import TabPFNRegressor
 
