@@ -470,3 +470,24 @@ samples (≤ 200 per study, 1,353 studies), features = 200 PCs fitted on train r
   is the 200 unsupervised PCs (ridge on them: 16.3; ridge on the 20k genes: 12.6), not the prompt size.
   Off-the-shelf tabular foundation models need a supervised or much wider gene input to compete here; GeneICL
   (20k genes, transcriptome-specific prior) is the one worth a run; the generic ones are deprioritised.
+
+### 2026-11-10 17:45 · Do the disease age gaps survive adjustment for blood cell composition? (`rna-age deconv-gap`)
+Reference: 8 broad classes from OneK1K + AIDA single-cell pseudobulk (pooled counts → CPM), 50 markers per class
+(397 genes in our bulk axis); held-out bulk blood studies (val + test, ≥ 5 cases and ≥ 5 controls): fractions by
+NNLS on the markers. Pooled OLS `pred − age ~ study + age + case [+ fractions]`, 95 % CI by resampling studies.
+
+| model | cases | raw case gap (y) [95 % CI] | composition-adjusted [95 % CI] | studies / samples |
+|---|---|---|---|---|
+| healthy-only MLP ensemble (5 seeds) | all | 1.51 [0.60, 2.55] | 1.17 [0.23, 2.48] | 18 / 2,013 |
+| headline (7 MLP + 2 Atlas fine-tunes) | all | 1.25 [0.51, 2.19] | 0.89 [0.17, 2.04] | 18 / 2,013 |
+| health-aware MLP (ranking + disease head) | all | **2.46 [1.62, 3.54]** | **2.07 [1.11, 3.32]** | 18 / 2,013 |
+| health-aware MLP | aging-linked | 1.95 [0.71, 2.74] | 1.36 [0.42, 2.95] | 14 / 1,064 |
+- The gaps shrink by 15–30 % but stay positive with CIs above zero: the clocks' disease signal in blood is not a
+  cell-mix artefact. Consistent with the single-cell result (the age signal sits within cell types).
+- **Caveat**: the PBMC reference has no neutrophils, and many samples are whole blood; mean estimated fractions
+  (monocyte 0.33, DC 0.21, B 0.16) are implausible, so neutrophil signal is absorbed by other classes. Next: add a
+  granulocyte reference (whole-blood single-cell or sorted-cell bulk) and repeat.
+
+GeneICL (normal inference, 4k context of raw log-CPM 20k HVGs): val 15.75, test 16.26 — no better than fast mode
+(test 16.2) or TabICLv2 on PCs (15.7). Large FMs on 11 GB cards: TabFM 1.1 runs at a 2k context (4k and 10k ran out
+of memory); Mitra-v2 ran out of memory even at a 2k fine-tuning cap; LimiX-2 needed huggingface_hub in its env.
