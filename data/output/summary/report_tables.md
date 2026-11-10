@@ -42,8 +42,10 @@
 |---|---|---|---|---|---|---|---|---|---|---|
 | 20261110-0304-ens-mlp20k-trainall-5 | ensemble (mean) | 20261110-0237-hvg20000-mlp-trainall+20261110-0248-hvg20000-mlp-trainall-seed1+20261110-0255-hvg20000-mlp-trainall-seed2+20261110-0302-hvg20000-mlp-trainall-seed3+20261110-0247-hvg20000-mlp-horvath-trainall | 9.02 | 9.63 | 0.79 | -0.33 | 0.46 | 6.25 | 15.02 | 0.60 |
 | 20261110-0302-hvg20000-mlp-trainall-seed3 | mlp probe | logCPM HVG 20000 | 9.14 | 10.05 | 0.77 | -0.33 | 0.44 | 6.58 | 14.89 | 0.66 |
+| 20261110-0312-hvg20000-mlp-h1024x256-trainall | mlp probe | logCPM HVG 20000 | 9.18 | 9.72 | 0.79 | -0.32 | 0.44 | 6.69 | 14.70 | 0.57 |
 | 20261110-0255-hvg20000-mlp-trainall-seed2 | mlp probe | logCPM HVG 20000 | 9.22 | 9.56 | 0.79 | -0.33 | 0.44 | 6.45 | 15.13 | 0.57 |
 | 20261110-0248-hvg20000-mlp-trainall-seed1 | mlp probe | logCPM HVG 20000 | 9.22 | 9.40 | 0.80 | -0.32 | 0.46 | 6.32 | 16.15 | 0.51 |
+| 20261110-0312-atlas-cls-hvg-mlp-trainall | mlp probe | Atlas CLS + HVG 20000 | 9.22 | 9.80 | 0.78 | -0.35 | 0.45 | 6.48 | 18.61 | 0.54 |
 | 20261110-0247-hvg20000-mlp-horvath-trainall | mlp probe | logCPM HVG 20000 | 9.22 | 10.14 | 0.77 | -0.33 | 0.46 | 6.31 | 13.60 | 0.71 |
 | 20261110-0237-hvg20000-mlp-trainall | mlp probe | logCPM HVG 20000 | 9.48 | 10.28 | 0.76 | -0.37 | 0.44 | 6.79 | 16.52 | 0.46 |
 | 20261110-0240-ens-mlp20k-7 | ensemble (mean) | 20261110-0210-hvg20000-mlp+20261110-0217-hvg20000-mlp-seed1+20261110-0232-hvg20000-mlp-seed2+20261110-0236-hvg20000-mlp-seed3+20261110-0239-hvg20000-mlp-seed4+20261110-0237-hvg20000-mlp-trainall+20261110-0217-hvg20000-mlp-horvath | 9.83 | 10.26 | 0.77 | -0.38 | 0.44 | 6.44 | 14.65 | 0.62 |
@@ -73,6 +75,7 @@
 | 20261110-0135-atlas-panel-ridge | ridge probe | Atlas panel log2TPM (no encoder) | 12.87 | 13.70 | 0.63 | -0.51 | 0.37 | 8.23 | 18.81 | 0.39 |
 | 20261110-0240-ens-mlp20k-7-cal | calibrated(20261110-0240-ens-mlp20k-7) | as base | 13.39 | 14.02 | 0.77 | -0.00 | 0.27 | 10.80 | 14.31 | 0.62 |
 | 20261110-0133-atlas-cls-hvg-ridge | ridge probe | Atlas CLS + HVG 1200 | 13.62 | 14.61 | 0.59 | -0.57 | 0.32 | 9.20 | 17.66 | 0.28 |
+| 20261110-0334-hgb-hvg5000-gtexmid | hgb | logCPM HVG 5000 | 13.70 | 13.81 | 0.65 | -0.61 | 0.36 | 8.56 | 16.50 | 0.58 |
 | 20261110-0050-ridge-hvg2000-gtexmid | ridge | logCPM HVG 2000 | 14.13 | 14.82 | 0.57 | -0.60 | 0.34 | 9.12 | 15.68 | 0.49 |
 | 20261110-0130-atlas-cls-ridge | ridge probe | Atlas CLS | 14.73 | 15.45 | 0.54 | -0.61 | 0.31 | 9.71 | 19.36 | 0.09 |
 

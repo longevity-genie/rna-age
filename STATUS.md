@@ -3,7 +3,7 @@
 **Report page (private artifact, republished as results change):** https://claude.ai/artifact/TfY8RYwiVDLfm6pEwj81ic
 
 
-_Last update: 2026-11-10 02:35 CET (overnight session)._
+_Last update: 2026-11-10 03:40 CET (overnight session)._
 
 ## Mode (Anton, 2026-11-10 ~00:10)
 Fully autonomous overnight: data → baselines → BulkFormer embeddings/probes → fine-tuning, logging every run
@@ -55,9 +55,10 @@ stop before Anton is back; 07:00 report, then keep updating; one tabbed artifact
   single-cell flags), waiting for the download.
 
 ## Running
-- Atlas fine-tuning, last 2 blocks (val MAE 15.95 → 13.34 after 2 epochs) and last 4 blocks (14.14 after
-  1 epoch); logs `slurm/logs/rna-age-ft-u*.out`.
-- MLP seed sweep (seeds 2–4, log-CPM 20k HVG) for a 5-seed ensemble; study-weighted MLP.
+- Atlas fine-tuning, last 4 blocks + head: val MAE 14.14 → 11.59 → 10.79 (epochs 0–2), resumed for epochs 3–4,
+  then evaluation predictions (ETA ~05:45). Last 2 blocks (plateau 13.27): final evaluation predictions.
+- BulkFormer-Latest frozen embeddings, 2 GPU shards (test + val + transfer + 8k train per source), ETA ~05:00;
+  then Latest probes vs the HVG MLP on the same samples.
 
 ## Results so far (details: `docs/experiments.md`, `data/output/summary/experiments.parquet`)
 - Data: 99,559 eligible de-duplicated samples (ARCHS4 74,293 exact; GTEx 19,461 binned; Census 3,787 +
@@ -70,6 +71,9 @@ stop before Anton is back; 07:00 report, then keep updating; one tabbed artifact
   but break 10x pseudobulk transfer. Run-to-run noise ≈ 0.5 y test MAE.
 - tAge vs our MLP on identical test samples (within-stratum relative age r): ARCHS4 0.33 vs 0.66; GTEx 0.32
   vs 0.76.
+- **Best now**: MLP on 20k HVG trained on all health states, 5-model ensemble: val 9.02, **test MAE 9.63**,
+  r 0.786, GTEx bin hit 0.46; vs tAge on identical samples r 0.70 vs 0.33 (ARCHS4), 0.77 vs 0.32 (GTEx).
+- Frozen Atlas CLS adds nothing on top of HVGs; gradient boosting ≈ ridge.
 - Disease age gap (age-adjusted): +0.49 y overall; within-study +0.40 ± 0.61 y (69 studies), not significant.
 - Terekhova PBMC transfers well from bulk-only models (ridge MAE 8.1, r 0.88); Census datasets do not.
 

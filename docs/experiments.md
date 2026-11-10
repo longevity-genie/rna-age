@@ -281,3 +281,7 @@ stratum mean (strata = dataset × tissue; tAge is a relative clock). Only sample
 - Last 2 blocks + head plateaued at 13.27 (best checkpoint), now predicting evaluation samples.
 - BulkFormer-Latest (full 19,973-position transcriptome in, fp16 vs fp32 cosine 1.00000, 0.4 s/sample): 2 GPU
   shards over test + val + transfer + 8k training samples per source; ETA ~05:00.
+
+### 2026-11-10 03:35 · Gradient boosting baseline
+- HistGradientBoosting (absolute-error loss, 5k HVG, early stopping): val 13.70, test 13.81, r 0.645, GTEx bin
+  hit 0.358, transfer 16.5 / 0.58 → on par with ridge 5k, well behind the MLPs; not pursued further tonight.
