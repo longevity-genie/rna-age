@@ -26,7 +26,7 @@ from rna_age.train.runs import finish_run, new_run
 
 log = logging.getLogger(__name__)
 
-MODELS = ("tabicl", "tabpfn")
+MODELS = ("tabicl", "tabpfn", "ridge")
 
 
 def _estimator(model: str, seed: int):
@@ -38,6 +38,10 @@ def _estimator(model: str, seed: int):
         from tabpfn import TabPFNRegressor
 
         return TabPFNRegressor(device="cuda", random_state=seed, ignore_pretraining_limits=True)
+    if model == "ridge":  # control: same features and context rows, linear readout
+        from sklearn.linear_model import RidgeCV
+
+        return RidgeCV(alphas=np.logspace(-2, 4, 13))
     raise ValueError(f"unknown model {model!r}; expected one of {MODELS}")
 
 
