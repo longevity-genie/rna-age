@@ -66,6 +66,12 @@ def run_probe(features: str = "cls", model: str = "ridge", n_hvg: int = 1200, gt
     s = s.with_columns(split=pl.when(pl.col("is_pseudobulk")).then(pl.lit("transfer")).otherwise(pl.col("split")))
     ecols = [c for c in emb.columns if c.startswith("e")]
     X = s.select(ecols).to_numpy().astype(np.float32)
+    if features == "panel":  # the Atlas input panel itself (log2 TPM+1), no model: separates panel from encoder
+        from rna_age.train.finetune import load_inputs
+
+        ids, xin = load_inputs()
+        pos = {sid: i for i, sid in enumerate(ids)}
+        X = xin[[pos[sid] for sid in s["sample_id"].to_list()]].astype(np.float32)
     train = (
         (s["split"] == "train").to_numpy()
         & (s["is_healthy"].fill_null(True)).to_numpy()
@@ -98,7 +104,7 @@ def run_probe(features: str = "cls", model: str = "ridge", n_hvg: int = 1200, gt
     out = s.select([c for c in PRED_COLS if c in s.columns]).with_columns(pred=pl.Series(pred.astype(np.float64)))
     run_dir = new_run(
         f"atlas-{features.replace('+', '-')}-{model}",
-        {"model": f"{model} probe", "features": f"Atlas CLS{' + HVG ' + str(n_hvg) if features == 'cls+hvg' else ''}",
+        {"model": f"{model} probe", "features": "Atlas panel log2TPM (no encoder)" if features == "panel" else f"Atlas CLS{' + HVG ' + str(n_hvg) if features == 'cls+hvg' else ''}",
          "params": params, "train_set": "bulk train, healthy-or-unknown, exact" + (" + GTEx midpoints" if gtex_midpoints else ""),
          "n_train": int(train.sum())},
     )  # fmt: skip

@@ -115,11 +115,19 @@ def embed(sources: list[str], shard: int = 0, n_shards: int = 1, chunk: int = 25
             _rand=pl.col("sample_id").hash(seed=7),
         )
         ids_all = sdf.sort("_order", "_rand")["sample_id"].to_list()
-        ids = ids_all[shard::n_shards]
         out_dir = EMB / "atlas" / source
         out_dir.mkdir(parents=True, exist_ok=True)
+        # only samples without an embedding yet (sources grow when parsers are rerun); file names carry the
+        # shard layout so runs with different layouts never collide
+        done: set[str] = set()
+        for f in out_dir.glob("*.parquet"):
+            done.update(pl.read_parquet(f, columns=["sample_id"])["sample_id"].to_list())
+        ids_all = [i for i in ids_all if i not in done]
+        ids = ids_all[shard::n_shards]
+        tag = f"n{n_shards}-s{shard:02d}-{len(done)}"
+        log.info("%s: %d already embedded, %d to do in this shard", source, len(done), len(ids))
         for c, start in enumerate(range(0, len(ids), chunk)):
-            path = out_dir / f"shard-{shard:02d}-{c:04d}.parquet"
+            path = out_dir / f"shard-{tag}-{c:04d}.parquet"
             if path.exists() and path.with_suffix(".inputs.npz").exists():
                 continue
             t0 = time.time()
