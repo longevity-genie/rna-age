@@ -26,7 +26,7 @@ from rna_age.train.runs import finish_run, new_run
 
 log = logging.getLogger(__name__)
 
-MODELS = ("tabicl", "tabfm", "geneicl", "geneicl-fast", "tabpfn", "ridge")
+MODELS = ("tabicl", "tabfm", "geneicl", "geneicl-fast", "mitra2", "tabpfn", "ridge")
 
 
 def _estimator(model: str, seed: int):
@@ -46,6 +46,8 @@ def _estimator(model: str, seed: int):
         from geneicl import GeneICL
 
         return GeneICL(mode="regression", inference="fast" if model.endswith("fast") else "normal", device="cuda")
+    if model == "mitra2":  # Mitra-v2: 50-step fine-tune, 8-fold bagged (AutoGluon); every predict re-runs the bag
+        return _Mitra(seed)
     if model == "tabpfn":
         from tabpfn import TabPFNRegressor
 
@@ -55,6 +57,32 @@ def _estimator(model: str, seed: int):
 
         return RidgeCV(alphas=np.logspace(-2, 4, 13))
     raise ValueError(f"unknown model {model!r}; expected one of {MODELS}")
+
+
+class _Mitra:
+    """Mitra-v2 regressor (``autogluon/mitra-regressor-2``) behind the fit/predict interface of the others."""
+
+    def __init__(self, seed: int):
+        from huggingface_hub import snapshot_download
+        from mitra_finetune import MitraFinetune
+
+        self.m = MitraFinetune(checkpoint_dir=snapshot_download("autogluon/mitra-regressor-2"),
+                               problem_type="regression", random_state=seed)  # fmt: skip
+
+    @staticmethod
+    def _df(X: np.ndarray):
+        import pandas as pd
+
+        return pd.DataFrame(X, columns=[f"f{i}" for i in range(X.shape[1])])
+
+    def fit(self, X: np.ndarray, y: np.ndarray):
+        import pandas as pd
+
+        self.m.fit(self._df(X), pd.Series(y, name="age"))
+        return self
+
+    def predict(self, X: np.ndarray) -> np.ndarray:
+        return np.asarray(self.m.predict(self._df(X)), dtype=np.float64)
 
 
 def context_rows(allx: pl.DataFrame, is_train: np.ndarray, cap_per_study: int, n_context: int, seed: int) -> np.ndarray:
@@ -116,6 +144,8 @@ def run_tabfm(
     keep = have & (allx["split"].to_numpy() != "train")  # score val/test/transfer only
     out = np.full(allx.height, np.nan)
     rows = np.flatnonzero(keep)
+    if model == "mitra2":
+        chunk = len(rows)  # one predict = one bagged fine-tune
     for i in range(0, len(rows), chunk):
         part = rows[i : i + chunk]
         out[part] = est.predict(Z[part])
