@@ -65,6 +65,11 @@ def build() -> str:
     splits = pl.read_parquet(SUMMARY / "splits.parquet") if (SUMMARY / "splits.parquet").exists() else None
     dups = pl.read_parquet(SUMMARY / "duplicates.parquet")
     exp = pl.read_parquet(SUMMARY / "experiments.parquet").sort("val_exact_mae", nulls_last=True)
+    exp = exp.with_columns(
+        features=pl.when(pl.col("features").str.contains(r"\+20261110"))
+        .then(pl.lit("mean of ") + (pl.col("features").str.count_matches(r"\+") + 1).cast(pl.String) + pl.lit(" runs"))
+        .otherwise(pl.col("features"))
+    )
     downloads = pl.read_parquet(SUMMARY / "downloads.parquet")
     top_genes = (
         pl.read_parquet(SUMMARY / "ridge20k_top_genes.parquet")
@@ -245,10 +250,39 @@ miR-29 host genes).</p>"""
 {stat("its test Pearson r", fmt(best["test_exact_pearson_r"], 3), "")}
 {stat("constant-age reference", fmt(const_mae), "test MAE of predicting the train median")}
 </div>"""
+
+    def run(pattern: str) -> dict | None:
+        r = exp.filter(pl.col("run_id").str.contains(pattern)).sort("run_id", descending=True)
+        return r.row(0, named=True) if r.height else None
+
+    def cite(pattern: str, key: str = "test_exact_mae", digits: int = 2) -> str:
+        r = run(pattern)
+        return fmt(r.get(key), digits) if r else "n/a"
+
+    findings = f"""<h3>Key findings</h3><ol>
+<li><b>Non-linear readouts win.</b> Ridge on 20k log-CPM HVGs (+ Horvath target): test MAE
+{cite("ridge-hvg20000-gtexmid-horvath$")}; the same genes through a small MLP: {cite("-hvg20000-mlp$")}; a 5-seed
+MLP ensemble: {cite("ens-mlp20k-5seeds")}.</li>
+<li><b>More training data helps.</b> Training on all health states (disease samples too): 5-model ensemble test MAE
+{cite("ens-mlp20k-trainall-5")}, r {cite("ens-mlp20k-trainall-5", "test_exact_pearson_r", 3)}, validation MAE
+{cite("ens-mlp20k-trainall-5", "val_exact_mae")}.</li>
+<li><b>Frozen BulkFormer-Atlas adds nothing.</b> Ridge on Atlas CLS {cite("atlas-cls-ridge$")} vs ridge on its own 4,096
+input genes {cite("atlas-panel-ridge$")}; CLS + 20k HVG MLP {cite("atlas-cls-hvg-mlp-trainall")} vs the HVG MLP
+ensemble {cite("ens-mlp20k-trainall-5")}: within the ±0.5-year run-to-run noise or worse.</li>
+<li><b>Gene-length TPM vs UMI pseudobulk.</b> TPM features: best bulk test MAE {cite("0220-tpmhvg20000-mlp")} but
+transfer to 10x pseudobulk collapses (r {cite("0220-tpmhvg20000-mlp", "transfer_exact_pearson_r", 2)}); log-CPM keeps
+transfer at r {cite("ens-mlp20k-5seeds", "transfer_exact_pearson_r", 2)}. Atlas normalises every sample by gene length,
+which plausibly explains part of its weak transfer.</li>
+<li><b>Regression to the mean</b> remains (test bias slope {cite("ens-mlp20k-trainall-5", "test_exact_bias_slope")});
+a validation-fitted de-compression removes it but raises test MAE to {cite("ens-mlp20k-7-cal")}.</li>
+<li><b>Atlas fine-tuning</b> (last 2 / 4 blocks + head) improves epoch by epoch; final numbers appear in the table
+when the runs finish.</li>
+</ol>"""
     tabs["results"] = (
         "Results",
         f"""
 {headline}
+{findings}
 <h3>All runs (sorted by validation MAE)</h3>
 {table(exp, exp_cols, highlight=best["run_id"])}
 <p class="muted">MAE in years on exact-age samples; GTEx bin hit = share of GTEx test samples predicted inside
