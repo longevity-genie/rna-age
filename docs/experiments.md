@@ -290,3 +290,13 @@ stratum mean (strata = dataset × tissue; tAge is a relative clock). Only sample
 - Atlas fine-tune, last 2 blocks + head (best of 3 epochs): val 13.22, test 13.67, r 0.657, bias slope −0.49,
   GTEx bin hit 0.345, transfer 16.5 / 0.61 → about ridge level; the last-4-blocks run (val 10.79 at epoch 2)
   is the stronger one. Unfreezing more of the encoder is what helps.
+
+### 2026-11-10 04:30 · ClockBase control
+- ClockBase per-GSE API, our held-out series (530 queried): 36,616 GSMs with the two human RNA clocks
+  (tAge-family, computed on ARCHS4 counts, control-centred, so relative).
+- Same GSMs, val + test exact ages, series with ≥ 6 samples (19,099 samples, 280 series); Pearson r of
+  within-series deviations with within-series age deviations:
+  ClockBase chronological clock **0.228**, hazard clock 0.302; our healthy-trained 5-seed MLP ensemble 0.629;
+  all-health-states ensemble **0.661**.
+- Atlas fine-tune, last 4 blocks: epoch 3 val 12.22 (worse than 10.79 at epoch 2): early stopping will keep the
+  epoch-2 checkpoint.

@@ -230,6 +230,18 @@ GTEx bins, per-study sampling cap, early stopping on validation MAE.</li>
 scored by the correlation of their within-stratum deviation with the true within-stratum age deviation.
 Our ridge saw other GTEx donors in training; tAge never saw GTEx.</p>"""
         )
+    cb = OUTPUT / "clocks" / f"clockbase_vs_{best['run_id']}_summary.parquet"
+    if cb.exists():
+        clock_html += (
+            "<h3>ClockBase (precomputed public predictions) on the same held-out GEO samples</h3>"
+            + table(
+                pl.read_parquet(cb),
+                {"model": "model", "n": "samples", "studies": "series", "r_delta": "r (age delta)"},
+                3,
+            )
+            + """<p class="muted">ClockBase's human RNA clocks are control-centred (relative), so all models are
+scored by within-series deviations, on exactly the same samples.</p>"""
+        )
     run_figs = fig(f"run_{best['run_id']}", f"Best model: {best['run_id']}")
     run_figs += fig(f"run_{best['run_id']}_decade_bias", "Bias by age decade (test), best model")
     run_figs += fig(f"run_{best['run_id']}_tissue_mae", "Test MAE by tissue (best 25), best model")

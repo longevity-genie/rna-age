@@ -73,6 +73,7 @@
 | 20261110-0135-elasticnet-hvg5000-gtexmid | elasticnet | logCPM HVG 5000 | 12.82 | 13.40 | 0.64 | -0.53 | 0.37 | 8.11 | 15.59 | 0.53 |
 | 20261110-0051-ridge-hvg5000-gtexmid | ridge | logCPM HVG 5000 | 12.85 | 13.72 | 0.61 | -0.51 | 0.38 | 8.10 | 16.66 | 0.51 |
 | 20261110-0135-atlas-panel-ridge | ridge probe | Atlas panel log2TPM (no encoder) | 12.87 | 13.70 | 0.63 | -0.51 | 0.37 | 8.23 | 18.81 | 0.39 |
+| 20261110-0134-atlas-ft-u2 | Atlas fine-tune (last 2 blocks + head) | Atlas panel 4096 | 13.22 | 13.67 | 0.66 | -0.49 | 0.34 | 9.78 | 16.54 | 0.61 |
 | 20261110-0240-ens-mlp20k-7-cal | calibrated(20261110-0240-ens-mlp20k-7) | as base | 13.39 | 14.02 | 0.77 | -0.00 | 0.27 | 10.80 | 14.31 | 0.62 |
 | 20261110-0133-atlas-cls-hvg-ridge | ridge probe | Atlas CLS + HVG 1200 | 13.62 | 14.61 | 0.59 | -0.57 | 0.32 | 9.20 | 17.66 | 0.28 |
 | 20261110-0334-hgb-hvg5000-gtexmid | hgb | logCPM HVG 5000 | 13.70 | 13.81 | 0.65 | -0.61 | 0.36 | 8.56 | 16.50 | 0.58 |
