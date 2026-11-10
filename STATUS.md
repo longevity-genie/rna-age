@@ -3,7 +3,7 @@
 **Report page (private artifact, republished as results change):** https://claude.ai/artifact/TfY8RYwiVDLfm6pEwj81ic
 
 
-_Last update: 2026-11-10 13:35 CET (post-report follow-ups)._
+_Last update: 2026-11-10 15:20 CET (afternoon: health, composition, PRIMO, tabular foundation models)._
 
 ## Mode (Anton, 2026-11-10 ~00:10)
 Fully autonomous overnight: data → baselines → BulkFormer embeddings/probes → fine-tuning, logging every run
@@ -55,11 +55,21 @@ stop before Anton is back; 07:00 report, then keep updating; one tabbed artifact
   single-cell flags), waiting for the download.
 
 ## Running
-- Atlas fine-tune, last 6 blocks + head, 20k samples/epoch, all health states (`atlas-ft-u6-all`): val
-  12.09 → 10.24 → 9.97 (epochs 0–2); log `slurm/logs/rna-age-ft-u6-all-*.out`; checkpoints each epoch, resumable.
-- Done: Atlas fine-tune, last 4 blocks, all health states: val 9.58, test 10.39, best transfer (13.3 / 0.69).
+- Atlas fine-tune, last 4 blocks, all health states, **seed 1** (seed variance; second fine-tune for the
+  ensemble): val 12.35 → 10.81 → 10.62 → 10.26 → 10.34 → 10.00 (epoch 5); seed 0 reached 9.58.
+- TabICLv2 (in-context tabular foundation model) as an age regressor: on 200 PCs of the 20k log-CPM HVGs and on
+  200 PCs of the Atlas CLS; context 10k train samples, ≤ 200 per study (`rna-age tabfm`).
 
 ## Results so far (details: `docs/experiments.md`, `data/output/summary/experiments.parquet`)
+- **Health-aware clock (afternoon)**: MLP on 20k HVGs with a within-study ranking loss (cases older than their
+  study's controls) + disease head makes the case − control age gap on **held-out studies** significant:
+  aging-linked diseases +2.35 [0.61, 4.17] y (seed 0), +2.62 [0.64, 4.56] (seed 1), +2.34 [0.49, 4.27] (seed 2),
+  at control MAE 10.1–11.3; control-only / healthy-only models +0.8–1.1 y (n.s.). Neurodegenerative stays n.s.
+- **Composition vs within-cell-type (blood pseudobulk, 4 cohorts, 196–981 donors)**: equalising the cell mix
+  keeps the clock (r 0.85 → 0.78–0.85), composition alone carries little (0.20–0.43); CD4 T cells alone match
+  whole PBMC. The aging signal in blood is within cell types, mostly T cells.
+- **PRIMO (local, official scorer, 16 public tasks, nothing submitted)**: age fine-tunes match frozen Atlas
+  (mean per-task difference −0.007 / −0.005, within fold noise): no forgetting, no gain.
 - **Morning report**: `docs/reports/2026-11-10-overnight.md` (+ the report page linked at the top).
 - **Headline (13:35)**: 7-MLP ensemble + mean of the two all-health-states Atlas fine-tunes (last 4 and last 6
   blocks): val 8.70, **test MAE 9.20**, r 0.817, transfer 13.5 / 0.67.
@@ -136,10 +146,12 @@ stop before Anton is back; 07:00 report, then keep updating; one tabbed artifact
 - Bgee: GTEx inside Bgee (SRP012682) is skipped (same bins as our GTEx source).
 
 ## Next
-1. ARCHS4: when the download finishes, read sample metadata (light), parse ages, choose eligible samples,
-   extract their counts in a Slurm job.
-3. `ncbi_geo` targets + throttled fetch; curated GEO cohorts (Fleischer 2018, Shokhirev & Johnson 2021
-   series; a lookup is running) as `cohort` labels on ARCHS4/NCBI samples.
-4. Census pseudobulk (`census_pseudobulk`), Terekhova 2023.
-5. Splits by study, summary, overnight report.
-6. Clock controls (tAge, LongevityBench, ClockBase); then the BulkFormer stretch.
+1. Tabular foundation models on our splits: TabICLv2 running; Mitra-v2 (Apache-2.0), TabFM 1.1, GeneICL
+   (bulk-RNA in-context model, Oct 2026), LimiX-2 and TabPFN-3.5 next. **Blocked on Anton**: installing each new
+   external package is refused by the session's safety check until `.claude/settings.local.json` is in place
+   (prepared, copy from a terminal); TabPFN-3.5 also needs its licence accepted on Anton's HF account.
+2. Health-aware Atlas fine-tune (the ranking loss + disease head in `finetune.py`), then health ensemble.
+3. Composition: Terekhova cell-type pseudobulk; tissues; deconvolve bulk and test whether the disease gaps
+   survive composition adjustment.
+4. Seed-1 fine-tune into the fine-tune mean; re-check the headline.
+5. PRIMO submission only on Anton's go (HF login, model name, email).
