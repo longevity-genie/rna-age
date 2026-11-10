@@ -150,12 +150,9 @@ stop before Anton is back; 07:00 report, then keep updating; one tabbed artifact
 - Bgee: GTEx inside Bgee (SRP012682) is skipped (same bins as our GTEx source).
 
 ## Next
-1. Tabular foundation models on our splits (Anton's settings file is in place and was picked up live, 16:00):
-   TabICLv2 done (test 15.6–15.8: the 200-PC input is the bottleneck); TabFM 1.1 and GeneICL (4k context; 10k
-   ran out of GPU memory on 11 GB cards) running; Mitra-v2 and LimiX-2 wired in (`rna-age tabfm --model mitra2 |
-   limix2`), queued behind the GPU cap. **TabPFN-3.5 blocked on Anton**: the `tabpfn` package also requires a
-   Prior Labs API key (`TABPFN_TOKEN` from ux.priorlabs.ai, after accepting the licence there) besides the HF
-   gate; not bypassed.
+1. Tabular foundation models: **paused by Anton (2026-11-10 19:30)** after poor results (TabICLv2, GeneICL: test
+   MAE 15.6–16.3 vs 10.4 for our MLP; Mitra-v2 infeasible on 11 GB cards). TabFM 1.1 and LimiX-2 runs cancelled
+   mid-prediction; TabPFN-3.5 not pursued. Runner code stays (`rna-age tabfm`) for a later return.
 2. Health-aware Atlas fine-tune (the ranking loss + disease head in `finetune.py`), then health ensemble.
 3. Composition: Terekhova cell-type pseudobulk; tissues (lung, brain).
 4. Seed-1 fine-tune into the fine-tune mean; re-check the headline.
