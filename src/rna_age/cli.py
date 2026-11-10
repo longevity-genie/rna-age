@@ -130,12 +130,14 @@ def finetune(
     name: str = typer.Option("", help="run name (resumes an unfinished run of the same name)"),
     train_set: str = typer.Option("healthy", help="healthy (healthy-or-unknown) | all"),
     seed: int = typer.Option(0),
+    rank_weight: float = typer.Option(0.0, help="within-study case/control ranking loss weight (0 = off)"),
+    margin: float = typer.Option(3.0, help="ranking margin in years"),
 ) -> None:
     """Rung 4: fine-tune Atlas (GPU job, resumable)."""
     from rna_age.train.finetune import train
 
     train(unfreeze=unfreeze, epochs=epochs, max_train=max_train, cap_per_study=cap_per_study, batch=batch,
-          run_name=name or None, train_set=train_set, seed=seed)  # fmt: skip
+          run_name=name or None, train_set=train_set, seed=seed, rank_weight=rank_weight, margin=margin)  # fmt: skip
 
 
 @app.command("atlas-panel")

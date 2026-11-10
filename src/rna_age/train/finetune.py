@@ -54,6 +54,9 @@ def train(
     resume: str | None = None,
     train_set: str = "healthy",
     seed: int = 0,
+    rank_weight: float = 0.0,
+    margin: float = 3.0,
+    rank_pairs: int = 2,
 ) -> dict:
     import torch
     from bulkformer import load_atlas
@@ -77,6 +80,17 @@ def train(
     rng = np.random.default_rng(seed)
     va = m.filter((pl.col("split") == "val") & (pl.col("age_type") == "exact"))
     va = va.sample(min(3000, va.height), seed=0)
+    pair_rows = pair_age = None
+    if rank_weight > 0:  # within-study ranking loss (as the health MLP): a case's age gap exceeds its controls'
+        from rna_age.train.health import _pairs, health_table
+
+        ht = health_table().filter(pl.col("sample_id").is_in(ids))
+        pp = _pairs(ht, (ht["split"] == "train").fill_null(False).to_numpy(), aging_only=True, seed=seed)
+        sid = ht["sample_id"].to_numpy()
+        pair_rows = np.array([[pos[sid[a]], pos[sid[b]]] for a, b in pp], dtype=np.int64).reshape(-1, 2)
+        pair_age = ht["age_years"].to_numpy().astype(np.float32)[pp] if len(pp) else np.zeros((0, 2), np.float32)
+        log.info("ranking loss: %d case/control pairs from training studies (weight %g, margin %g)",
+                 len(pair_rows), rank_weight, margin)  # fmt: skip
 
     panel = pl.read_parquet(PANEL)["index"].to_numpy()
     model, _, _ = load_atlas(str(MODEL_DIR / "atlas"), device="cuda")
@@ -119,7 +133,7 @@ def train(
         interval = torch.relu(lo - pred) + torch.relu(pred - (hi + 1))
         return torch.where(kind, exact, interval).mean()
 
-    name = run_name or f"atlas-ft-u{unfreeze}"
+    name = run_name or f"atlas-ft-u{unfreeze}" + (f"-rank{rank_weight:g}" if rank_weight > 0 else "")
     ckpt_dir = Path(resume) if resume else None
     if ckpt_dir is None:  # a requeued job resumes its own unfinished run (same name, no predictions yet)
         for cand in sorted((INTERIM / "checkpoints").glob(f"*-{name}"), reverse=True):
@@ -144,7 +158,8 @@ def train(
              "train_set": "bulk train, healthy-or-unknown, exact + GTEx intervals", "unfreeze": unfreeze,
              "epochs": epochs, "lr_head": lr_head, "lr_body": lr_body, "batch": batch, "accum": accum,
              "cap_per_study": cap_per_study, "max_train": max_train, "precision": "fp16 autocast",
-             "health_filter": train_set, "seed": seed},
+             "health_filter": train_set, "seed": seed, "rank_weight": rank_weight, "margin": margin,
+             "rank_pairs_per_step": rank_pairs if rank_weight > 0 else 0},
         )  # fmt: skip
         ckpt_dir = INTERIM / "checkpoints" / run_dir.name
     ckpt_dir.mkdir(parents=True, exist_ok=True)
@@ -175,6 +190,12 @@ def train(
             b = perm[i : i + batch]
             loss = loss_fn(forward(rows[b], True), kind[b], y[b], lo[b], hi[b]) / accum
             scaler.scale(loss).backward()
+            if pair_rows is not None and len(pair_rows):  # separate backward: peak memory stays at one batch
+                k = rng.integers(0, len(pair_rows), rank_pairs)
+                pr = forward(pair_rows[k].T.reshape(-1), True).view(2, -1)
+                ya = torch.as_tensor(pair_age[k].T, device=dev)
+                gap = (pr[0] - ya[0]) - (pr[1] - ya[1])
+                scaler.scale(rank_weight * torch.relu(margin - gap).mean() / accum).backward()
             if (step + 1) % accum == 0:
                 scaler.unscale_(opt)
                 torch.nn.utils.clip_grad_norm_(list(head.parameters()) + body, 1.0)
@@ -209,4 +230,8 @@ def train(
     row = finish_run(run_dir, out, {"seconds": time.time() - t0, "best_val_mae": best,
                                     "host_gpu": os.environ.get("CUDA_VISIBLE_DEVICES")})  # fmt: skip
     log.info("run %s: %s", run_dir.name, {k: v for k, v in row.items() if k.startswith("test_")})
+    if rank_weight > 0:
+        from rna_age.train.health import evaluate_health
+
+        evaluate_health(run_dir.name, "pred")
     return row
