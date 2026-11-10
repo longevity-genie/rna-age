@@ -10,6 +10,7 @@ suppressPackageStartupMessages({
   library(Biobase)
 })
 args <- commandArgs(trailingOnly = TRUE)
+pdf(NULL)  # tAge draws diagnostics; do not write Rplots.pdf into the repository
 input_dir <- args[[1]]
 clock_dir <- args[[2]]
 

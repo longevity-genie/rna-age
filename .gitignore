@@ -12,3 +12,7 @@ data/output/*
 # cluster-specific settings never go in git
 slurm/env.local.sh
 slurm/logs/
+
+# R default graphics device output
+Rplots.pdf
+*.Rplots.pdf
