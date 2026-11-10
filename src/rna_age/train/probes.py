@@ -99,16 +99,20 @@ def run_probe(
     hidden: tuple[int, ...] = (512, 128),
     dropout: float = 0.2,
     train_set: str = "healthy",
+    restrict_to: str = "",
 ) -> dict:
     from rna_age.train.baselines import horvath, horvath_inv
 
     t0 = time.time()
     s = sample_table()
     s = s.with_columns(target=age_mid(s))
-    emb = load_embeddings("atlas")
+    emb = load_embeddings("latest" if features.startswith("latest") else "atlas")
+    if restrict_to == "latest" and not features.startswith("latest"):  # same samples as the Latest runs
+        s = s.join(load_embeddings("latest").select("sample_id"), on="sample_id", how="inner")
     s = s.join(emb, on="sample_id", how="inner")
     s = s.with_columns(split=pl.when(pl.col("is_pseudobulk")).then(pl.lit("transfer")).otherwise(pl.col("split")))
-    ecols = [c for c in emb.columns if c.startswith("e")]
+    prefix = {"latest": "s", "latestpanel": "p"}.get(features, "e")
+    ecols = [c for c in emb.columns if c.startswith(prefix) and c[1:].isdigit()]
     X = s.select(ecols).to_numpy().astype(np.float32)
     if features == "panel":  # the Atlas input panel itself (log2 TPM+1), no model: separates panel from encoder
         from rna_age.train.finetune import load_inputs
@@ -169,11 +173,12 @@ def run_probe(
         params = {"val_mae": float(np.mean(np.abs(pred[val] - y_years[val]))), "seed": seed}
     out = s.select([c for c in PRED_COLS if c in s.columns]).with_columns(pred=pl.Series(pred.astype(np.float64)))
     run_dir = new_run(
-        (f"{'tpm' if features == 'tpm' else ''}hvg{n_hvg}-{model}" if features in ("hvg", "tpm") else f"atlas-{features.replace('+', '-')}-{model}")
+        (f"{'tpm' if features == 'tpm' else ''}hvg{n_hvg}-{model}" if features in ("hvg", "tpm") else f"{'' if features.startswith('latest') else 'atlas-'}{features.replace('+', '-')}-{model}")
         + ("-horvath" if transform == "horvath" else "") + ("-interval" if interval else "")
         + ("-studyw" if study_weights else "") + ("" if hidden == (512, 128) else "-h" + "x".join(map(str, hidden)))
-        + ("-trainall" if train_set == "all" else "") + (f"-seed{seed}" if seed else ""),
-        {"model": f"{model} probe", "features": "Atlas panel log2TPM (no encoder)" if features == "panel" else f"logCPM HVG {n_hvg}" if features == "hvg" else f"log2 TPM HVG {n_hvg}" if features == "tpm" else f"Atlas CLS{' + HVG ' + str(n_hvg) if features == 'cls+hvg' else ''}",
+        + ("-trainall" if train_set == "all" else "") + ("-onlatest" if restrict_to == "latest" else "")
+        + (f"-seed{seed}" if seed else ""),
+        {"model": f"{model} probe", "features": "Latest pooled sample embedding" if features == "latest" else "Latest gene embeddings pooled over panel" if features == "latestpanel" else "Atlas panel log2TPM (no encoder)" if features == "panel" else f"logCPM HVG {n_hvg}" if features == "hvg" else f"log2 TPM HVG {n_hvg}" if features == "tpm" else f"Atlas CLS{' + HVG ' + str(n_hvg) if features == 'cls+hvg' else ''}",
          "params": params, "target_transform": transform, "interval_loss": interval, "study_weights": study_weights,
          "hidden": list(hidden), "dropout": dropout, "train_set": ("bulk train, all health states" if train_set == "all" else "bulk train, healthy-or-unknown") + ", exact" + (" + GTEx midpoints" if gtex_midpoints else ""),
          "n_train": int(train.sum())},

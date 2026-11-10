@@ -105,6 +105,7 @@ def probe(
     hidden: str = typer.Option("512,128", help="MLP hidden sizes"),
     dropout: float = typer.Option(0.2),
     train_set: str = typer.Option("healthy", help="healthy (healthy-or-unknown) | all (incl. disease)"),
+    restrict_to: str = typer.Option("", help="latest: only samples with Latest embeddings"),
 ) -> None:
     """Probe / MLP on Atlas CLS, panel genes or HVGs; writes a run under data/output/runs/."""
     from rna_age.train.probes import run_probe
@@ -112,6 +113,7 @@ def probe(
     run_probe(
         features, model, n_hvg, transform=transform, seed=seed, interval=interval, study_weights=study_weights,
         hidden=tuple(int(h) for h in hidden.split(",")), dropout=dropout, train_set=train_set,
+        restrict_to=restrict_to,
     )  # fmt: skip
 
 
