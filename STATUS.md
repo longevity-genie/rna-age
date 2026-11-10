@@ -3,7 +3,7 @@
 **Report page (private artifact, republished as results change):** https://claude.ai/artifact/TfY8RYwiVDLfm6pEwj81ic
 
 
-_Last update: 2026-11-10 03:40 CET (overnight session)._
+_Last update: 2026-11-10 06:10 CET (overnight session; 07:00 report written)._
 
 ## Mode (Anton, 2026-11-10 ~00:10)
 Fully autonomous overnight: data → baselines → BulkFormer embeddings/probes → fine-tuning, logging every run
@@ -55,12 +55,16 @@ stop before Anton is back; 07:00 report, then keep updating; one tabbed artifact
   single-cell flags), waiting for the download.
 
 ## Running
-- Atlas fine-tuning, last 4 blocks + head: val MAE 14.14 → 11.59 → 10.79 (epochs 0–2), resumed for epochs 3–4,
-  then evaluation predictions (ETA ~05:45). Last 2 blocks (plateau 13.27): final evaluation predictions.
-- BulkFormer-Latest frozen embeddings, 2 GPU shards (test + val + transfer + 8k train per source), ETA ~05:00;
-  then Latest probes vs the HVG MLP on the same samples.
+- Atlas fine-tune, last 6 blocks + head, 20k samples/epoch, all health states (`atlas-ft-u6-all`), log
+  `slurm/logs/rna-age-ft-u6-all-*.out`; checkpoints each epoch, resumable.
 
 ## Results so far (details: `docs/experiments.md`, `data/output/summary/experiments.parquet`)
+- **Morning report**: `docs/reports/2026-11-10-overnight.md` (+ the report page linked at the top).
+- **Headline**: 7-model MLP ensemble on 20k log-CPM HVGs trained on all health states: val 9.00, **test MAE
+  9.52**, r 0.793; + fine-tuned Atlas (last 4 blocks): test 9.45, r 0.817. Atlas fine-tune alone 10.85 (r 0.763),
+  best pseudobulk transfer (13.8 / 0.66). Frozen Atlas and frozen Latest add nothing over expression.
+- Clocks on identical samples (within-stratum r): tAge 0.33 / 0.32 (ARCHS4 / GTEx) vs ours 0.70 / 0.77;
+  ClockBase 0.23 (chronological) vs ours 0.66.
 - Data: 99,559 eligible de-duplicated samples (ARCHS4 74,293 exact; GTEx 19,461 binned; Census 3,787 +
   Terekhova 317 pseudobulk); parsed ages vs Shokhirev 2021 curation: 5,370 / 5,371 within 1 year.
 - Reference (constant train median): test MAE 18.2 y.

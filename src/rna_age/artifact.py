@@ -281,6 +281,9 @@ MLP ensemble: {cite("ens-mlp20k-5seeds")}.</li>
 <li><b>Frozen BulkFormer-Atlas adds nothing.</b> Ridge on Atlas CLS {cite("atlas-cls-ridge$")} vs ridge on its own 4,096
 input genes {cite("atlas-panel-ridge$")}; CLS + 20k HVG MLP {cite("atlas-cls-hvg-mlp-trainall")} vs the HVG MLP
 ensemble {cite("ens-mlp20k-trainall-7")}: within the ±0.5-year run-to-run noise or worse.</li>
+<li><b>Frozen BulkFormer-Latest also adds nothing.</b> On matched samples (16k training samples), an MLP on Latest's
+pooled embedding reaches test MAE {cite("-latest-mlp$")} and on panel-pooled gene embeddings {cite("latestpanel-mlp$")},
+vs {cite("hvg20000-mlp-onlatest")} for the 20k-HVG MLP on the same samples.</li>
 <li><b>Gene-length TPM vs UMI pseudobulk.</b> TPM features: best bulk test MAE {cite("0220-tpmhvg20000-mlp")} but
 transfer to 10x pseudobulk collapses (r {cite("0220-tpmhvg20000-mlp", "transfer_exact_pearson_r", 2)}); log-CPM keeps
 transfer at r {cite("ens-mlp20k-5seeds", "transfer_exact_pearson_r", 2)}. Atlas normalises every sample by gene length,
@@ -359,16 +362,22 @@ tAge compared on within-stratum deltas.</li>
     )
     tabs["next"] = (
         "Next steps",
-        f"""
+        """
 <ol>
-<li>Finish the Atlas fine-tuning runs and compare with the ridge bar on the same split
-{("(best Atlas run so far: " + esc(best_atlas["run_id"]) + ", test MAE " + fmt(best_atlas["test_exact_mae"]) + ")") if best_atlas else ""}.</li>
-<li>Close the bulk → pseudobulk gap: train on bulk + pseudobulk, add assay / suspension-type covariates,
-or per-dataset feature centring.</li>
-<li>Reduce regression to the mean: Horvath target for all models, age-bias correction fitted on validation.</li>
-<li>BulkFormer-Latest: full-transcriptome gene embeddings pooled over HVGs as a second feature set.</li>
-<li>tAge and ClockBase on the ARCHS4 test set (with / without their training series); disease age gap.</li>
-<li>Variants: healthy-only vs all, tissue-conditioned head, study weighting, 3 seeds for final numbers.</li>
+<li><b>Longer, deeper Atlas fine-tuning.</b> Unfreezing 4 blocks reached validation MAE ≈ 10.4 after only 5 × 12k
+samples and was still improving; a run with 6 blocks, 20k samples per epoch and all health states is in progress.
+Then all blocks with layer-wise learning-rate decay, 3 seeds.</li>
+<li><b>Fix the input normalisation for cross-assay use.</b> Atlas divides every sample by gene length; for 10x UMI
+pseudobulk this is wrong. Prepare UMI data without the length step, or fine-tune with both assays and an assay
+token.</li>
+<li><b>Use all labelled data.</b> Disease samples help (−0.8 y); add GTEx through the interval loss and pseudobulk
+as a separate domain with its own head or adapter.</li>
+<li><b>Beat the bar on the same split.</b> The 7-model MLP ensemble on 20k log-CPM HVGs (test MAE in the Results tab)
+is what a fine-tuned BulkFormer must beat alone; combining both already helps.</li>
+<li><b>Close evaluation gaps.</b> A pseudobulk test split (all pseudobulk studies landed in train/val), disease age
+acceleration with matched controls per study (not significant yet), and the regression to the mean.</li>
+<li><b>Data.</b> NCBI-generated GEO counts (download page behind a reCAPTCHA from the cluster), more CELLxGENE
+datasets (tier 2), recount3 BioSample ages.</li>
 </ol>
 """,
     )
