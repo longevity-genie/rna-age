@@ -250,6 +250,7 @@ def tabfm_cmd(
     n_components: int = typer.Option(200),
     n_context: int = typer.Option(10000, help="prompt rows"),
     cap_per_study: int = typer.Option(200),
+    chunk: int = typer.Option(2048, help="query rows per predict call (GPU memory)"),
     seed: int = typer.Option(0),
     name: str | None = typer.Option(None),
 ) -> None:
@@ -257,7 +258,7 @@ def tabfm_cmd(
     from rna_age.train.tabfm import run_tabfm
 
     row = run_tabfm(model, features, n_components=n_components, n_context=n_context, cap_per_study=cap_per_study,
-                    seed=seed, name=name)  # fmt: skip
+                    chunk=chunk, seed=seed, name=name)  # fmt: skip
     print({k: v for k, v in row.items() if k.startswith(("val_exact", "test_exact", "transfer_exact"))})
 
 
