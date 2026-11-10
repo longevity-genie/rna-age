@@ -346,3 +346,7 @@ evaluation samples), so absolute numbers are worse than the full-data runs; comp
 | **MLP, 20k log-CPM HVG, same samples** | **12.78** | **14.02** | **0.580** | **0.352** | **18.8 / 0.49** |
 - Frozen Latest, like frozen Atlas, carries less age information than the expression it is computed from.
   Across both released models, the value of BulkFormer for age shows up only when the encoder is fine-tuned.
+
+### 2026-11-10 06:35 · Follow-up fine-tunes (after the morning report)
+- Last 4 blocks, all health states (`atlas-ft-u4-all`): epoch 0 val MAE 12.80 (healthy-only run: 14.14 at epoch 0).
+- Last 6 blocks, 20k samples/epoch, all health states (`atlas-ft-u6-all`): epoch 0 in progress (~67 min/epoch).
