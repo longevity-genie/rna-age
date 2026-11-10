@@ -126,12 +126,13 @@ def finetune(
     batch: int = typer.Option(4),
     name: str = typer.Option("", help="run name (resumes an unfinished run of the same name)"),
     train_set: str = typer.Option("healthy", help="healthy (healthy-or-unknown) | all"),
+    seed: int = typer.Option(0),
 ) -> None:
     """Rung 4: fine-tune Atlas (GPU job, resumable)."""
     from rna_age.train.finetune import train
 
     train(unfreeze=unfreeze, epochs=epochs, max_train=max_train, cap_per_study=cap_per_study, batch=batch,
-          run_name=name or None, train_set=train_set)  # fmt: skip
+          run_name=name or None, train_set=train_set, seed=seed)  # fmt: skip
 
 
 @app.command("atlas-panel")
@@ -226,6 +227,15 @@ def compare_clockbase(run_id: str) -> None:
     from rna_age.clocks import compare_clockbase as _cmp
 
     print(_cmp(run_id))
+
+
+@app.command()
+def blend(run_a: str, run_b: str, name: str = typer.Option("blend")) -> None:
+    """Weighted mean of two runs; weight chosen on validation."""
+    from rna_age.train.ensemble import blend as _blend
+
+    row = _blend(run_a, run_b, name)
+    print({k: v for k, v in row.items() if k.startswith(("val_exact", "test_exact", "transfer_exact", "blend"))})
 
 
 @app.command()

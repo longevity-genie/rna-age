@@ -53,6 +53,7 @@ def train(
     run_name: str | None = None,
     resume: str | None = None,
     train_set: str = "healthy",
+    seed: int = 0,
 ) -> dict:
     import torch
     from bulkformer import load_atlas
@@ -62,7 +63,7 @@ def train(
     patch_atlas_attention()
 
     t0 = time.time()
-    torch.manual_seed(0)
+    torch.manual_seed(seed)
     ids, X = load_inputs()
     pos = {s: i for i, s in enumerate(ids)}
     m = pl.read_parquet(INTERIM / "samples_all.parquet").filter(pl.col("sample_id").is_in(ids))
@@ -73,7 +74,7 @@ def train(
         (pl.col("split") == "train") & (pl.col("is_healthy").fill_null(True) | (train_set == "all"))  # healthy or unknown (or all)
         & pl.col("age_type").is_in(["exact", "binned"])
     )  # fmt: skip
-    rng = np.random.default_rng(0)
+    rng = np.random.default_rng(seed)
     va = m.filter((pl.col("split") == "val") & (pl.col("age_type") == "exact"))
     va = va.sample(min(3000, va.height), seed=0)
 
@@ -143,7 +144,7 @@ def train(
              "train_set": "bulk train, healthy-or-unknown, exact + GTEx intervals", "unfreeze": unfreeze,
              "epochs": epochs, "lr_head": lr_head, "lr_body": lr_body, "batch": batch, "accum": accum,
              "cap_per_study": cap_per_study, "max_train": max_train, "precision": "fp16 autocast",
-             "health_filter": train_set},
+             "health_filter": train_set, "seed": seed},
         )  # fmt: skip
         ckpt_dir = INTERIM / "checkpoints" / run_dir.name
     ckpt_dir.mkdir(parents=True, exist_ok=True)
@@ -160,7 +161,7 @@ def train(
 
     bad = 0
     for epoch in range(start_epoch, epochs):
-        ep = tr.with_columns(_r=pl.col("sample_id").hash(seed=epoch)).sort("_r")
+        ep = tr.with_columns(_r=pl.col("sample_id").hash(seed=epoch + 1000 * seed)).sort("_r")
         ep = ep.with_columns(_k=pl.int_range(pl.len()).over("study_id")).filter(pl.col("_k") < cap_per_study)
         ep = ep.head(max_train)
         rows = np.array([pos[s] for s in ep["sample_id"].to_list()])
