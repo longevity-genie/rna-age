@@ -13,11 +13,11 @@ _Written 2026-11-10 ~06:10 (cluster clock); updated if results change. Numbers c
 |---|---|---|---|
 | ARCHS4 (file of 2026-11-06, 64 GB) | GEO/SRA human bulk RNA-seq, ages parsed from `characteristics_ch1` | 74,293 exact (+795 binned, 81 censored), 1,676 studies | exact |
 | GTEx v10 (public) | 68 tissues, 946 donors | 19,461 | 10-year bins |
-| CELLxGENE Census LTS 2025-11-08 | donor × tissue pseudobulk, 12 datasets (OneK1K, AIDA, HLCA, …) | 2,958 exact (+71 binned/censored) | exact (dev. stage) |
+| CELLxGENE Census LTS 2025-11-08 | donor × tissue pseudobulk, 14 datasets (OneK1K, AIDA, HLCA, PsychENCODE brain, …) | 3,787 exact (+325 binned/censored) | exact (dev. stage) |
 | Terekhova 2023 (HCA copy) | PBMC pseudobulk per tube, 166 donors | 317 | exact |
 | Bgee 15.2 | curated healthy libraries | 825 exact + 428 decade bins (753 already in ARCHS4) | exact / binned |
 
-- **98,476 eligible, de-duplicated samples** with study-grouped splits (train 66,609 / val 18,413 / test
+- **99,559 eligible, de-duplicated samples** with study-grouped splits (train 67,692 / val 18,413 / test
   13,454); the brief's target (≥ 20,000 exact-age samples from ≥ 2 independent sources + GTEx binned) is met.
 - Label check: parsed ARCHS4 ages agree with the independent Shokhirev & Johnson 2021 curation within 1 year
   for 5,370 / 5,371 overlapping samples.
@@ -69,7 +69,13 @@ Latest pooled MLP test 16.08 (r 0.48), Latest panel-pooled 16.08 (r 0.48), 20k H
   (69 studies): not significant.
 - Run-to-run noise ≈ 0.5 y test MAE (same data, same seed); conclusions use ensembles.
 
-## 4. Problems and decisions
+## 4. Still running at report time
+
+- Atlas fine-tune, last 6 blocks + head, 20k samples per epoch, all health states (`atlas-ft-u6-all`); it
+  checkpoints every epoch and resumes after a requeue; results will be appended to `docs/experiments.md`
+  and the report page.
+
+## 4b. Problems and decisions
 
 - NCBI's GEO download endpoint now answers this client with a reCAPTCHA page; NCBI-generated counts are parked
   (GEO metadata text still works). We do not work around bot protection.
@@ -79,6 +85,12 @@ Latest pooled MLP test 16.08 (r 0.48), Latest panel-pooled 16.08 (r 0.48), 20k H
   Four chosen datasets are not in that release and were skipped (release stays pinned).
 - GPUs are RTX 2080 Ti (11 GB, no native bf16) → fp16 autocast; Atlas's all-true attention mask forced the
   full-matrix SDPA kernel, patched at runtime (identical maths).
+- Health labels: `ctrl`/`HC`/`non-demented` were read as diseases and study-design labels (`discovery`, …) as
+  disease names; fixed with tests and re-parsed (runs after 02:35 use the corrected labels).
+- A Latest embedding shard and an Atlas one crashed on samples with zero counts over the model vocabulary;
+  such samples are now skipped and logged.
+- A 54 MB R diagnostics PDF (`Rplots.pdf`) slipped into three commits before it was ignored; history was not
+  rewritten (Anton's rule), so it stays in the history.
 - tAge has no human-only clock; its multispecies clocks are relative (centred per dataset × tissue), so the
   comparison uses age deltas within strata.
 
