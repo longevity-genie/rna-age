@@ -44,7 +44,7 @@ Local scoring done (16 public tasks, no gain over frozen Atlas). Submitting is p
 
 ## RM6 — TabPFN-3.5 arm
 
-**State:** waits until 2026-11-11: a Prior Labs key (`TABPFN_TOKEN`) from Anton, asked in chat · **Owner:** runner
+**State:** blocked: desk #10 (default: comparison dropped) · **Owner:** runner
 
 The `tabpfn` package needs a Prior Labs API key besides the HF gate; not bypassed.
 
