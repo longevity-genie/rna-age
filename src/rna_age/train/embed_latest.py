@@ -87,7 +87,12 @@ def embed(sources: list[str], shard: int = 0, n_shards: int = 1, chunk: int = 64
             t0 = time.time()
             part = ids[start : start + chunk]
             frame = _frame(source, part)
-            frame = frame.loc[frame.sum(axis=1) > 0]
+            # samples with no counts on Latest's vocabulary cannot be normalised: skip (logged)
+            matched = frame.columns.isin(vocab.ensembl_gene)
+            ok = frame.loc[:, matched].sum(axis=1) > 0
+            if (~ok).any():
+                log.warning("%s: skipping %d samples with zero matched library", source, int((~ok).sum()))
+            frame = frame.loc[ok]
             part = list(frame.index)
             x, _ = prepare_latest_input(frame, vocab, input_scale="counts")
             s_emb, p_emb = _encode(model, x, sel, precision)
