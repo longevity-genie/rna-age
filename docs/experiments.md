@@ -402,3 +402,29 @@ mean age gap (pred − age, minus the control residual trend); mean over studies
   the ≤ 1 y MAE budget, so the head acts as a regulariser rather than as an additive term.
 - The all-health-states headline model trains on disease samples and shows smaller gaps (autoimmune +1.5).
 - **Next**: ranking weight 3, seeds for the best variant; then the same loss in Atlas fine-tuning.
+- Seeds / ranking weight (all with disease head; held-out studies): aging-linked gap rank 1 seed 1 **+2.62
+  [0.64, 4.56]**, seed 2 +2.34 [0.49, 4.27]; rank 3 +2.64 [0.52, 5.00]; control test MAE 10.1–10.6. The effect is
+  stable across seeds and costs no chronological accuracy relative to the control-only model.
+
+### 2026-11-10 14:55 · Composition vs within-cell-type aging signal (blood, single-cell pseudobulk)
+Per donor: broad cell classes from Census `cell_type`; clocks trained inside each cohort (ridge on log-CPM of 3k
+HVGs chosen in-fold, 5-fold CV grouped by donor); Pearson r with age on held-out donors (`rna-age composition`).
+
+| cohort (donors) | natural PBMC | fixed composition (own profiles, cohort-mean mix) | composition only (mean profiles, own mix) | proportions only | CD4 T alone | CD8 T alone | B | NK | monocyte |
+|---|---|---|---|---|---|---|---|---|---|
+| OneK1K (981) | 0.85 | 0.78 | 0.43 | 0.34 | 0.83 | 0.75 | 0.47 | 0.47 | 0.39 |
+| AIDA (625) | 0.85 | **0.85** | 0.20 | 0.35 | **0.86** | 0.81 | 0.58 | 0.70 | 0.66 |
+| SLE + controls (261) | 0.82 | 0.80 | 0.32 | 0.19 | 0.80 | 0.71 | 0.48 | 0.48 | 0.53 |
+| COVID (196) | 0.64 | 0.67 | 0.23 | 0.26 | – | 0.72 | 0.52 | 0.48 | 0.55 |
+- In blood the age signal is overwhelmingly within cell types: equalising the cell mix leaves the clock almost
+  unchanged, while composition alone carries little. T cells (CD4, then CD8) carry most of it; a CD4 T pseudobulk
+  alone matches whole PBMC.
+- **Next**: tissues (lung, brain) and bulk: deconvolve bulk samples with these references and test whether the
+  disease age gaps survive adjustment for estimated composition.
+
+### 2026-11-10 14:55 · PRIMO preparation
+- `rna-age fetch primo`: the 44 bulk datasets (6,390 samples) + public task labels at the leaderboard's data
+  revision (`4b5aaaf9`), sha256-verified. `rna-age primo-embed`: frozen Atlas and our age fine-tunes (u4-all,
+  u6-all) with the authors' PRIMO protocol → `data/output/primo/submission_*.parquet`.
+- Local scoring with the official `primo evaluate` needs installing and running the external primo-eval code,
+  which the session's safety check blocked pending Anton's approval; leaderboard submission needs Anton's HF token.
