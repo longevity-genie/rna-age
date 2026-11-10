@@ -3,7 +3,7 @@
 **Report page (private artifact, republished as results change):** https://claude.ai/artifact/TfY8RYwiVDLfm6pEwj81ic
 
 
-_Last update: 2026-11-10 07:10 CET (morning report written; follow-up fine-tunes running)._
+_Last update: 2026-11-10 10:30 CET (post-report follow-ups)._
 
 ## Mode (Anton, 2026-11-10 ~00:10)
 Fully autonomous overnight: data → baselines → BulkFormer embeddings/probes → fine-tuning, logging every run
@@ -57,11 +57,13 @@ stop before Anton is back; 07:00 report, then keep updating; one tabbed artifact
 ## Running
 - Atlas fine-tune, last 6 blocks + head, 20k samples/epoch, all health states (`atlas-ft-u6-all`): val
   12.09 → 10.24 → 9.97 (epochs 0–2); log `slurm/logs/rna-age-ft-u6-all-*.out`; checkpoints each epoch, resumable.
-- Atlas fine-tune, last 4 blocks + head, all health states (`atlas-ft-u4-all`): val 12.80 → 10.81 → 10.45 → 10.60 → 9.73 → 9.56 (epochs 0–5; predicting).
+- Done: Atlas fine-tune, last 4 blocks, all health states: val 9.58, test 10.39, best transfer (13.3 / 0.69).
 
 ## Results so far (details: `docs/experiments.md`, `data/output/summary/experiments.parquet`)
 - **Morning report**: `docs/reports/2026-11-10-overnight.md` (+ the report page linked at the top).
-- **Headline**: 7-model MLP ensemble on 20k log-CPM HVGs trained on all health states: val 9.00, **test MAE
+- **New headline (10:25)**: 7-model MLP ensemble + all-health-states Atlas fine-tune (mean): val 8.72, **test MAE
+  9.26**, r 0.816, transfer 13.6 / 0.67.
+- Earlier headline: 7-model MLP ensemble on 20k log-CPM HVGs trained on all health states: val 9.00, **test MAE
   9.52**, r 0.793; + fine-tuned Atlas (last 4 blocks): test 9.45, r 0.817. Atlas fine-tune alone 10.85 (r 0.763),
   best pseudobulk transfer (13.8 / 0.66). Frozen Atlas and frozen Latest add nothing over expression.
 - Clocks on identical samples (within-stratum r): tAge 0.33 / 0.32 (ARCHS4 / GTEx) vs ours 0.70 / 0.77;

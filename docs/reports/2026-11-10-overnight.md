@@ -7,6 +7,15 @@ _Written 2026-11-10 ~06:10 (cluster clock); updated if results change. Numbers c
 `report_tables.md` there) and the run directories; the experiment log with every decision is
 `docs/experiments.md`._
 
+## Update 10:25 (after the report)
+
+Fine-tuning the last 4 Atlas blocks on all health states (6 × 12k samples): val 9.58, test MAE 10.39, r 0.782,
+best pseudobulk transfer of any model (MAE 13.3, r 0.69). Averaged with the 7-model MLP ensemble it is the new
+best model on validation: **val 8.72, test MAE 9.26 (median 6.56), r 0.816**, transfer 13.6 / 0.67. Same
+samples vs clocks (within-stratum r): ARCHS4 0.71 vs tAge 0.33, GTEx 0.74 vs 0.32, ClockBase series 0.69 vs
+0.23. A fine-tuned BulkFormer is now part of the selected model. Last-6-blocks fine-tune still running
+(val 9.97 after 3 epochs).
+
 ## 1. What we have: human RNA-seq samples with donor age
 
 | source | what | eligible samples with age | age type |

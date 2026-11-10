@@ -350,3 +350,17 @@ evaluation samples), so absolute numbers are worse than the full-data runs; comp
 ### 2026-11-10 06:35 · Follow-up fine-tunes (after the morning report)
 - Last 4 blocks, all health states (`atlas-ft-u4-all`): val MAE 12.80 → 10.81 → 10.45 → 10.60 → 9.73 → **9.56** after epochs 0–5 (final; evaluation predictions running) (healthy-only run: 14.14 → 11.59 → 10.79).
 - Last 6 blocks, 20k samples/epoch, all health states (`atlas-ft-u6-all`): val MAE 12.09 → 10.24 → **9.97** after epochs 0–2 (~71 min/epoch).
+
+### 2026-11-10 10:25 · Fine-tune on all health states (last 4 blocks) → part of the new headline
+| run | val MAE | test MAE | test median AE | test r | GTEx bin hit | transfer MAE / r |
+|---|---|---|---|---|---|---|
+| Atlas fine-tune, last 4 blocks, all health states (6 × 12k samples) | 9.58 | 10.39 | 7.63 | 0.782 | 0.322 | **13.3 / 0.69** |
+| (earlier) same, healthy-or-unknown only | 10.35 | 10.85 | 8.56 | 0.763 | 0.307 | 13.8 / 0.66 |
+| MLP 20k HVG, all health states, 7-model ensemble | 9.00 | 9.52 | 6.68 | 0.793 | 0.459 | 15.2 / 0.57 |
+| **mean of the two above (new headline)** | **8.72** | **9.26** | **6.56** | **0.816** | 0.384 | 13.6 / 0.67 |
+- Disease samples help fine-tuning as they help the MLP. The fine-tuned Atlas has the best single-model transfer
+  to pseudobulk, and combining it with the expression MLP is now the best model on validation, so a fine-tuned
+  BulkFormer is part of the selected model.
+- Same samples, within-stratum relative-age r: ARCHS4 0.711 vs tAge 0.331; GTEx 0.743 vs 0.316; ClockBase series
+  0.692 vs 0.228 / 0.302. Fine-tune alone: ARCHS4 0.632, GTEx 0.532.
+- Last 6 blocks + head (all health states) continues: val 12.09 → 10.24 → 9.97 (epochs 0–2).
