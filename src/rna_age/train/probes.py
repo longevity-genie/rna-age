@@ -129,7 +129,7 @@ def run_probe(
             genes = [g for g, ln in zip(genes, lens, strict=True) if ln == ln and ln > 0]
             lens = lens[np.isfinite(lens) & (lens > 0)]
         counts = load_matrix(s.select("sample_id", "source"), genes)
-        lc = log_tpm(counts, lens) if features == "tpm" else log_cpm(counts)
+        lc = log_tpm(counts, lens, umi_rows=s["is_pseudobulk"].to_numpy()) if features == "tpm" else log_cpm(counts)
         del counts
         hvg = select_hvg(lc[train][: min(20000, int(train.sum()))], genes, n_hvg)
         gi = [genes.index(g) for g in hvg]

@@ -103,9 +103,15 @@ def gene_lengths(genes: list[str]) -> np.ndarray:
     return np.array([lens.get(g, np.nan) for g in genes], dtype=np.float64)
 
 
-def log_tpm(counts: np.ndarray, lengths: np.ndarray) -> np.ndarray:
-    """log2(TPM + 1) over the genes with a known length (BulkFormer's normalisation, on our gene axis)."""
+def log_tpm(counts: np.ndarray, lengths: np.ndarray, umi_rows: np.ndarray | None = None) -> np.ndarray:
+    """log2(TPM + 1) over the genes with a known length (BulkFormer's normalisation, on our gene axis).
+
+    ``umi_rows`` marks 3'/5'-tag UMI samples (10x pseudobulk): their counts are not proportional to gene length,
+    so they are not divided by it (TPM reduces to CPM on the same gene set).
+    """
     rate = counts / (lengths[None, :] / 1000.0)
+    if umi_rows is not None and umi_rows.any():
+        rate[umi_rows] = counts[umi_rows]
     tot = rate.sum(axis=1, keepdims=True)
     tot[tot == 0] = 1
     return np.log2(rate / tot * 1e6 + 1).astype(np.float32)
