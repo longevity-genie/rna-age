@@ -300,12 +300,13 @@ def train_health_cmd(
 def composition(
     dataset_id: str,
     mapping: str = typer.Option("broad", help="broad (blood classes) | cell_type (the dataset's own labels)"),
+    null_seed: int | None = typer.Option(None, help="shuffle donors' ages with this seed (null check)"),
 ) -> None:
     """Composition vs within-cell-type age signal for one cell-type-pseudobulked Census dataset."""
     from rna_age.train.composition import analyse
 
     with __import__("polars").Config(tbl_rows=30, fmt_str_lengths=40):
-        print(analyse(dataset_id, mapping=mapping))
+        print(analyse(dataset_id, mapping=mapping, null_seed=null_seed))
 
 
 @app.command("primo-embed")

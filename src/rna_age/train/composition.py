@@ -79,6 +79,7 @@ def analyse(
     mapping: str = "broad",
     n_classes: int = 12,
     n_major: int = 5,
+    null_seed: int | None = None,
 ):
     """``mapping="broad"``: blood classes (``BROAD``); ``"cell_type"``: the dataset's own labels (tissues), the
     ``n_classes`` most abundant kept (the rest pooled as "other"), the ``n_major`` most abundant as ``major``."""
@@ -111,6 +112,8 @@ def analyse(
         P[dix[don], cix[cl]] += M[row]
         N[dix[don], cix[cl]] += nc
     age = g.group_by("donor").agg(pl.col("age").first()).sort("donor")["age"].to_numpy()
+    if null_seed is not None:  # null check: donors' ages shuffled, so every representation should give r ≈ 0
+        age = np.random.default_rng(null_seed).permutation(age)
     groups = np.arange(len(donors))
     res = []
 
@@ -145,7 +148,7 @@ def analyse(
     out = pl.DataFrame(res)
     OUTPUT.joinpath("summary").mkdir(parents=True, exist_ok=True)
     out = out.with_columns(mapping=pl.lit(mapping))
-    tag = dataset_id[:8] + ("" if mapping == "broad" else f"_{mapping}")
+    tag = dataset_id[:8] + ("" if mapping == "broad" else f"_{mapping}") + ("" if null_seed is None else "_null")
     out.write_parquet(OUTPUT / "summary" / f"composition_{tag}.parquet")
     frac_df = pl.DataFrame({"donor": donors, "age": age}).with_columns([pl.Series(c, frac[:, cix[c]]) for c in classes])
     frac_df.write_parquet(OUTPUT / "summary" / f"composition_fractions_{tag}.parquet")

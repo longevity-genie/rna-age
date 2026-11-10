@@ -524,4 +524,5 @@ abundant as the counterfactual classes); ridge clock, 5-fold CV by donor, Pearso
   the composition alone carries about half of r. Glia alone (oligodendrocytes, astrocytes) predict age as well as
   whole tissue. In the 0–85 cohort composition alone is stronger (proportions r 0.64), as development shifts it.
 - Lung: too few donors for the counterfactuals to settle anything.
-- Gate: these are CV correlations on held-out donors; no shuffled-age null run yet (planned before any headline).
+- Null check (`--null-seed 0`, donors' ages shuffled), MSSM brain: natural r −0.01, proportions −0.01, fixed
+  composition 0.01, composition only 0.00 (vs 0.82 / 0.42 / 0.82 / 0.41 on the real ages): the CV clock does not leak.
