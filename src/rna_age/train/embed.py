@@ -122,8 +122,8 @@ def embed(sources: list[str], shard: int = 0, n_shards: int = 1, chunk: int = 25
         done: set[str] = set()
         for f in out_dir.glob("*.parquet"):
             done.update(pl.read_parquet(f, columns=["sample_id"])["sample_id"].to_list())
-        ids_all = [i for i in ids_all if i not in done]
-        ids = ids_all[shard::n_shards]
+        # shard the full fixed ordering first, then skip what is done (shards may start at different times)
+        ids = [i for i in ids_all[shard::n_shards] if i not in done]
         tag = f"n{n_shards}-s{shard:02d}-{len(done)}"
         log.info("%s: %d already embedded, %d to do in this shard", source, len(done), len(ids))
         for c, start in enumerate(range(0, len(ids), chunk)):

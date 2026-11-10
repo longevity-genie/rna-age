@@ -78,7 +78,9 @@ def embed(sources: list[str], shard: int = 0, n_shards: int = 1, chunk: int = 64
         done: set[str] = set()
         for f in out_dir.glob("*.parquet"):
             done.update(pl.read_parquet(f, columns=["sample_id"])["sample_id"].to_list())
-        ids = [i for i in sdf["sample_id"].to_list() if i not in done][shard::n_shards]
+        # shard the full fixed ordering first, then skip what is done, so shards started at different times
+        # never overlap or leave gaps
+        ids = [i for i in sdf["sample_id"].to_list()[shard::n_shards] if i not in done]
         tag = f"n{n_shards}-s{shard:02d}-{len(done)}"
         log.info("%s: %d done, %d to do in this shard", source, len(done), len(ids))
         for c, start in enumerate(range(0, len(ids), chunk)):
