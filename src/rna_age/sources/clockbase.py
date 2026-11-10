@@ -60,7 +60,8 @@ def parse() -> None:
         for rec in records:
             sid = rec.get("sample_id") or rec.get("gsm")
             for k, v in rec.items():
-                if k in ("sample_id", "gsm") or not isinstance(v, (int, float)):
+                # only the clock outputs (records also carry numeric metadata such as "donor age")
+                if "clock" not in k.lower() or not isinstance(v, (int, float)):
                     continue
                 rows.append({"study_id": gse, "sample_id": sid, "clock": k, "value": float(v)})
     out = pl.DataFrame(rows, schema={"study_id": pl.String, "sample_id": pl.String, "clock": pl.String,
