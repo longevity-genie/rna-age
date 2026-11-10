@@ -32,9 +32,34 @@ _Draft, updated through the night. Numbers come from the parquet summaries in `d
   `data/download/longevitybench/` 0.14 GB · `data/download/models/bulkformer/` Atlas + Latest weights.
 - Parsed inputs: `data/input/<source>/{samples,genes}.parquet` + `counts/` (gene × ≤1000-sample parquet parts).
 
-## 3. Models (to be filled in as runs finish)
+## 3. Models (exact-age MAE in years on held-out studies; full table in `data/output/summary/experiments.parquet`)
 
-See section 6 of `docs/experiments.md` and `data/output/summary/experiments.parquet`.
+Protocol fixed before the first model (see `docs/experiments.md`): study-grouped splits, training on bulk
+`healthy-or-unknown` samples unless stated, GTEx bins as midpoints / scored as interval hits, pseudobulk
+(Census + Terekhova) predicted in full as a bulk→pseudobulk transfer test.
+
+| model | val MAE | test MAE | test r | GTEx bin hit | pseudobulk MAE / r |
+|---|---|---|---|---|---|
+| constant (train median) | – | 18.17 | – | – | – |
+| ridge, 20k log-CPM HVG + Horvath target | 11.57 | 12.64 | 0.653 | 0.430 | 14.2 / 0.54 |
+| ridge on frozen Atlas CLS | 14.73 | 15.45 | 0.542 | 0.313 | 19.4 / 0.09 |
+| ridge on Atlas's 4,096 input genes (no encoder) | 12.87 | 13.70 | 0.634 | 0.367 | 18.8 / 0.39 |
+| MLP on frozen Atlas CLS | 12.63 | 13.69 | 0.634 | 0.346 | 17.0 / 0.23 |
+| MLP, 20k log-CPM HVG (5-seed ensemble) | 10.00 | 10.44 | 0.767 | 0.440 | 14.6 / 0.62 |
+| **MLP, 20k HVG, trained on all health states (5-model ensemble)** | **9.02** | **9.63** | **0.786** | **0.463** | 15.0 / 0.60 |
+| MLP, Atlas CLS + 20k HVG, all health states | 9.22 | 9.80 | 0.783 | 0.445 | 18.6 / 0.54 |
+| Atlas fine-tune, last 2 blocks + head | 13.27 (val subsample) | running | | | |
+| Atlas fine-tune, last 4 blocks + head | 11.59 after epoch 1 (val subsample) | running | | | |
+
+- Best model: test MAE 9.63 y (median 6.65), r 0.786, R² 0.61; bias slope −0.33 (regression to the mean).
+- **tAge** on identical test samples (within dataset × tissue relative age, r): ARCHS4 0.33 vs our best 0.70;
+  GTEx 0.32 vs 0.77; excluding tAge's training series changes nothing.
+- **LongevityBench** GTEx decade-bin task, our held-out samples: 0.54 (val) / 0.57 (test) accuracy.
+- **Transfer**: Terekhova PBMC pseudobulk is predicted well by bulk-only models (ridge MAE 8.1, r 0.88); Census
+  datasets are not (dataset-level shift; snRNA brain cohorts sit 20–30 y low).
+- **Disease age gap** (healthy-trained ensemble, age-adjusted): +0.49 y overall, within-study +0.40 ± 0.61 y
+  (69 studies): not significant.
+- Run-to-run noise ≈ 0.5 y test MAE (same data, same seed); conclusions use ensembles.
 
 ## 4. Problems and decisions
 
