@@ -41,7 +41,7 @@ def _estimator(model: str, seed: int):
         from tabfm.src.pytorch import tabfm_v1_0_0 as tabfm_pt
 
         ckpt = snapshot_download("google/tabfm-1.1.0-pytorch", allow_patterns=["regression/*", "config.json"])
-        net = tabfm_pt.load(model_type="regression", checkpoint_path=f"{ckpt}/regression", device="cuda", dtype=None)
+        net = tabfm_pt.load(model_type="regression", checkpoint_path=f"{ckpt}/regression", device="cuda")
         return TabFMRegressor(model=net, random_state=seed)
     if model.startswith("geneicl"):  # transcriptome in-context model: log1p-CPM genes in, its own PCA inside
         from geneicl import GeneICL
