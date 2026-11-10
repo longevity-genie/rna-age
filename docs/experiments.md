@@ -186,3 +186,15 @@ stratum mean (strata = dataset × tissue; tAge is a relative clock). Only sample
 - Seed spread ≈ ±0.1 val / ±0.2 test MAE. The Horvath target trades a little MAE for less regression to the
   mean and better transfer; the ensemble is the current best (`rna-age ensemble`).
 - Fine-tuning after epoch 0: last 2 blocks 15.95, last 4 blocks 14.14 val MAE (3k val subsample).
+
+### 2026-11-10 02:25 · Gene-length TPM features break UMI pseudobulk
+| run | val MAE | test MAE | test r | GTEx bin hit | transfer MAE / r |
+|---|---|---|---|---|---|
+| MLP, log2 TPM HVG 20k (gene-length, all samples) | 10.02 | **10.24** | 0.773 | 0.436 | 22.1 / **0.09** |
+| (for comparison) MLP, log-CPM HVG 20k | 10.13 | 10.43 | 0.773 | 0.406 | 14.8 / 0.65 |
+- **Reading**: gene-length TPM is the best single-model input for bulk, but it destroys transfer to 10x
+  pseudobulk: 3′/5′-tag UMI counts are not proportional to gene length, so dividing by length distorts them.
+  This also plausibly explains part of Atlas's poor pseudobulk transfer (its preparation applies the same
+  length normalisation to every sample).
+- **Next**: assay-aware TPM (no length division for UMI pseudobulk rows; run `…-tpmhvg20000-mlp` at 02:26
+  onwards uses it), interval-loss MLP running.
