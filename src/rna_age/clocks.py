@@ -105,3 +105,30 @@ def compare_run(run_id: str, source: str, split: str = "test") -> pl.DataFrame:
     out = pl.DataFrame(rows)
     out.write_parquet(OUTPUT / "clocks" / f"tage_{source}_{split}_vs_{run_id}_summary.parquet")
     return out
+
+
+def compare_clockbase(run_id: str, splits: tuple[str, ...] = ("val", "test")) -> pl.DataFrame:
+    """ClockBase's precomputed (relative, control-centred) RNA clocks vs one of our runs on the same GSMs.
+
+    Metric: Pearson r of the within-series deviation of each prediction with the within-series deviation of
+    chronological age (series = GEO study; ClockBase centres per dataset/tissue, so only deviations compare).
+    """
+    cb = pl.read_parquet(INPUT / "clockbase" / "predictions.parquet")
+    wide = cb.pivot(on="clock", index="sample_id", values="value", aggregate_function="first")
+    clocks = [c for c in wide.columns if c != "sample_id"]
+    p = pl.read_parquet(OUTPUT / "runs" / run_id / "predictions.parquet").filter(
+        pl.col("split").is_in(list(splits)) & (pl.col("age_type") == "exact")
+    )
+    j = p.join(wide, on="sample_id", how="inner").drop_nulls(clocks[:1])
+    sizes = j.group_by("study_id").len().filter(pl.col("len") >= 6)
+    j = j.join(sizes.select("study_id"), on="study_id")
+    j = j.with_columns(age_delta=pl.col("age_years") - pl.col("age_years").mean().over("study_id"))
+    rows = []
+    for model, col in [(run_id, "pred")] + [(c, c) for c in clocks]:
+        d = j.with_columns(_d=pl.col(col) - pl.col(col).mean().over("study_id")).drop_nulls("_d")
+        if d.height > 2:
+            r = float(np.corrcoef(d["_d"].to_numpy(), d["age_delta"].to_numpy())[0, 1])
+            rows.append({"model": model, "n": d.height, "studies": d["study_id"].n_unique(), "r_delta": r})
+    out = pl.DataFrame(rows)
+    out.write_parquet(OUTPUT / "clocks" / f"clockbase_vs_{run_id}_summary.parquet")
+    return out

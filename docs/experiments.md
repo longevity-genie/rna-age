@@ -285,3 +285,8 @@ stratum mean (strata = dataset × tissue; tAge is a relative clock). Only sample
 ### 2026-11-10 03:35 · Gradient boosting baseline
 - HistGradientBoosting (absolute-error loss, 5k HVG, early stopping): val 13.70, test 13.81, r 0.645, GTEx bin
   hit 0.358, transfer 16.5 / 0.58 → on par with ridge 5k, well behind the MLPs; not pursued further tonight.
+
+### 2026-11-10 04:05 · Fine-tune (last 2 blocks) final
+- Atlas fine-tune, last 2 blocks + head (best of 3 epochs): val 13.22, test 13.67, r 0.657, bias slope −0.49,
+  GTEx bin hit 0.345, transfer 16.5 / 0.61 → about ridge level; the last-4-blocks run (val 10.79 at epoch 2)
+  is the stronger one. Unfreezing more of the encoder is what helps.

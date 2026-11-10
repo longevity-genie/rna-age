@@ -219,6 +219,14 @@ def embed_latest(
     embed(sources.split(","), shard, n_shards, max_train=max_train)
 
 
+@app.command("compare-clockbase")
+def compare_clockbase(run_id: str) -> None:
+    """ClockBase's RNA clocks vs a run on the same held-out GSMs (within-series relative-age r)."""
+    from rna_age.clocks import compare_clockbase as _cmp
+
+    print(_cmp(run_id))
+
+
 @app.command()
 def summary() -> None:
     """Write data/output/summary/*.parquet from data/input/*."""
