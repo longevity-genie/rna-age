@@ -322,3 +322,15 @@ stratum mean (strata = dataset × tissue; tAge is a relative clock). Only sample
   (GTEx).
 - Caveat: the fine-tune trained on the health labels as they were at 01:30 (before the ctrl/HC fix) and on
   60k samples in total; a longer run on all training samples is the next step.
+
+### 2026-11-10 05:55 · Final ensembles for the morning report
+| run | val MAE | test MAE | test r | GTEx bin hit | transfer MAE / r |
+|---|---|---|---|---|---|
+| **MLP 20k HVG, all health states, 7-model ensemble** (seeds 0–5 + Horvath) | **9.00** | 9.52 | 0.793 | 0.459 | 15.2 / 0.57 |
+| same + Atlas fine-tune (last 4 blocks), mean of the two | 9.09 | **9.45** | **0.817** | 0.378 | 13.7 / 0.66 |
+- Headline (selected on val): the 7-model MLP ensemble; test median AE 6.68 y, bias slope −0.33.
+- Same samples, within-stratum relative-age r: ARCHS4 0.698 vs tAge 0.331; GTEx 0.770 vs tAge 0.316;
+  ClockBase series (19,099 samples, 280 series) 0.661 vs ClockBase chronological 0.228 / hazard 0.302.
+- BulkFormer-Latest embeddings done for 50,582 samples (all evaluation samples + 8k train per source);
+  matched probes running (Latest pooled, Latest panel-pooled, 20k HVG MLP on the same samples).
+- Longer Atlas fine-tune started (last 6 blocks, 20k samples/epoch, all health states), runs past 07:00.

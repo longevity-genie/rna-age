@@ -40,7 +40,9 @@
 
 | run_id | model | features | val_exact_mae | test_exact_mae | test_exact_pearson_r | test_exact_bias_slope | test_binned_interval_hit | test_binned_mae_mid | transfer_exact_mae | transfer_exact_pearson_r |
 |---|---|---|---|---|---|---|---|---|---|---|
+| 20261110-0549-ens-mlp20k-trainall-7 | ensemble (mean) | 20261110-0237-hvg20000-mlp-trainall+20261110-0248-hvg20000-mlp-trainall-seed1+20261110-0255-hvg20000-mlp-trainall-seed2+20261110-0302-hvg20000-mlp-trainall-seed3+20261110-0526-hvg20000-mlp-trainall-seed4+20261110-0530-hvg20000-mlp-trainall-seed5+20261110-0247-hvg20000-mlp-horvath-trainall | 9.00 | 9.52 | 0.79 | -0.33 | 0.46 | 6.23 | 15.21 | 0.57 |
 | 20261110-0304-ens-mlp20k-trainall-5 | ensemble (mean) | 20261110-0237-hvg20000-mlp-trainall+20261110-0248-hvg20000-mlp-trainall-seed1+20261110-0255-hvg20000-mlp-trainall-seed2+20261110-0302-hvg20000-mlp-trainall-seed3+20261110-0247-hvg20000-mlp-horvath-trainall | 9.02 | 9.63 | 0.79 | -0.33 | 0.46 | 6.25 | 15.02 | 0.60 |
+| 20261110-0550-ens-mlp-trainall7-plus-atlasft | ensemble (mean) | 20261110-0549-ens-mlp20k-trainall-7+20261110-0134-atlas-ft-u4 | 9.09 | 9.45 | 0.82 | -0.37 | 0.38 | 7.31 | 13.75 | 0.66 |
 | 20261110-0530-ens-mlp-trainall-plus-atlasft | ensemble (mean) | 20261110-0304-ens-mlp20k-trainall-5+20261110-0134-atlas-ft-u4 | 9.10 | 9.50 | 0.81 | -0.37 | 0.38 | 7.30 | 13.62 | 0.67 |
 | 20261110-0530-hvg20000-mlp-trainall-seed5 | mlp probe | logCPM HVG 20000 | 9.14 | 9.49 | 0.80 | -0.33 | 0.45 | 6.39 | 15.82 | 0.51 |
 | 20261110-0302-hvg20000-mlp-trainall-seed3 | mlp probe | logCPM HVG 20000 | 9.14 | 10.05 | 0.77 | -0.33 | 0.44 | 6.58 | 14.89 | 0.66 |
@@ -83,6 +85,8 @@
 | 20261110-0334-hgb-hvg5000-gtexmid | hgb | logCPM HVG 5000 | 13.70 | 13.81 | 0.65 | -0.61 | 0.36 | 8.56 | 16.50 | 0.58 |
 | 20261110-0050-ridge-hvg2000-gtexmid | ridge | logCPM HVG 2000 | 14.13 | 14.82 | 0.57 | -0.60 | 0.34 | 9.12 | 15.68 | 0.49 |
 | 20261110-0130-atlas-cls-ridge | ridge probe | Atlas CLS | 14.73 | 15.45 | 0.54 | -0.61 | 0.31 | 9.71 | 19.36 | 0.09 |
+| 20261110-0550-latest-mlp | mlp probe | Latest pooled sample embedding | 15.06 | 16.08 | 0.48 | -0.65 | 0.33 | 9.39 | 19.15 | 0.38 |
+| 20261110-0550-latestpanel-mlp | mlp probe | Latest gene embeddings pooled over panel | 15.19 | 16.08 | 0.48 | -0.66 | 0.31 | 9.73 | 21.53 | 0.34 |
 
 ## tAge control (relative clock; r with age delta within stratum)
 
@@ -112,6 +116,12 @@
 | archs4 | test | 20261110-0304-ens-mlp20k-trainall-5 | not_in_training | 8,561 | 0.70 | 184 |
 | archs4 | test | EN_Chronoage_Multispecies_Multitissue_scaleddiff | not_in_training | 8,561 | 0.33 | 184 |
 | archs4 | test | EN_Chronoage_Multispecies_Multitissue_yugenediff | not_in_training | 8,561 | 0.33 | 184 |
+| archs4 | test | 20261110-0549-ens-mlp20k-trainall-7 | all | 8,643 | 0.70 | 185 |
+| archs4 | test | EN_Chronoage_Multispecies_Multitissue_scaleddiff | all | 8,643 | 0.33 | 185 |
+| archs4 | test | EN_Chronoage_Multispecies_Multitissue_yugenediff | all | 8,643 | 0.34 | 185 |
+| archs4 | test | 20261110-0549-ens-mlp20k-trainall-7 | not_in_training | 8,561 | 0.70 | 184 |
+| archs4 | test | EN_Chronoage_Multispecies_Multitissue_scaleddiff | not_in_training | 8,561 | 0.33 | 184 |
+| archs4 | test | EN_Chronoage_Multispecies_Multitissue_yugenediff | not_in_training | 8,561 | 0.33 | 184 |
 | gtex | test | EN_Chronoage_Multispecies_Multitissue_scaleddiff.pkl | all | 2,926 | 0.32 | 52 |
 | gtex | test | EN_Chronoage_Multispecies_Multitissue_scaleddiff.pkl | not_in_training | 2,926 | 0.32 | 52 |
 | gtex | test | EN_Chronoage_Multispecies_Multitissue_yugenediff.pkl | all | 2,926 | 0.28 | 52 |
@@ -136,5 +146,11 @@
 | gtex | test | EN_Chronoage_Multispecies_Multitissue_scaleddiff | all | 2,926 | 0.32 | 52 |
 | gtex | test | EN_Chronoage_Multispecies_Multitissue_yugenediff | all | 2,926 | 0.28 | 52 |
 | gtex | test | 20261110-0304-ens-mlp20k-trainall-5 | not_in_training | 2,926 | 0.77 | 52 |
+| gtex | test | EN_Chronoage_Multispecies_Multitissue_scaleddiff | not_in_training | 2,926 | 0.32 | 52 |
+| gtex | test | EN_Chronoage_Multispecies_Multitissue_yugenediff | not_in_training | 2,926 | 0.28 | 52 |
+| gtex | test | 20261110-0549-ens-mlp20k-trainall-7 | all | 2,926 | 0.77 | 52 |
+| gtex | test | EN_Chronoage_Multispecies_Multitissue_scaleddiff | all | 2,926 | 0.32 | 52 |
+| gtex | test | EN_Chronoage_Multispecies_Multitissue_yugenediff | all | 2,926 | 0.28 | 52 |
+| gtex | test | 20261110-0549-ens-mlp20k-trainall-7 | not_in_training | 2,926 | 0.77 | 52 |
 | gtex | test | EN_Chronoage_Multispecies_Multitissue_scaleddiff | not_in_training | 2,926 | 0.32 | 52 |
 | gtex | test | EN_Chronoage_Multispecies_Multitissue_yugenediff | not_in_training | 2,926 | 0.28 | 52 |

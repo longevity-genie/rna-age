@@ -275,24 +275,24 @@ miR-29 host genes).</p>"""
 <li><b>Non-linear readouts win.</b> Ridge on 20k log-CPM HVGs (+ Horvath target): test MAE
 {cite("ridge-hvg20000-gtexmid-horvath$")}; the same genes through a small MLP: {cite("-hvg20000-mlp$")}; a 5-seed
 MLP ensemble: {cite("ens-mlp20k-5seeds")}.</li>
-<li><b>More training data helps.</b> Training on all health states (disease samples too): 5-model ensemble test MAE
-{cite("ens-mlp20k-trainall-5")}, r {cite("ens-mlp20k-trainall-5", "test_exact_pearson_r", 3)}, validation MAE
-{cite("ens-mlp20k-trainall-5", "val_exact_mae")}.</li>
+<li><b>More training data helps.</b> Training on all health states (disease samples too): 7-model ensemble test MAE
+{cite("ens-mlp20k-trainall-7")}, r {cite("ens-mlp20k-trainall-7", "test_exact_pearson_r", 3)}, validation MAE
+{cite("ens-mlp20k-trainall-7", "val_exact_mae")}.</li>
 <li><b>Frozen BulkFormer-Atlas adds nothing.</b> Ridge on Atlas CLS {cite("atlas-cls-ridge$")} vs ridge on its own 4,096
 input genes {cite("atlas-panel-ridge$")}; CLS + 20k HVG MLP {cite("atlas-cls-hvg-mlp-trainall")} vs the HVG MLP
-ensemble {cite("ens-mlp20k-trainall-5")}: within the ±0.5-year run-to-run noise or worse.</li>
+ensemble {cite("ens-mlp20k-trainall-7")}: within the ±0.5-year run-to-run noise or worse.</li>
 <li><b>Gene-length TPM vs UMI pseudobulk.</b> TPM features: best bulk test MAE {cite("0220-tpmhvg20000-mlp")} but
 transfer to 10x pseudobulk collapses (r {cite("0220-tpmhvg20000-mlp", "transfer_exact_pearson_r", 2)}); log-CPM keeps
 transfer at r {cite("ens-mlp20k-5seeds", "transfer_exact_pearson_r", 2)}. Atlas normalises every sample by gene length,
 which plausibly explains part of its weak transfer.</li>
-<li><b>Regression to the mean</b> remains (test bias slope {cite("ens-mlp20k-trainall-5", "test_exact_bias_slope")});
+<li><b>Regression to the mean</b> remains (test bias slope {cite("ens-mlp20k-trainall-7", "test_exact_bias_slope")});
 a validation-fitted de-compression removes it but raises test MAE to {cite("ens-mlp20k-7-cal")}.</li>
 <li><b>Fine-tuning BulkFormer-Atlas works when enough of it is unfrozen.</b> Last 2 blocks + head: test MAE
 {cite("atlas-ft-u2$")}; last 4 blocks + head: {cite("atlas-ft-u4$")} (r {cite("atlas-ft-u4$", "test_exact_pearson_r", 3)}),
 with the best single-model pseudobulk transfer (MAE {cite("atlas-ft-u4$", "transfer_exact_mae")}, r
 {cite("atlas-ft-u4$", "transfer_exact_pearson_r", 2)}) after only 5 × 12k training samples. Averaged with the MLP
-ensemble it lifts test r to {cite("ens-mlp-trainall-plus-atlasft", "test_exact_pearson_r", 3)} (test MAE
-{cite("ens-mlp-trainall-plus-atlasft")}): the fine-tuned encoder is complementary to expression features.</li>
+ensemble it lifts test r to {cite("ens-mlp-trainall7-plus-atlasft", "test_exact_pearson_r", 3)} (test MAE
+{cite("ens-mlp-trainall7-plus-atlasft")}): the fine-tuned encoder is complementary to expression features.</li>
 </ol>"""
     tabs["results"] = (
         "Results",
