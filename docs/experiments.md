@@ -348,5 +348,5 @@ evaluation samples), so absolute numbers are worse than the full-data runs; comp
   Across both released models, the value of BulkFormer for age shows up only when the encoder is fine-tuned.
 
 ### 2026-11-10 06:35 · Follow-up fine-tunes (after the morning report)
-- Last 4 blocks, all health states (`atlas-ft-u4-all`): val MAE 12.80 → 10.81 → 10.45 → 10.60 → **9.73** after epochs 0–4 (healthy-only run: 14.14 → 11.59 → 10.79).
+- Last 4 blocks, all health states (`atlas-ft-u4-all`): val MAE 12.80 → 10.81 → 10.45 → 10.60 → 9.73 → **9.56** after epochs 0–5 (final; evaluation predictions running) (healthy-only run: 14.14 → 11.59 → 10.79).
 - Last 6 blocks, 20k samples/epoch, all health states (`atlas-ft-u6-all`): val MAE 12.09 → 10.24 → **9.97** after epochs 0–2 (~71 min/epoch).
