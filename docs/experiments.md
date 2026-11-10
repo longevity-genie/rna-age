@@ -443,3 +443,26 @@ leaderboard probe; per-task scores in `data/output/summary/primo_local_scores.pa
 - Age fine-tuning leaves the representation's usefulness for other clinical tasks unchanged: mean per-task
   difference vs frozen −0.007 (u4, better on 4/16 tasks) and −0.005 (u6, better on 8/16), all within the probe's
   fold sd. No forgetting, no transfer gain. A submission of our fine-tunes would sit next to frozen Atlas.
+
+### 2026-11-10 15:35 · Fine-tune seed 1; tabular foundation model (TabICLv2)
+| run | val MAE | test MAE | test r | transfer MAE / r |
+|---|---|---|---|---|
+| Atlas fine-tune, last 4 blocks, all health states, seed 0 (earlier) | 9.58 | 10.39 | – | 13.3 / 0.69 |
+| same, **seed 1** | 9.97 | 11.34 | 0.745 | **11.5 / 0.76** |
+| mean of three fine-tunes (u4 s0, u6, u4 s1) | 9.46 | 10.34 | 0.786 | – |
+| 7-MLP ensemble + mean of three fine-tunes | 8.73 | 9.34 | 0.812 | – |
+| (headline, unchanged) 7-MLP ensemble + mean of two fine-tunes | **8.70** | **9.20** | 0.817 | 13.5 / 0.67 |
+- **Correction**: fine-tune seed variance is not small. Two seeds with near-equal validation MAE (9.58, 9.97)
+  differ by ~1 y on test (10.39 vs 11.34); the early-epoch similarity noted at 13:30 did not hold. Seed 1 is the
+  best model so far on pseudobulk transfer. Selected on validation, the two-fine-tune headline stays.
+
+TabICLv2 (`rna-age tabfm`, regressor checkpoint 2026-02-12) as an in-context age regressor: prompt = 10k train
+samples (≤ 200 per study, 1,353 studies), features = 200 PCs fitted on train rows; no tuning.
+
+| model, features (200 PCs), 10k context | val MAE | test MAE | test r | bias slope |
+|---|---|---|---|---|
+| TabICLv2, log-CPM 20k HVGs | 15.18 | 15.73 | 0.512 | −0.70 |
+| TabICLv2, Atlas CLS | 15.25 | 15.77 | 0.515 | −0.67 |
+| ridge, same HVG PCs and same 10k rows (control) | 16.61 | 16.28 | 0.473 | −0.76 |
+- TabICLv2 beats a linear readout of the same inputs, but the inputs are the limit: 200 PCs of 10k samples lose
+  most of what the MLP on 20k genes and 60k+ samples uses (test 10.4). Running: 30k context.
