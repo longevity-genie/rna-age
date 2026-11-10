@@ -3,7 +3,7 @@
 **Report page (private artifact, republished as results change):** https://claude.ai/artifact/TfY8RYwiVDLfm6pEwj81ic
 
 
-_Last update: 2026-11-10 06:10 CET (overnight session; 07:00 report written)._
+_Last update: 2026-11-10 07:10 CET (morning report written; follow-up fine-tunes running)._
 
 ## Mode (Anton, 2026-11-10 ~00:10)
 Fully autonomous overnight: data → baselines → BulkFormer embeddings/probes → fine-tuning, logging every run
@@ -55,8 +55,9 @@ stop before Anton is back; 07:00 report, then keep updating; one tabbed artifact
   single-cell flags), waiting for the download.
 
 ## Running
-- Atlas fine-tune, last 6 blocks + head, 20k samples/epoch, all health states (`atlas-ft-u6-all`), log
-  `slurm/logs/rna-age-ft-u6-all-*.out`; checkpoints each epoch, resumable.
+- Atlas fine-tune, last 6 blocks + head, 20k samples/epoch, all health states (`atlas-ft-u6-all`): epoch 0
+  val 12.09; log `slurm/logs/rna-age-ft-u6-all-*.out`; checkpoints each epoch, resumable.
+- Atlas fine-tune, last 4 blocks + head, all health states (`atlas-ft-u4-all`): val 12.80 → 10.81 (epochs 0–1).
 
 ## Results so far (details: `docs/experiments.md`, `data/output/summary/experiments.parquet`)
 - **Morning report**: `docs/reports/2026-11-10-overnight.md` (+ the report page linked at the top).
