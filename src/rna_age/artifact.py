@@ -60,6 +60,69 @@ def stat(label: str, value: str, note: str = "") -> str:
     return f'<div class="stat"><div class="v">{value}</div><div class="l">{esc(label)}</div><div class="n">{esc(note)}</div></div>'
 
 
+def _health_tab(exp: pl.DataFrame) -> str:
+    """Afternoon follow-ups: health-aware clocks, composition vs within-cell-type, PRIMO, tabular FMs."""
+    from rna_age.paths import INTERIM
+
+    parts = []
+    rows = []
+    for f in sorted(SUMMARY.glob("health_*_pred.parquet")) + sorted(SUMMARY.glob("health_*_bio_age.parquet")):
+        h = pl.read_parquet(f).filter(pl.col("category").is_in(["all_aging_linked", "autoimmune_inflammatory",
+                                                                   "infection", "neurodegenerative"]))  # fmt: skip
+        for r in h.iter_rows(named=True):
+            rows.append({"run": r["run_id"], "score": r["score"], "category": r["category"], "studies": r["studies"],
+                         "gap (y)": r["within_study_gap"], "CI low": r["ci_low"], "CI high": r["ci_high"],
+                         "control MAE": r["control_test_mae"]})  # fmt: skip
+    if rows:
+        hd = pl.DataFrame(rows).filter(pl.col("category") == "all_aging_linked").sort("run")
+        parts.append(f"""<h3>Can the clock learn health?</h3>
+<p>Disease age gap = case − control mean (predicted − true age) within each held-out study (val + test, ≥ 5 cases and
+≥ 5 controls), averaged over studies, 95 % study-bootstrap CI. Aging-linked categories pooled. Models trained only on
+healthy samples show a small, non-significant gap; adding a within-study ranking loss (cases older than their own
+study's controls) and a disease head makes it significant on studies never seen in training.</p>
+{table(hd, digits=2)}""")
+    comp = sorted(SUMMARY.glob("composition_[0-9a-f]*.parquet"))
+    comp = [f for f in comp if "fractions" not in f.name]
+    if comp:
+        s = pl.read_parquet(INTERIM / "samples_all.parquet", columns=["study_id", "cohort"]).unique("study_id")
+        names = dict(zip(s["study_id"].to_list(), s["cohort"].to_list(), strict=False))
+        keep = ["natural", "fixed_composition", "composition_only", "proportions", "class:CD4 T", "class:CD8 T",
+                "class:B", "class:NK", "class:monocyte"]  # fmt: skip
+        cd = pl.concat([pl.read_parquet(f) for f in comp]).filter(pl.col("representation").is_in(keep))
+        cd = cd.with_columns(
+            cohort=pl.col("dataset_id").replace_strict(names, default=pl.col("dataset_id")).str.slice(0, 48)
+        )
+        wide = cd.pivot(on="representation", index="cohort", values="pearson_r")
+        wide = wide.select(["cohort"] + [k for k in keep if k in wide.columns])
+        parts.append(f"""<h3>Cell-type composition or change within cell types? (blood, single-cell pseudobulk)</h3>
+<p>Per donor, Census cells pooled by broad class; a ridge clock trained inside each cohort (5-fold CV grouped by
+donor), Pearson r with age on held-out donors. <i>fixed_composition</i>: each donor's own class profiles mixed in the
+cohort-mean proportions; <i>composition_only</i>: cohort-mean profiles mixed in the donor's own proportions. Equalising
+the mix keeps the clock; the mix alone carries little: the aging signal in blood is within cell types, mostly T cells.</p>
+{table(wide, digits=2)}""")
+    pf = SUMMARY / "primo_local_scores.parquet"
+    if pf.exists():
+        pr = (
+            pl.read_parquet(pf)
+            .group_by("model", "category")
+            .agg(pl.col("score").mean().round(3), pl.len().alias("tasks"))
+        )
+        pw = pr.pivot(on="model", index="category", values="score").sort("category")
+        parts.append(f"""<h3>PRIMO benchmark (local scoring, official scorer, nothing submitted)</h3>
+<p>Do age fine-tunes damage BulkFormer's sample embedding for other clinical tasks? 16 public bulk tasks; mean
+score per task category (Pearson / AUROC / centred Spearman).</p>{table(pw, digits=3)}""")
+    tf = exp.filter(pl.col("run_id").str.contains("tfm-"))
+    if tf.height:
+        tcols = {"run_id": "run", "val_exact_mae": "val MAE", "test_exact_mae": "test MAE",
+                 "test_exact_pearson_r": "test r", "test_exact_bias_slope": "bias slope"}  # fmt: skip
+        parts.append(f"""<h3>Tabular foundation models</h3>
+<p>TabICLv2 as an in-context age regressor on 200 PCs (of the 20k-gene log-CPM matrix or of the Atlas CLS), prompt
+of 10k–30k training samples (≤ 200 per study), with a ridge on the same inputs as control. It beats the ridge but stays
+far behind the MLP on all genes: the 200-feature input, not the model, is the limit.</p>
+{table(tf.select(list(tcols)).rename(tcols), digits=2)}""")
+    return "\n".join(parts) or "<p>No results yet.</p>"
+
+
 def build() -> str:
     by_source = pl.read_parquet(SUMMARY / "by_source.parquet")
     splits = pl.read_parquet(SUMMARY / "splits.parquet") if (SUMMARY / "splits.parquet").exists() else None
@@ -317,6 +380,7 @@ their 10-year bin; pseudobulk = bulk-trained model applied to Census + Terekhova
 {fig("runs_test_mae", "Test MAE of every run")}
 """,
     )
+    tabs["health"] = ("Health & composition", _health_tab(exp))
     tabs["achievements"] = (
         "Achievements",
         f"""
