@@ -29,7 +29,14 @@ STEM = (
 )
 PRENATAL = r"fetal|foetal|fetus|embryo\b|embryos\b|embryonic (?:tissue|day|brain|kidney|liver)|gestation|\bpcw\b|post[- ]?conception|placenta|umbilical|cord blood|amniotic|chorionic|trimester"
 SINGLE_CELL = r"single[- ]?cell|scrna|snrna|single[- ]?nucle|10x genomics|chromium|drop-?seq|smart-?seq2? single"
-HEALTHY = r"healthy|\bnormal\b|\bcontrol\b|non[- ]?diseased|\bnone\b|no disease|unaffected|\bwt\b|wild[- ]?type"
+HEALTHY = (
+    r"healthy|\bnormal\b|\bcontrols?\b|\bctrls?\b|\bhc\b|\bhcs\b|non[- ]?diseased|\bnone\b|no disease|unaffected|"
+    r"\bwt\b|wild[- ]?type|non[- ]?demented|\bnd\b|neurologically normal"
+)
+# values of disease-like keys that describe study design, not health (cohort / split labels)
+NOT_A_DISEASE = (
+    r"^(?:discovery|validation|replication|training|test(?:ing)?|train|batch.*|cohort.*|set.*|group ?\d*|[a-z]?\d+)$"
+)
 
 DISEASE_KEYS = r"^(?:disease(?: state| status)?|diagnosis|condition|status|phenotype|disease type|group|subject status|clinical status|health status|cohort)$"
 SEX_KEYS = r"^(?:sex|gender|donor sex|patient sex|sex of donor|donor gender|biological sex)$"
@@ -68,6 +75,9 @@ def add_flags(df: pl.DataFrame, fields: str = "fields", text: str = "text") -> p
     """
     t = pl.col(text)
     disease = field(fields, DISEASE_KEYS)
+    disease = (
+        pl.when(disease.str.to_lowercase().str.strip_chars().str.contains(NOT_A_DISEASE)).then(None).otherwise(disease)
+    )
     cell_line_value = field(fields, CELL_LINE_KEYS)
     df = df.with_columns(
         sex=normalise_sex(field(fields, SEX_KEYS)),

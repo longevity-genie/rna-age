@@ -39,3 +39,19 @@ def test_flags():
     ]
     assert df["is_healthy"].to_list() == [True, None, False, False, None, None, False]
     assert df["is_tumor"].to_list() == [False, False, True, False, False, False, False]
+
+
+def test_health_labels():
+    df = add_flags(
+        _frame(
+            [
+                ([("disease state", "Ctrl")], "x"),
+                ([("group", "HC")], "x"),
+                ([("group", "discovery")], "x"),
+                ([("diagnosis", "non-demented")], "x"),
+                ([("disease", "MDD")], "x"),
+            ]
+        )
+    )
+    assert df["is_healthy"].to_list() == [True, True, None, True, False]
+    assert df["disease"].to_list()[2] is None

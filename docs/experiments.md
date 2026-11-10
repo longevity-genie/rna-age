@@ -205,3 +205,15 @@ stratum mean (strata = dataset × tissue; tAge is a relative clock). Only sample
 | MLP 20k HVG, interval hinge for binned ages | 10.05 | 11.23 | 0.730 | 0.427 | 18.0 / 0.30 |
 - No gain over midpoint targets (test and transfer worse, GTEx bin hits unchanged); midpoints stay the default.
 - **Next**: study-weighted MLP (1/sqrt(study size)); assay-aware TPM running.
+
+### 2026-11-10 02:40 · Disease age acceleration (best ensemble) + health-label fix
+- **Label audit**: the health parser treated `ctrl` / `HC` / `non-demented` as diseases and study-design labels
+  from `group:` fields (`discovery`, `validation`, …) as disease names. Fixed in `annotate.py` (+ tests);
+  ARCHS4 metadata re-parsed (counts unchanged: eligibility does not depend on health): explicitly healthy
+  9,051 → 14,303, disease 65,024 → 59,289. Runs before 02:35 trained with the old labels (training set =
+  healthy-or-unknown, so ~5k more control samples are now eligible for training).
+- **Age gap** (`rna-age age-gap`): residual trend on age fitted on healthy-or-unknown val+test samples and
+  removed. Disease overall +0.49 y (SEM 0.12; 7,451 samples, 150 studies). **Within-study contrast
+  (disease − control, 69 studies with ≥ 5 of each): +0.40 ± 0.61 y — not significant.** Per-label gaps rest
+  on 2–5 studies each and are study-confounded (e.g. MS +17.7 from 2 studies). The clock does not yet show a
+  reliable disease acceleration.

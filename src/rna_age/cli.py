@@ -185,6 +185,15 @@ def ensemble(run_ids: list[str] = typer.Argument(...), name: str = typer.Option(
     print({k: v for k, v in row.items() if k.startswith(("val_", "test_", "transfer_exact"))})
 
 
+@app.command("age-gap")
+def age_gap(run_id: str) -> None:
+    """Age-adjusted disease age acceleration for a run (val + test, exact ages, bulk)."""
+    from rna_age.train.agegap import age_gap as _gap
+
+    with __import__("polars").Config(tbl_rows=40, fmt_str_lengths=50):
+        print(_gap(run_id))
+
+
 @app.command()
 def summary() -> None:
     """Write data/output/summary/*.parquet from data/input/*."""
