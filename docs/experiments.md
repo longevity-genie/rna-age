@@ -334,3 +334,15 @@ stratum mean (strata = dataset × tissue; tAge is a relative clock). Only sample
 - BulkFormer-Latest embeddings done for 50,582 samples (all evaluation samples + 8k train per source);
   matched probes running (Latest pooled, Latest panel-pooled, 20k HVG MLP on the same samples).
 - Longer Atlas fine-tune started (last 6 blocks, 20k samples/epoch, all health states), runs past 07:00.
+
+### 2026-11-10 06:00 · Rung 3 for BulkFormer-Latest (matched samples)
+Training restricted to the samples with Latest embeddings (8k ARCHS4 + 8k GTEx training samples; all
+evaluation samples), so absolute numbers are worse than the full-data runs; compare within the table.
+
+| run | val MAE | test MAE | test r | GTEx bin hit | transfer MAE / r |
+|---|---|---|---|---|---|
+| MLP, Latest pooled sample embedding (768-d) | 15.06 | 16.08 | 0.477 | 0.330 | 19.1 / 0.38 |
+| MLP, Latest gene embeddings pooled over the panel | 15.19 | 16.08 | 0.481 | 0.306 | 21.5 / 0.34 |
+| **MLP, 20k log-CPM HVG, same samples** | **12.78** | **14.02** | **0.580** | **0.352** | **18.8 / 0.49** |
+- Frozen Latest, like frozen Atlas, carries less age information than the expression it is computed from.
+  Across both released models, the value of BulkFormer for age shows up only when the encoder is fine-tuned.

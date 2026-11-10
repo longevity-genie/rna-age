@@ -3,7 +3,7 @@
 **Report page (private artifact, republished as results change):** https://claude.ai/artifact/TfY8RYwiVDLfm6pEwj81ic
 
 
-_Draft, updated through the night. Numbers come from the parquet summaries in `data/output/summary/` (see
+_Written 2026-11-10 ~06:10 (cluster clock); updated if results change. Numbers come from the parquet summaries in `data/output/summary/` (see
 `report_tables.md` there) and the run directories; the experiment log with every decision is
 `docs/experiments.md`._
 
@@ -42,18 +42,26 @@ Protocol fixed before the first model (see `docs/experiments.md`): study-grouped
 |---|---|---|---|---|---|
 | constant (train median) | – | 18.17 | – | – | – |
 | ridge, 20k log-CPM HVG + Horvath target | 11.57 | 12.64 | 0.653 | 0.430 | 14.2 / 0.54 |
+| gradient boosting, 5k HVG | 13.70 | 13.81 | 0.645 | 0.358 | 16.5 / 0.58 |
 | ridge on frozen Atlas CLS | 14.73 | 15.45 | 0.542 | 0.313 | 19.4 / 0.09 |
 | ridge on Atlas's 4,096 input genes (no encoder) | 12.87 | 13.70 | 0.634 | 0.367 | 18.8 / 0.39 |
 | MLP on frozen Atlas CLS | 12.63 | 13.69 | 0.634 | 0.346 | 17.0 / 0.23 |
-| MLP, 20k log-CPM HVG (5-seed ensemble) | 10.00 | 10.44 | 0.767 | 0.440 | 14.6 / 0.62 |
-| **MLP, 20k HVG, trained on all health states (5-model ensemble)** | **9.02** | **9.63** | **0.786** | **0.463** | 15.0 / 0.60 |
 | MLP, Atlas CLS + 20k HVG, all health states | 9.22 | 9.80 | 0.783 | 0.445 | 18.6 / 0.54 |
-| Atlas fine-tune, last 2 blocks + head | 13.27 (val subsample) | running | | | |
-| Atlas fine-tune, last 4 blocks + head | 11.59 after epoch 1 (val subsample) | running | | | |
+| MLP, 20k log-CPM HVG (5-seed ensemble) | 10.00 | 10.44 | 0.767 | 0.440 | 14.6 / 0.62 |
+| Atlas fine-tune, last 2 blocks + head | 13.22 | 13.67 | 0.657 | 0.345 | 16.5 / 0.61 |
+| **Atlas fine-tune, last 4 blocks + head** | 10.35 | 10.85 | 0.763 | 0.307 | **13.8 / 0.66** |
+| **MLP, 20k HVG, all health states, 7-model ensemble (headline)** | **9.00** | **9.52** | 0.793 | **0.459** | 15.2 / 0.57 |
+| MLP ensemble + Atlas fine-tune (mean) | 9.09 | **9.45** | **0.817** | 0.378 | 13.7 / 0.66 |
 
-- Best model: test MAE 9.63 y (median 6.65), r 0.786, R² 0.61; bias slope −0.33 (regression to the mean).
+Matched-sample comparison for BulkFormer-Latest (training restricted to 16k samples with Latest embeddings):
+Latest pooled MLP test 16.08 (r 0.48), Latest panel-pooled 16.08 (r 0.48), 20k HVG MLP on the same samples
+14.02 (r 0.58).
+
+- Headline (selected on validation): 7-model MLP ensemble, test MAE 9.52 y (median 6.68), r 0.793; bias slope
+  −0.33 (regression to the mean). Averaging in the fine-tuned Atlas gives test 9.45, r 0.817.
 - **tAge** on identical test samples (within dataset × tissue relative age, r): ARCHS4 0.33 vs our best 0.70;
-  GTEx 0.32 vs 0.77; excluding tAge's training series changes nothing.
+  GTEx 0.32 vs 0.77; **ClockBase** (19,099 held-out GEO samples, 280 series): chronological 0.23, hazard 0.30 vs
+  ours 0.66; excluding tAge's training series changes nothing.
 - **LongevityBench** GTEx decade-bin task, our held-out samples: 0.54 (val) / 0.57 (test) accuracy.
 - **Transfer**: Terekhova PBMC pseudobulk is predicted well by bulk-only models (ridge MAE 8.1, r 0.88); Census
   datasets are not (dataset-level shift; snRNA brain cohorts sit 20–30 y low).
