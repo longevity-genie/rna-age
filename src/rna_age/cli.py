@@ -276,6 +276,17 @@ def composition(dataset_id: str) -> None:
         print(analyse(dataset_id))
 
 
+@app.command("primo-embed")
+def primo_embed(
+    name: str = typer.Option("atlas", help="name of the output file"),
+    checkpoint: str = typer.Option("", help="fine-tune run name or .pt path (empty = frozen Atlas)"),
+) -> None:
+    """Embed the PRIMO bulk datasets with Atlas (GPU job) → data/output/primo/submission_<name>.parquet."""
+    from rna_age.train.primo_embed import embed
+
+    embed(name, checkpoint or None)
+
+
 @app.command()
 def summary() -> None:
     """Write data/output/summary/*.parquet from data/input/*."""
