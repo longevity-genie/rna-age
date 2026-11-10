@@ -238,6 +238,32 @@ def blend(run_a: str, run_b: str, name: str = typer.Option("blend")) -> None:
     print({k: v for k, v in row.items() if k.startswith(("val_exact", "test_exact", "transfer_exact", "blend"))})
 
 
+@app.command("health-eval")
+def health_eval(run_id: str, score: str = typer.Option("pred", help="pred | bio_age")) -> None:
+    """Within-study case − control age gap per disease category (held-out studies, bootstrap CIs)."""
+    from rna_age.train.health import evaluate_health
+
+    with __import__("polars").Config(tbl_rows=30, fmt_str_lengths=30, tbl_width_chars=160):
+        print(evaluate_health(run_id, score).select(
+            "category", "studies", "cases", "within_study_gap", "ci_low", "ci_high", "frac_studies_positive",
+            "control_test_mae"))  # fmt: skip
+
+
+@app.command("train-health")
+def train_health_cmd(
+    rank_weight: float = typer.Option(0.0, help="within-study ranking loss weight (0 = off)"),
+    margin: float = typer.Option(3.0, help="ranking margin in years"),
+    disease_head: bool = typer.Option(False, help="add a case-vs-control head; bio_age = pred + beta*logit"),
+    all_diseases: bool = typer.Option(False, help="use every categorised disease, not only aging-linked ones"),
+    seed: int = typer.Option(0),
+) -> None:
+    """Health-aware MLP (age loss on controls + optional ranking loss / disease head)."""
+    from rna_age.train.health import train_health
+
+    train_health(rank_weight=rank_weight, margin=margin, disease_head=disease_head, aging_only=not all_diseases,
+                 seed=seed)  # fmt: skip
+
+
 @app.command()
 def summary() -> None:
     """Write data/output/summary/*.parquet from data/input/*."""
