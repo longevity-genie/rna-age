@@ -88,11 +88,23 @@ def run_baseline(
     grid = (
         [{"alpha": a} for a in (1e2, 1e3, 1e4, 3e4, 1e5, 3e5, 1e6)]
         if model == "ridge"
+        else [{"learning_rate": 0.1, "max_leaf_nodes": 63, "min_samples_leaf": 40}]
+        if model == "hgb"
         else [{"alpha": a, "l1_ratio": r} for a in (0.01, 0.05, 0.2) for r in (0.1, 0.5)]
     )
     best = None
     for params in grid:
-        est = Ridge(**params) if model == "ridge" else ElasticNet(max_iter=3000, tol=1e-3, **params)
+        if model == "ridge":
+            est = Ridge(**params)
+        elif model == "hgb":
+            from sklearn.ensemble import HistGradientBoostingRegressor
+
+            est = HistGradientBoostingRegressor(
+                loss="absolute_error", max_iter=1500, early_stopping=True, validation_fraction=0.1,
+                n_iter_no_change=30, random_state=0, **params,
+            )  # fmt: skip
+        else:
+            est = ElasticNet(max_iter=3000, tol=1e-3, **params)
         est.fit(Xs[is_train], y[is_train])
         mae = float(np.mean(np.abs(inv(est.predict(Xs[val])) - y_years[val])))
         log.info("%s %s: val exact MAE %.2f", model, params, mae)
@@ -109,7 +121,10 @@ def run_baseline(
          + (" + GTEx midpoints" if gtex_midpoints else ""),
          "n_train": int(is_train.sum()), "hvg_sample": hv.height},
     )  # fmt: skip
-    pl.DataFrame({"gene_id": hvg, "coef": est.coef_.astype(np.float64)}).write_parquet(run_dir / "coefficients.parquet")
+    if hasattr(est, "coef_"):
+        pl.DataFrame({"gene_id": hvg, "coef": est.coef_.astype(np.float64)}).write_parquet(
+            run_dir / "coefficients.parquet"
+        )
     row = finish_run(run_dir, pred, {"seconds": time.time() - t0})
     log.info("run %s: %s", run_dir.name, {k: v for k, v in row.items() if k.startswith("test_")})
     return row
