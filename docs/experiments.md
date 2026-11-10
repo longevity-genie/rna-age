@@ -217,3 +217,14 @@ stratum mean (strata = dataset × tissue; tAge is a relative clock). Only sample
   (disease − control, 69 studies with ≥ 5 of each): +0.40 ± 0.61 y — not significant.** Per-label gaps rest
   on 2–5 studies each and are study-confounded (e.g. MS +17.7 from 2 studies). The clock does not yet show a
   reliable disease acceleration.
+
+### 2026-11-10 02:45 · Assay-aware TPM; run-to-run noise
+| run | val MAE | test MAE | test r | transfer MAE / r |
+|---|---|---|---|---|
+| MLP log2 TPM 20k, UMI pseudobulk as CPM | 10.04 | 10.75 | 0.742 | 31.2 / 0.21 |
+| (02:20) MLP log2 TPM 20k, all samples length-normalised | 10.02 | 10.24 | 0.773 | 22.1 / 0.09 |
+- Mixing scales (TPM for bulk, CPM for UMI) makes transfer worse: the model learns per-gene levels on the TPM
+  scale. log-CPM stays the input for anything that must transfer to pseudobulk.
+- **Noise floor**: both runs train on exactly the same samples and features (they differ only in how
+  pseudobulk rows are scaled), same seed, yet test MAE differs by 0.5 y (GPU nondeterminism + early stopping).
+  Single-run differences below ~0.5 y are not meaningful; final comparisons use seed ensembles.
