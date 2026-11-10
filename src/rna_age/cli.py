@@ -204,6 +204,19 @@ def calibrate(run_id: str) -> None:
     print({k: v for k, v in row.items() if k.startswith(("val_exact", "test_exact", "transfer_exact", "test_binned"))})
 
 
+@app.command("embed-latest")
+def embed_latest(
+    sources: str = typer.Argument(..., help="comma-separated sources"),
+    shard: int = typer.Option(0),
+    n_shards: int = typer.Option(1),
+    max_train: int = typer.Option(15000, help="training samples per source (Latest is expensive)"),
+) -> None:
+    """Frozen BulkFormer-Latest embeddings (GPU job) → data/interim/embeddings/latest/."""
+    from rna_age.train.embed_latest import embed
+
+    embed(sources.split(","), shard, n_shards, max_train=max_train)
+
+
 @app.command()
 def summary() -> None:
     """Write data/output/summary/*.parquet from data/input/*."""
