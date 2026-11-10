@@ -26,17 +26,41 @@ Heavy parsers run as Slurm jobs through `slurm/submit.sh` (cluster settings go i
 |---|---|---|
 | `gtex` | GTEx v10 RNA-SeQC gene read counts, ~19.8k samples, 946 donors, 68 tissues (public GCS bucket) | 10-year bins (`binned`) |
 | `archs4` | ARCHS4 human gene counts (all GEO/SRA human bulk RNA-seq, Maayan lab; file of 2026-11-06) | parsed from GEO `characteristics_ch1` |
-| `ncbi_geo` | NCBI-generated GEO RNA-seq counts (GRCh38.p13), for age-annotated series ARCHS4 lacks and as a cross-check | GEO characteristics |
+| `ncbi_geo` | NCBI-generated GEO RNA-seq counts (GRCh38.p13), for age-annotated series ARCHS4 lacks and as a cross-check (parked: the download endpoint answers automated clients with a reCAPTCHA) | GEO characteristics |
 | `bgee` | Bgee curated healthy wild-type samples | developmental stage (`NN-year-old human stage`) |
 | `geo_cohorts` | curated aging cohorts (e.g. Fleischer 2018 fibroblasts, GSE113957; series from transcriptomic-clock papers) | exact |
 | `census_pseudobulk` | CZ CELLxGENE Census, donor × tissue pseudobulk of primary data with exact age (OneK1K, AIDA, ...) | development stage |
-| `terekhova2023` | Terekhova et al. 2023 PBMC aging atlas (166 donors, 25–85 y), pseudobulk | exact |
+| `terekhova2023` | Terekhova et al. 2023 PBMC aging atlas (166 donors, 25–85 y; HCA Data Portal copy), pseudobulk per sample | exact |
+| `longevitybench`, `clockbase` | controls: LongevityBench GTEx tasks; ClockBase precomputed clock predictions | – |
 
 Pseudobulk sources are kept separate from bulk (`is_pseudobulk`) to measure the domain shift.
 
 **Not used:** cancer cohorts (TCGA, TARGET; out of scope for now; tumour samples inside mixed sources are
 flagged and excluded from training and evaluation). Controlled access: GTEx exact age, TOPMed, UK Biobank,
 most of PsychENCODE.
+
+## Models and evaluation
+
+```bash
+uv run rna-age merge                       # harmonised table + study-grouped splits (data/interim/)
+uv run rna-age baseline --model ridge --n-genes 20000 --transform horvath
+uv run rna-age embed archs4,gtex,...       # BulkFormer-Atlas CLS embeddings (GPU)
+uv run rna-age embed-latest archs4,gtex,...# BulkFormer-Latest embeddings (GPU)
+uv run rna-age probe --features hvg --model mlp --n-hvg 20000 --train-set all --seed 0
+uv run rna-age finetune --unfreeze 4 --epochs 5 --max-train 12000   # Atlas fine-tuning (GPU, resumable)
+uv run rna-age ensemble RUN_ID RUN_ID ... --name my-ensemble
+uv run rna-age tage archs4 --split test    # tAge control (isolated R env: scripts/setup_tage_env.sh)
+uv run rna-age compare-tage RUN_ID --source archs4 ; uv run rna-age compare-clockbase RUN_ID
+uv run rna-age figures RUN_ID ; uv run rna-age report-tables ; uv run rna-age artifact
+```
+
+The evaluation protocol (fixed before the first model), every run and every decision are in
+`docs/experiments.md`; one row per run in `data/output/summary/experiments.parquet`. Summary of the first night
+(2026-11-10): an MLP on 20k log-CPM highly variable genes, trained on all health states, reaches test MAE ≈ 9.5
+years (r ≈ 0.79) on held-out studies; frozen BulkFormer embeddings (Atlas, Latest) add nothing over expression,
+while fine-tuning the last Atlas blocks is competitive and complementary; the published clocks tAge and
+ClockBase track within-study age far less closely on the same samples. Details:
+`docs/reports/2026-11-10-overnight.md`.
 
 ## Data layout and formats
 
