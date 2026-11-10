@@ -40,3 +40,9 @@ uv run pytest -q
   excluded from training/evaluation. Pseudobulk sources stay separate from bulk (`is_pseudobulk`).
 - Splits group by study (GSE / project / GTEx donor): never one donor or one series on both sides.
 - `STATUS.md` is the running log; keep it current.
+
+## Seats
+- Agent sessions here may hold seats, standing roles run by the seats kit (agent-seat-blueprints; pinned in
+  `.claude/settings.json`). The seat table is `.blueprints.toml`; each seat's priming is under `docs/seats/`
+  (`README.md` lists them): `lead` owns `docs/ROADMAP.md` and `docs/DECISIONS.md`, `runner` owns the jobs,
+  `STATUS.md`, `docs/experiments.md` and `docs/reports/` (`docs/DECISIONS.md` D1).
