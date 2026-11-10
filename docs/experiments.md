@@ -105,3 +105,20 @@ One dated entry per decision: hypothesis → what ran → result → next. Run d
   Caveat: ridge trained on other GTEx donors (in-distribution), tAge never saw GTEx; the ARCHS4 comparison
   (tAge training series flagged) is the fairer one, rerunning after a per-stratum fix (one stratum broke tAge's
   preprocessing).
+
+### 2026-11-10 01:50 · Rung 3: probes on frozen Atlas CLS
+- **Hypothesis**: Atlas CLS (1,024-d, the PRIMO-winning sample representation) carries age signal comparable
+  to or better than log-CPM HVGs.
+- **Ran**: ridge (alpha by val) and a 2-layer MLP (Huber, early stopping on val) on standardised CLS; same
+  training set and splits as rung 1.
+
+| run | val MAE | test MAE | test r | bias slope | GTEx bin hit | transfer MAE / r |
+|---|---|---|---|---|---|---|
+| Atlas CLS + ridge | 14.73 | 15.45 | 0.542 | −0.61 | 0.313 | 19.4 / 0.09 |
+| Atlas CLS + MLP | 12.63 | 13.69 | 0.634 | −0.54 | 0.346 | 17.0 / 0.23 |
+| (bar) ridge 20k HVG + Horvath | 11.57 | 12.64 | 0.653 | −0.41 | 0.430 | 14.2 / 0.54 |
+
+- **Reading**: frozen CLS is non-linearly informative (MLP ≫ ridge) but below the HVG bar, and transfers
+  worse to pseudobulk; the contrastive objective seems to encode sample identity / tissue more than age.
+- **Next**: CLS + HVG probes (running); fine-tuning the last 2 / 4 Atlas blocks with a regression head
+  (running, 12k samples per epoch, early stopping on val).
