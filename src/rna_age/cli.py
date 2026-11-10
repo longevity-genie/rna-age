@@ -268,6 +268,15 @@ def train_health_cmd(
 
 
 @app.command()
+def composition(dataset_id: str) -> None:
+    """Composition vs within-cell-type age signal for one cell-type-pseudobulked Census dataset."""
+    from rna_age.train.composition import analyse
+
+    with __import__("polars").Config(tbl_rows=30, fmt_str_lengths=40):
+        print(analyse(dataset_id))
+
+
+@app.command()
 def summary() -> None:
     """Write data/output/summary/*.parquet from data/input/*."""
     from rna_age.summary import write_summary
