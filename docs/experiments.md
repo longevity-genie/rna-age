@@ -494,3 +494,18 @@ of memory); Mitra-v2 ran out of memory even at a 2k fine-tuning cap; LimiX-2 nee
 - Mitra-v2 is not feasible on our 11 GB cards: with fine-tuning capped at 1,024 support rows it still asks for 9 GB at
   prediction (every `predict` re-runs the 8-fold bagged fine-tune, so the 34,784 evaluation rows cannot be chunked).
   Needs a larger GPU; not pursued (A100 nodes are reserved for other work).
+
+### 2026-11-10 19:00 · Composition adjustment with a granulocyte reference (Tabula Sapiens blood added)
+Reference now 9 classes (+ granulocyte from Tabula Sapiens blood, 149 donor × cell-type groups; a reference-only
+dataset, never parsed into age samples), 441 markers. Mean estimated fractions over the 2,013 held-out blood samples
+(PBMC and whole blood mixed): granulocyte 0.28, monocyte 0.16, CD4 T 0.10, NK 0.08, platelet 0.07, CD8 T 0.07, DC
+0.06 (DC was 0.21 without the granulocyte class: the neutrophil signal had been absorbed).
+
+| model | cases | raw gap [95 % CI] | composition-adjusted [95 % CI] |
+|---|---|---|---|
+| healthy-only MLP ensemble | all | 1.51 [0.67, 2.48] | 1.18 [0.11, 2.21] |
+| headline | all | 1.25 [0.53, 2.18] | 0.91 [0.19, 1.86] |
+| health-aware MLP | all | **2.46 [1.62, 3.46]** | **2.08 [0.96, 3.08]** |
+| health-aware MLP | aging-linked | 1.95 [0.67, 2.78] | 1.31 [0.18, 2.86] |
+- Same conclusion with neutrophils modelled: adjustment removes 15–33 % of the gap, every adjusted CI stays above
+  zero. The disease age gap in blood is mostly not a cell-mix artefact.
