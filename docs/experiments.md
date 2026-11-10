@@ -509,3 +509,19 @@ dataset, never parsed into age samples), 441 markers. Mean estimated fractions o
 | health-aware MLP | aging-linked | 1.95 [0.67, 2.78] | 1.31 [0.18, 2.86] |
 - Same conclusion with neutrophils modelled: adjustment removes 15–33 % of the gap, every adjusted CI stays above
   zero. The disease age gap in blood is mostly not a cell-mix artefact.
+
+### 2026-11-10 21:15 · Composition vs within-cell-type outside blood (brain, lung; `--mapping cell_type`)
+Same design as the blood analysis, with each dataset's own cell-type labels (the 12 most abundant kept, the 5 most
+abundant as the counterfactual classes); ridge clock, 5-fold CV by donor, Pearson r on held-out donors.
+
+| cohort (donors with exact age) | natural | fixed composition | composition only | proportions | best single classes |
+|---|---|---|---|---|---|
+| PsychENCODE MSSM brain (783) | 0.82 | **0.82** | 0.41 | 0.42 | oligodendrocyte 0.78, astrocyte 0.76, microglia 0.73 |
+| PsychENCODE brain, 0–85 y (299) | 0.92 | **0.91** | 0.46 | 0.64 | oligodendrocyte 0.91, astrocyte 0.89, microglia 0.89 |
+| ILD lung atlas (95; 61 in the mixes) | 0.60 | 0.43 | 0.09 | 0.52 | ciliated 0.60 |
+| CellRef lung (21) / RADC brain (100, ages 70–90+) | too few donors / too narrow an age range: no clock (r ≤ 0.53 / ≈ 0) | | | | |
+- Brain shows the blood pattern: mixing each donor's own profiles at the cohort-mean composition keeps the clock,
+  the composition alone carries about half of r. Glia alone (oligodendrocytes, astrocytes) predict age as well as
+  whole tissue. In the 0–85 cohort composition alone is stronger (proportions r 0.64), as development shifts it.
+- Lung: too few donors for the counterfactuals to settle anything.
+- Gate: these are CV correlations on held-out donors; no shuffled-age null run yet (planned before any headline).
