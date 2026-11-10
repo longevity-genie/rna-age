@@ -16,3 +16,5 @@ slurm/logs/
 # R default graphics device output
 Rplots.pdf
 *.Rplots.pdf
+.claude/settings.local.json
+AutogluonModels/
