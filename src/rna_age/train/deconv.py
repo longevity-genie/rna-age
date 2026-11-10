@@ -43,8 +43,10 @@ def reference_profiles(prefixes=REFERENCE) -> tuple[list[str], np.ndarray, list[
         g = pl.read_parquet(d / "groups.parquet")
         g = g.with_columns(cls=pl.Series([broad_class(c) for c in g["cell_type"].to_list()]))
         counts = pl.read_parquet(d / "counts.parquet")
-        sums = {c: counts.select(g.filter(pl.col("cls") == c)["sample_id"].to_list()).to_numpy().sum(axis=1)
-                for c in CLASSES}  # fmt: skip
+        sums = {}
+        for c in CLASSES:  # a class absent from a cohort contributes zeros
+            cols = g.filter(pl.col("cls") == c)["sample_id"].to_list()
+            sums[c] = counts.select(cols).to_numpy().sum(axis=1) if cols else np.zeros(counts.height)
         tables.append(pl.DataFrame({"gene_id": counts["gene_id"], **{f"{p}|{c}": v for c, v in sums.items()}}))
     t = tables[0]
     for other in tables[1:]:
