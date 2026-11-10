@@ -198,3 +198,10 @@ stratum mean (strata = dataset × tissue; tAge is a relative clock). Only sample
   length normalisation to every sample).
 - **Next**: assay-aware TPM (no length division for UMI pseudobulk rows; run `…-tpmhvg20000-mlp` at 02:26
   onwards uses it), interval-loss MLP running.
+
+### 2026-11-10 02:27 · Interval loss for GTEx bins in the MLP
+| run | val MAE | test MAE | test r | GTEx bin hit | transfer MAE / r |
+|---|---|---|---|---|---|
+| MLP 20k HVG, interval hinge for binned ages | 10.05 | 11.23 | 0.730 | 0.427 | 18.0 / 0.30 |
+- No gain over midpoint targets (test and transfer worse, GTEx bin hits unchanged); midpoints stay the default.
+- **Next**: study-weighted MLP (1/sqrt(study size)); assay-aware TPM running.
