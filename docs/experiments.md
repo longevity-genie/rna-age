@@ -274,3 +274,10 @@ stratum mean (strata = dataset × tissue; tAge is a relative clock). Only sample
   MLP is also within noise.
 - **Next**: BulkFormer-Latest frozen embeddings (full transcriptome in; pooled 768-d) on test/val/transfer +
   8k training samples per source, to close rung 3 for both released models.
+
+### 2026-11-10 03:30 · Atlas fine-tuning progress; BulkFormer-Latest embeddings started
+- Last 4 blocks + head: val MAE (3k val subsample) 14.14 → 11.59 → **10.79** after epochs 0–2, still improving;
+  resumed from its epoch-2 checkpoint under the patched code (evaluation-only predictions); 2 more epochs.
+- Last 2 blocks + head plateaued at 13.27 (best checkpoint), now predicting evaluation samples.
+- BulkFormer-Latest (full 19,973-position transcriptome in, fp16 vs fp32 cosine 1.00000, 0.4 s/sample): 2 GPU
+  shards over test + val + transfer + 8k training samples per source; ETA ~05:00.
