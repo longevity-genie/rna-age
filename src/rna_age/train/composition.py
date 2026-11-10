@@ -72,7 +72,16 @@ def _cv_clock(X: np.ndarray, y: np.ndarray, groups: np.ndarray, n_hvg: int = 300
     return {"n": len(y), "mae": float(np.abs(pred - y).mean()), "pearson_r": float(np.corrcoef(pred, y)[0, 1])}
 
 
-def analyse(dataset_id: str, min_cells: int = 20, major: tuple[str, ...] = ("CD4 T", "CD8 T", "NK", "B", "monocyte")):
+def analyse(
+    dataset_id: str,
+    min_cells: int = 20,
+    major: tuple[str, ...] = ("CD4 T", "CD8 T", "NK", "B", "monocyte"),
+    mapping: str = "broad",
+    n_classes: int = 12,
+    n_major: int = 5,
+):
+    """``mapping="broad"``: blood classes (``BROAD``); ``"cell_type"``: the dataset's own labels (tissues), the
+    ``n_classes`` most abundant kept (the rest pooled as "other"), the ``n_major`` most abundant as ``major``."""
     d = INPUT / "census_pseudobulk" / "by_dataset_celltype" / dataset_id
     g = pl.read_parquet(d / "groups.parquet")
     counts = pl.read_parquet(d / "counts.parquet")
@@ -80,9 +89,15 @@ def analyse(dataset_id: str, min_cells: int = 20, major: tuple[str, ...] = ("CD4
     ages = [stage_age(s) for s in g["development_stage"].to_list()]
     g = g.with_columns(
         age=pl.Series([a[1] for a in ages], dtype=pl.Float64),
-        cls=pl.Series([broad_class(c) for c in g["cell_type"].to_list()]),
+        cls=pl.Series([broad_class(c) for c in g["cell_type"].to_list()])
+        if mapping == "broad"
+        else pl.col("cell_type"),
         donor=pl.col("donor_id") + ":" + pl.col("tissue"),
     ).filter(pl.col("age").is_not_null())
+    if mapping == "cell_type":
+        top = g.group_by("cls").agg(pl.col("n_cells").sum()).sort("n_cells", descending=True)["cls"].to_list()
+        g = g.with_columns(cls=pl.when(pl.col("cls").is_in(top[:n_classes])).then("cls").otherwise(pl.lit("other")))
+        major = tuple(top[:n_major])
     M = counts.select(g["sample_id"].to_list()).to_numpy().T.astype(np.float64)  # groups × genes
     donors = sorted(g["donor"].unique().to_list())
     dix = {x: i for i, x in enumerate(donors)}
@@ -129,7 +144,9 @@ def analyse(dataset_id: str, min_cells: int = 20, major: tuple[str, ...] = ("CD4
             add(f"class:{c}", np.log1p(_cpm(P[okc, k])), age[okc], groups[okc])
     out = pl.DataFrame(res)
     OUTPUT.joinpath("summary").mkdir(parents=True, exist_ok=True)
-    out.write_parquet(OUTPUT / "summary" / f"composition_{dataset_id[:8]}.parquet")
+    out = out.with_columns(mapping=pl.lit(mapping))
+    tag = dataset_id[:8] + ("" if mapping == "broad" else f"_{mapping}")
+    out.write_parquet(OUTPUT / "summary" / f"composition_{tag}.parquet")
     frac_df = pl.DataFrame({"donor": donors, "age": age}).with_columns([pl.Series(c, frac[:, cix[c]]) for c in classes])
-    frac_df.write_parquet(OUTPUT / "summary" / f"composition_fractions_{dataset_id[:8]}.parquet")
+    frac_df.write_parquet(OUTPUT / "summary" / f"composition_fractions_{tag}.parquet")
     return out
