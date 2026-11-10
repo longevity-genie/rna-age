@@ -74,6 +74,31 @@ Protocol fixed before the first model (see `docs/experiments.md`): study-grouped
 - tAge has no human-only clock; its multispecies clocks are relative (centred per dataset × tissue), so the
   comparison uses age deltas within strata.
 
-## 5. Next steps
+## 5. What exists now
 
-(to be written at the end of the night)
+- CLI: `rna-age fetch | parse | merge | summary | baseline | embed | embed-latest | probe | finetune | ensemble |
+  calibrate | age-gap | tage | compare-tage | compare-clockbase | figures | report-tables | artifact`.
+- Sources: GTEx v10, ARCHS4, Bgee, CELLxGENE Census pseudobulk, Terekhova 2023, plus labels (named GEO cohorts,
+  Shokhirev 2021), LongevityBench GTEx tasks, ClockBase predictions; NCBI GEO counts module (parked).
+- Every run under `data/output/runs/` (config, metrics, predictions), one row each in the tracked
+  `data/output/summary/experiments.parquet`; decisions in `docs/experiments.md`; figures in
+  `data/output/figures/`; the tabbed report page (link at the top) built by `rna-age artifact`.
+- Atlas CLS embeddings for all 99.5k samples, Atlas panel inputs (fp16), BulkFormer-Latest embeddings for the
+  evaluation samples + 8k training samples per source, Atlas fine-tune checkpoints (`data/interim/`).
+
+## 6. Recommended next steps for BulkFormer training
+
+1. **Finish the Atlas fine-tune properly**: unfreezing 4 blocks reached val ≈ 10.4 after 5 short epochs of 12k
+   samples and was still improving; run more epochs over the full training set, then unfreeze 8 / all blocks with
+   layer-wise LR decay and seeds ×3. The frozen encoder is not the route (CLS adds nothing over its own inputs).
+2. **Fix the input normalisation for cross-assay use**: Atlas divides every sample by gene length; for 10x UMI
+   pseudobulk this is wrong (our TPM experiment collapsed transfer). Prepare UMI data without the length step, or
+   fine-tune with both assays and an assay token.
+3. **Use all labelled data**: training on disease samples too lowered error by ~0.8 y; add GTEx through the
+   interval loss in fine-tuning, and pseudobulk as a separate domain with its own head or adapter.
+4. **Match the bar on the same split**: the MLP on 20k log-CPM HVGs (test MAE 9.63 as an all-health-states
+   ensemble) is the number a fine-tuned BulkFormer has to beat; tAge (r 0.33) and ClockBase (r 0.23) are far
+   below on identical samples.
+5. **Evaluation gaps to close**: a pseudobulk test split (all pseudobulk studies happened to land in train/val),
+   disease age acceleration with matched controls per study (currently +0.4 ± 0.6 y, not significant), and the
+   regression to the mean (bias slope −0.33).
