@@ -159,6 +159,14 @@ def compare_tage(run_id: str, source: str = "gtex", split: str = "test") -> None
 
 
 @app.command()
+def artifact() -> None:
+    """Build the tabbed report page docs/reports/rna-age-overnight.html from the parquet outputs."""
+    from rna_age.artifact import build
+
+    print(build())
+
+
+@app.command()
 def summary() -> None:
     """Write data/output/summary/*.parquet from data/input/*."""
     from rna_age.summary import write_summary

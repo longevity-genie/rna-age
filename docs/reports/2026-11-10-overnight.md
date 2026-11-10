@@ -1,5 +1,8 @@
 # Overnight report, 2026-11-10
 
+**Report page (private artifact, republished as results change):** https://claude.ai/artifact/TfY8RYwiVDLfm6pEwj81ic
+
+
 _Draft, updated through the night. Numbers come from the parquet summaries in `data/output/summary/` (see
 `report_tables.md` there) and the run directories; the experiment log with every decision is
 `docs/experiments.md`._
