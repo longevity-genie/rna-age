@@ -1,5 +1,5 @@
 #!/bin/bash
-# slurm/submit.sh cpu|gpu NAME COMMAND...   e.g.
+# slurm/submit.sh cpu|gpu NAME COMMAND...   (WHAT="one line" ETA=2026-11-11T03:30+01:00 for the job comment)   e.g.
 #   slurm/submit.sh cpu parse-gtex rna-age parse gtex
 #   CPUS=8 MEM=64G EXTRA=--tmp=80G RNA_AGE_LOCAL_TMP=/scratch/rna-age slurm/submit.sh cpu parse-archs4 rna-age parse archs4
 # Builds sbatch flags from slurm/env.sh (and the git-ignored env.local.sh) and runs job.sbatch.
@@ -22,6 +22,11 @@ else
   [ -n "$RNA_AGE_CPU_PARTITION" ] || { echo "set RNA_AGE_CPU_PARTITION in slurm/env.local.sh" >&2; exit 2; }
   flags+=(--partition="$RNA_AGE_CPU_PARTITION" --cpus-per-task="${CPUS:-$RNA_AGE_CPU_CPUS}" --mem="${MEM:-$RNA_AGE_CPU_MEM}")
 fi
+# The job comment every seat on the account submits with (the rigger's rule, 2026-11-10): who runs it, what it is,
+# its estimate and its card (filled in by job.sbatch once it picks one). WHAT= and ETA= (ISO-8601 with offset) set it;
+# update a running job's estimate with `scontrol update JobId=<id> Comment='...'`. No person or private data in it.
+comment="seat=${SEAT:-rna-age/runner}; what=${WHAT:-$name: $*}; eta=${ETA:-?}; cuda=-"
+flags+=(--comment="${comment:0:250}")
 # EXTRA="--tmp=80G ..." passes further sbatch flags (node-local disk, dependencies, ...)
 [ -n "${EXTRA:-}" ] && read -r -a extra <<<"$EXTRA" && flags+=("${extra[@]}")
 sbatch "${flags[@]}" --export="ALL,REPO=$REPO,RNA_AGE_COMMIT=$(git -C "$REPO" rev-parse --short HEAD 2>/dev/null),RNA_AGE_JOB_KIND=$kind,CUDA_DEVICE=${CUDA_DEVICE:-}" "$HERE/job.sbatch" "$@"

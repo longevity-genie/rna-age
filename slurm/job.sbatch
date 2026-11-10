@@ -16,6 +16,10 @@ if [ "${RNA_AGE_JOB_KIND:-cpu}" = gpu ]; then
     [ -z "${CUDA_DEVICE:-}" ] && { echo "every GPU on $(hostname) is busy" >&2; exit 3; }
   fi
   export CUDA_VISIBLE_DEVICES="$CUDA_DEVICE"
+  if [ -n "${SLURM_JOB_ID:-}" ]; then  # the card into the job comment (cuda=-), for the shared GPU dashboard
+    c=$(squeue -h -j "$SLURM_JOB_ID" -o %k 2>/dev/null || true)
+    [ -n "$c" ] && scontrol update JobId="$SLURM_JOB_ID" Comment="${c/cuda=-/cuda=$CUDA_DEVICE}" 2>/dev/null || true
+  fi
   nvidia-smi --query-gpu=index,name,memory.used,memory.total --format=csv -i "$CUDA_DEVICE"
 else
   export CUDA_VISIBLE_DEVICES=""
