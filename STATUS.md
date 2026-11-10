@@ -3,7 +3,7 @@
 **Report page (private artifact, republished as results change):** https://claude.ai/artifact/TfY8RYwiVDLfm6pEwj81ic
 
 
-_Last update: 2026-11-10 01:40 CET (overnight session)._
+_Last update: 2026-11-10 02:35 CET (overnight session)._
 
 ## Mode (Anton, 2026-11-10 ~00:10)
 Fully autonomous overnight: data → baselines → BulkFormer embeddings/probes → fine-tuning, logging every run
@@ -55,20 +55,23 @@ stop before Anton is back; 07:00 report, then keep updating; one tabbed artifact
   single-cell flags), waiting for the download.
 
 ## Running
-- Rung-3 probes on Atlas CLS (ridge, MLP; CLS alone and CLS + 1,200 HVGs): 4 GPU jobs, logs
-  `slurm/logs/rna-age-probe-*.out`.
-- ElasticNet 5k HVG (CPU on a GPU node); tAge on the ARCHS4 test set (per-stratum rerun).
-- Next: Atlas fine-tuning (last 2 / 4 blocks + head, 12k samples per epoch) once the probes free the GPUs.
+- Atlas fine-tuning, last 2 blocks (val MAE 15.95 → 13.34 after 2 epochs) and last 4 blocks (14.14 after
+  1 epoch); logs `slurm/logs/rna-age-ft-u*.out`.
+- MLP seed sweep (seeds 2–4, log-CPM 20k HVG) for a 5-seed ensemble; study-weighted MLP.
 
 ## Results so far (details: `docs/experiments.md`, `data/output/summary/experiments.parquet`)
-- Data: 98,476 eligible de-duplicated samples (ARCHS4 74,293 exact; GTEx 19,461 binned; Census 2,958 +
-  Terekhova 317 pseudobulk exact); parsed ages vs Shokhirev 2021 curation: 5,370 / 5,371 within 1 year.
-- Constant (train median) reference: test MAE 18.2 y.
-- Best rung 1: ridge on 20k HVG log-CPM + Horvath target: val 11.57, **test MAE 12.64**, r 0.65; GTEx bin hit
-  0.43; bulk→pseudobulk transfer MAE 14.2.
-- tAge (relative clock) vs ridge on the same GTEx test strata: r(delta) 0.32 vs 0.73 (ridge saw other GTEx
-  donors; tAge never saw GTEx).
-- Atlas CLS embeddings for all 98,474 samples (2 ARCHS4 samples skipped: zero library).
+- Data: 99,559 eligible de-duplicated samples (ARCHS4 74,293 exact; GTEx 19,461 binned; Census 3,787 +
+  Terekhova 317 pseudobulk); parsed ages vs Shokhirev 2021 curation: 5,370 / 5,371 within 1 year.
+- Reference (constant train median): test MAE 18.2 y.
+- Rung 1 best: ridge on 20k HVG log-CPM + Horvath target, test MAE 12.64, r 0.65.
+- Rung 3: frozen Atlas CLS is worse than its own 4,096 input genes with a linear readout; **MLPs are the big
+  win**: MLP on 20k log-CPM HVGs test MAE 10.43 (r 0.77); 3-model MLP ensemble **val 10.00, test 10.36,
+  r 0.775, pseudobulk transfer MAE 14.0 / r 0.68**. Gene-length TPM inputs are best within bulk (test 10.24)
+  but break 10x pseudobulk transfer. Run-to-run noise ≈ 0.5 y test MAE.
+- tAge vs our MLP on identical test samples (within-stratum relative age r): ARCHS4 0.33 vs 0.66; GTEx 0.32
+  vs 0.76.
+- Disease age gap (age-adjusted): +0.49 y overall; within-study +0.40 ± 0.61 y (69 studies), not significant.
+- Terekhova PBMC transfers well from bulk-only models (ridge MAE 8.1, r 0.88); Census datasets do not.
 
 ## Decisions
 - Through the proxy one connection gets ~2–4 MB/s; parallel ranges stack (12 → ~16 MB/s).
