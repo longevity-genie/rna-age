@@ -262,6 +262,14 @@ def tabfm_cmd(
     print({k: v for k, v in row.items() if k.startswith(("val_exact", "test_exact", "transfer_exact"))})
 
 
+@app.command("deconv-gap")
+def deconv_gap(run_id: str, aging_only: bool = typer.Option(False)) -> None:
+    """Disease age gap in held-out blood studies, raw vs adjusted for deconvolved cell fractions."""
+    from rna_age.train.deconv import gap_adjusted
+
+    print(gap_adjusted(run_id, aging_only=aging_only))
+
+
 @app.command("health-eval")
 def health_eval(run_id: str, score: str = typer.Option("pred", help="pred | bio_age")) -> None:
     """Within-study case − control age gap per disease category (held-out studies, bootstrap CIs)."""
