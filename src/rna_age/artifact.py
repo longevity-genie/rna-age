@@ -82,13 +82,15 @@ healthy samples show a small, non-significant gap; adding a within-study ranking
 study's controls) and a disease head makes it significant on studies never seen in training.</p>
 {table(hd, digits=2)}""")
     comp = sorted(SUMMARY.glob("composition_[0-9a-f]*.parquet"))
-    comp = [f for f in comp if "fractions" not in f.name]
+    comp = [f for f in comp if "fractions" not in f.name and "_cell_type" not in f.name and "_null" not in f.name]
     if comp:
         s = pl.read_parquet(INTERIM / "samples_all.parquet", columns=["study_id", "cohort"]).unique("study_id")
         names = dict(zip(s["study_id"].to_list(), s["cohort"].to_list(), strict=False))
         keep = ["natural", "fixed_composition", "composition_only", "proportions", "class:CD4 T", "class:CD8 T",
                 "class:B", "class:NK", "class:monocyte"]  # fmt: skip
-        cd = pl.concat([pl.read_parquet(f) for f in comp]).filter(pl.col("representation").is_in(keep))
+        cd = pl.concat([pl.read_parquet(f) for f in comp], how="diagonal_relaxed").filter(
+            pl.col("representation").is_in(keep)
+        )
         cd = cd.with_columns(
             cohort=pl.col("dataset_id").replace_strict(names, default=pl.col("dataset_id")).str.slice(0, 48)
         )
@@ -100,6 +102,41 @@ donor), Pearson r with age on held-out donors. <i>fixed_composition</i>: each do
 cohort-mean proportions; <i>composition_only</i>: cohort-mean profiles mixed in the donor's own proportions. Equalising
 the mix keeps the clock; the mix alone carries little: the aging signal in blood is within cell types, mostly T cells.</p>
 {table(wide, digits=2)}""")
+    tissue = [f for f in sorted(SUMMARY.glob("composition_*_cell_type.parquet")) if "fractions" not in f.name]
+    if tissue:
+        s = pl.read_parquet(INTERIM / "samples_all.parquet", columns=["study_id", "cohort"]).unique("study_id")
+        names = dict(zip(s["study_id"].to_list(), s["cohort"].to_list(), strict=False))
+        keep = ["natural", "fixed_composition", "composition_only", "proportions"]
+        td = pl.concat([pl.read_parquet(f) for f in tissue], how="diagonal_relaxed").filter(
+            pl.col("representation").is_in(keep)
+        )
+        n = td.filter(pl.col("representation") == "natural").select("dataset_id", pl.col("n").alias("donors"))
+        td = td.with_columns(
+            cohort=pl.col("dataset_id").replace_strict(names, default=pl.col("dataset_id")).str.slice(0, 40)
+        )
+        tw = td.pivot(on="representation", index=["cohort", "dataset_id"], values="pearson_r").join(n, on="dataset_id")
+        tw = tw.filter(pl.col("donors") >= 50).select(["cohort", "donors"] + [k for k in keep if k in tw.columns])
+        best = []
+        for f in tissue:
+            d = (
+                pl.read_parquet(f)
+                .filter(pl.col("representation").str.starts_with("class:"))
+                .sort("pearson_r", descending=True)
+            )
+            if d.height:
+                best.append(
+                    {
+                        "dataset_id": d["dataset_id"][0],
+                        "best single class": d["representation"][0][6:],
+                        "its r": d["pearson_r"][0],
+                    }
+                )
+        parts.append(f"""<h3>The same question in brain and lung (each dataset's own cell types)</h3>
+<p>Brain shows the blood pattern: the donor's own cell-type profiles at the cohort-mean composition keep the clock, the
+composition alone carries about half of r, and glia alone (oligodendrocytes, astrocytes) predict age about as well as
+whole tissue. With donors' ages shuffled every representation gives r ≈ 0 (brain and blood). Cohorts with fewer than
+50 donors with an exact age are left out.</p>
+{table(tw, digits=2)}""")
     pf = SUMMARY / "primo_local_scores.parquet"
     if pf.exists():
         pr = (
