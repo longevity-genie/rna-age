@@ -22,7 +22,7 @@ from rna_age.train.runs import finish_run, new_run
 log = logging.getLogger(__name__)
 
 
-def _mlp(X, y, train, val, seed=0, epochs=200):
+def _mlp(X, y, train, val, seed=0, epochs=200, delta=5.0):
     import torch
 
     torch.manual_seed(seed)
@@ -39,7 +39,7 @@ def _mlp(X, y, train, val, seed=0, epochs=200):
     for _ in range(epochs):
         net.train()
         for b in np.array_split(np.random.default_rng(_).permutation(tr), max(1, len(tr) // 512)):
-            loss = torch.nn.functional.huber_loss(net(Xt[b]).squeeze(-1), yt[b], delta=5.0)
+            loss = torch.nn.functional.huber_loss(net(Xt[b]).squeeze(-1), yt[b], delta=delta)
             opt.zero_grad()
             loss.backward()
             opt.step()
@@ -57,7 +57,16 @@ def _mlp(X, y, train, val, seed=0, epochs=200):
         return net(Xt).squeeze(-1).float().cpu().numpy(), best
 
 
-def run_probe(features: str = "cls", model: str = "ridge", n_hvg: int = 1200, gtex_midpoints: bool = True) -> dict:
+def run_probe(
+    features: str = "cls",
+    model: str = "ridge",
+    n_hvg: int = 1200,
+    gtex_midpoints: bool = True,
+    transform: str = "none",
+    seed: int = 0,
+) -> dict:
+    from rna_age.train.baselines import horvath, horvath_inv
+
     t0 = time.time()
     s = sample_table()
     s = s.with_columns(target=age_mid(s))
@@ -86,26 +95,30 @@ def run_probe(features: str = "cls", model: str = "ridge", n_hvg: int = 1200, gt
         gi = [genes.index(g) for g in hvg]
         X = lc[:, gi] if features == "hvg" else np.hstack([X, lc[:, gi]])
         del lc
-    y = s["target"].to_numpy()
+    y_years = s["target"].to_numpy()
+    fwd, inv = (horvath, horvath_inv) if transform == "horvath" else (lambda a: a, lambda a: a)
+    y = fwd(np.nan_to_num(y_years, nan=30.0))
     val = (s["split"] == "val").to_numpy() & (s["age_type"] == "exact").to_numpy()
     Xs = StandardScaler().fit(X[train]).transform(X).astype(np.float32)
     if model == "ridge":
         best = None
         for a in (1, 10, 100, 1e3, 1e4, 1e5, 1e6):
             est = Ridge(alpha=a).fit(Xs[train], y[train])
-            mae = float(np.mean(np.abs(est.predict(Xs[val]) - y[val])))
+            mae = float(np.mean(np.abs(inv(est.predict(Xs[val])) - y_years[val])))
             log.info("ridge alpha=%g val MAE %.2f", a, mae)
             if best is None or mae < best[0]:
                 best = (mae, a, est)
-        pred, params = best[2].predict(Xs), {"alpha": best[1]}
+        pred, params = inv(best[2].predict(Xs)), {"alpha": best[1]}
     else:
-        pred, val_mae = _mlp(Xs, y, train, val)
-        params = {"val_mae": val_mae}
+        pred, _ = _mlp(Xs, y, train, val, seed=seed, delta=0.25 if transform == "horvath" else 5.0)
+        pred = inv(pred)
+        params = {"val_mae": float(np.mean(np.abs(pred[val] - y_years[val]))), "seed": seed}
     out = s.select([c for c in PRED_COLS if c in s.columns]).with_columns(pred=pl.Series(pred.astype(np.float64)))
     run_dir = new_run(
-        f"hvg{n_hvg}-{model}" if features == "hvg" else f"atlas-{features.replace('+', '-')}-{model}",
+        (f"hvg{n_hvg}-{model}" if features == "hvg" else f"atlas-{features.replace('+', '-')}-{model}")
+        + ("-horvath" if transform == "horvath" else "") + (f"-seed{seed}" if seed else ""),
         {"model": f"{model} probe", "features": "Atlas panel log2TPM (no encoder)" if features == "panel" else f"logCPM HVG {n_hvg}" if features == "hvg" else f"Atlas CLS{' + HVG ' + str(n_hvg) if features == 'cls+hvg' else ''}",
-         "params": params, "train_set": "bulk train, healthy-or-unknown, exact" + (" + GTEx midpoints" if gtex_midpoints else ""),
+         "params": params, "target_transform": transform, "train_set": "bulk train, healthy-or-unknown, exact" + (" + GTEx midpoints" if gtex_midpoints else ""),
          "n_train": int(train.sum())},
     )  # fmt: skip
     row = finish_run(run_dir, out, {"seconds": time.time() - t0})

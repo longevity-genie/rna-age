@@ -98,11 +98,13 @@ def probe(
     features: str = typer.Option("cls", help="cls | cls+hvg"),
     model: str = typer.Option("ridge", help="ridge | mlp"),
     n_hvg: int = typer.Option(1200),
+    transform: str = typer.Option("none", help="none | horvath"),
+    seed: int = typer.Option(0),
 ) -> None:
-    """Rung 3 probe on frozen Atlas embeddings; writes a run under data/output/runs/."""
+    """Probe / MLP on Atlas CLS, panel genes or HVGs; writes a run under data/output/runs/."""
     from rna_age.train.probes import run_probe
 
-    run_probe(features, model, n_hvg)
+    run_probe(features, model, n_hvg, transform=transform, seed=seed)
 
 
 @app.command()
