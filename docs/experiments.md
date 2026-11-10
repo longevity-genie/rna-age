@@ -363,7 +363,7 @@ evaluation samples), so absolute numbers are worse than the full-data runs; comp
   BulkFormer is part of the selected model.
 - Same samples, within-stratum relative-age r: ARCHS4 0.711 vs tAge 0.331; GTEx 0.743 vs 0.316; ClockBase series
   0.692 vs 0.228 / 0.302. Fine-tune alone: ARCHS4 0.632, GTEx 0.532.
-- Last 6 blocks + head (all health states) continues: val 12.09 → 10.24 → 9.97 → 9.62 (epochs 0–3).
+- Last 6 blocks + head (all health states) continues: val 12.09 → 10.24 → 9.97 → 9.62 → 9.86 (epochs 0–4).
 
 ### 2026-11-10 11:00 · Validation-weighted blend; second fine-tune seed
 - Blend of the 7-MLP ensemble and the all-health-states Atlas fine-tune with the weight chosen on val (0.65 MLP):
