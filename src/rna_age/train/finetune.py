@@ -52,6 +52,7 @@ def train(
     max_train: int = 30000,
     run_name: str | None = None,
     resume: str | None = None,
+    train_set: str = "healthy",
 ) -> dict:
     import torch
     from bulkformer import load_atlas
@@ -69,7 +70,7 @@ def train(
     m = m.with_columns(target=age_mid(m))
     m = m.with_columns(split=pl.when(pl.col("is_pseudobulk")).then(pl.lit("transfer")).otherwise(pl.col("split")))
     tr = m.filter(
-        (pl.col("split") == "train") & pl.col("is_healthy").fill_null(True)  # healthy or unknown
+        (pl.col("split") == "train") & (pl.col("is_healthy").fill_null(True) | (train_set == "all"))  # healthy or unknown (or all)
         & pl.col("age_type").is_in(["exact", "binned"])
     )  # fmt: skip
     rng = np.random.default_rng(0)
@@ -141,7 +142,8 @@ def train(
             {"model": f"Atlas fine-tune (last {unfreeze} blocks + head)", "features": "Atlas panel 4096",
              "train_set": "bulk train, healthy-or-unknown, exact + GTEx intervals", "unfreeze": unfreeze,
              "epochs": epochs, "lr_head": lr_head, "lr_body": lr_body, "batch": batch, "accum": accum,
-             "cap_per_study": cap_per_study, "max_train": max_train, "precision": "fp16 autocast"},
+             "cap_per_study": cap_per_study, "max_train": max_train, "precision": "fp16 autocast",
+             "health_filter": train_set},
         )  # fmt: skip
         ckpt_dir = INTERIM / "checkpoints" / run_dir.name
     ckpt_dir.mkdir(parents=True, exist_ok=True)
