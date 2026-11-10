@@ -263,3 +263,14 @@ stratum mean (strata = dataset × tissue; tAge is a relative clock). Only sample
 - **Atlas fine-tuning**: last 4 blocks val 14.14 → 11.59 after epoch 1 (improving fast); last 2 blocks plateaued
   (15.95 → 13.34 → 13.27) and is being finalised from its best checkpoint. Final predictions now cover only
   val/test/transfer samples (predicting all 99k would take ~2.7 GPU-hours).
+
+### 2026-11-10 03:20 · Does Atlas CLS add to a strong expression model? Wider MLP?
+| run (all health states) | val MAE | test MAE | test r | transfer MAE / r |
+|---|---|---|---|---|
+| MLP Atlas CLS + 20k HVG | 9.22 | 9.80 | 0.783 | 18.6 / 0.54 |
+| MLP 20k HVG, 1024×256, dropout 0.3 | 9.18 | 9.72 | 0.786 | 14.7 / 0.57 |
+| (reference) MLP 20k HVG, seeds 0–3 | 9.14–9.48 | 9.40–10.28 | 0.77–0.80 | 14.9–16.5 |
+- Frozen Atlas CLS adds nothing on top of 20k HVGs (within the ±0.5 y noise floor) and hurts transfer; a wider
+  MLP is also within noise.
+- **Next**: BulkFormer-Latest frozen embeddings (full transcriptome in; pooled 768-d) on test/val/transfer +
+  8k training samples per source, to close rung 3 for both released models.
