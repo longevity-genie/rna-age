@@ -287,8 +287,12 @@ transfer at r {cite("ens-mlp20k-5seeds", "transfer_exact_pearson_r", 2)}. Atlas 
 which plausibly explains part of its weak transfer.</li>
 <li><b>Regression to the mean</b> remains (test bias slope {cite("ens-mlp20k-trainall-5", "test_exact_bias_slope")});
 a validation-fitted de-compression removes it but raises test MAE to {cite("ens-mlp20k-7-cal")}.</li>
-<li><b>Atlas fine-tuning</b> (last 2 / 4 blocks + head) improves epoch by epoch; final numbers appear in the table
-when the runs finish.</li>
+<li><b>Fine-tuning BulkFormer-Atlas works when enough of it is unfrozen.</b> Last 2 blocks + head: test MAE
+{cite("atlas-ft-u2$")}; last 4 blocks + head: {cite("atlas-ft-u4$")} (r {cite("atlas-ft-u4$", "test_exact_pearson_r", 3)}),
+with the best single-model pseudobulk transfer (MAE {cite("atlas-ft-u4$", "transfer_exact_mae")}, r
+{cite("atlas-ft-u4$", "transfer_exact_pearson_r", 2)}) after only 5 × 12k training samples. Averaged with the MLP
+ensemble it lifts test r to {cite("ens-mlp-trainall-plus-atlasft", "test_exact_pearson_r", 3)} (test MAE
+{cite("ens-mlp-trainall-plus-atlasft")}): the fine-tuned encoder is complementary to expression features.</li>
 </ol>"""
     tabs["results"] = (
         "Results",
