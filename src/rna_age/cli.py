@@ -241,6 +241,24 @@ def blend(run_a: str, run_b: str, name: str = typer.Option("blend")) -> None:
     print({k: v for k, v in row.items() if k.startswith(("val_exact", "test_exact", "transfer_exact", "blend"))})
 
 
+@app.command("tabfm")
+def tabfm_cmd(
+    model: str = typer.Option("tabicl", help="tabicl | tabpfn (package via `uv run --with`)"),
+    features: str = typer.Option("hvg-pca", help="hvg-pca | atlas"),
+    n_components: int = typer.Option(200),
+    n_context: int = typer.Option(10000, help="prompt rows"),
+    cap_per_study: int = typer.Option(200),
+    seed: int = typer.Option(0),
+    name: str | None = typer.Option(None),
+) -> None:
+    """Tabular foundation model (in-context) as an age regressor on the standard splits."""
+    from rna_age.train.tabfm import run_tabfm
+
+    row = run_tabfm(model, features, n_components=n_components, n_context=n_context, cap_per_study=cap_per_study,
+                    seed=seed, name=name)  # fmt: skip
+    print({k: v for k, v in row.items() if k.startswith(("val_exact", "test_exact", "transfer_exact"))})
+
+
 @app.command("health-eval")
 def health_eval(run_id: str, score: str = typer.Option("pred", help="pred | bio_age")) -> None:
     """Within-study case − control age gap per disease category (held-out studies, bootstrap CIs)."""

@@ -45,3 +45,6 @@ ignore = ["E501"]
 
 [tool.uv.sources]
 bulkformer = { git = "https://github.com/KangBoming/BulkFormer", rev = "cec8b90" }
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

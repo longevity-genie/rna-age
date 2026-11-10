@@ -41,16 +41,11 @@ def horvath_inv(f: np.ndarray) -> np.ndarray:
     return np.where(f <= 0, (ADULT_AGE + 1) * np.exp(f) - 1, (ADULT_AGE + 1) * f + ADULT_AGE)
 
 
-def run_baseline(
-    model: str = "ridge",
-    n_genes: int = 5000,
-    gtex_midpoints: bool = True,
-    hvg_sample: int = 20000,
-    name: str | None = None,
-    transform: str = "none",
-    with_pseudobulk: bool = False,
-) -> dict:
-    t0 = time.time()
+def hvg_design(
+    n_genes: int, gtex_midpoints: bool = True, hvg_sample: int = 20000, with_pseudobulk: bool = False
+) -> tuple[pl.DataFrame, np.ndarray, np.ndarray, list[str], list[str], int]:
+    """Samples (bulk + pseudobulk), log-CPM of train-chosen HVGs, the train mask and the gene list (shared by every
+    expression model so that all of them see the same samples, features and splits)."""
     s = sample_table()
     s = s.with_columns(target=age_mid(s))
     bulk = s.filter(~pl.col("is_pseudobulk"))
@@ -75,10 +70,24 @@ def run_baseline(
     gi = np.array([genes.index(g) for g in hvg])
     X = np.log1p(counts[:, gi] / lib * 1e6).astype(np.float32)
     del counts
-    split = allx["split"].to_numpy()
     is_train = allx.select(train_mask.fill_null(False))[:, 0].to_numpy()
     if not with_pseudobulk:
         is_train &= ~allx["is_pseudobulk"].to_numpy()
+    return allx, X, is_train, hvg, genes, hv.height
+
+
+def run_baseline(
+    model: str = "ridge",
+    n_genes: int = 5000,
+    gtex_midpoints: bool = True,
+    hvg_sample: int = 20000,
+    name: str | None = None,
+    transform: str = "none",
+    with_pseudobulk: bool = False,
+) -> dict:
+    t0 = time.time()
+    allx, X, is_train, hvg, genes, n_hv = hvg_design(n_genes, gtex_midpoints, hvg_sample, with_pseudobulk)
+    split = allx["split"].to_numpy()
     y_years = allx["target"].to_numpy()
     fwd, inv = (horvath, horvath_inv) if transform == "horvath" else (lambda a: a, lambda a: a)
     y = fwd(np.nan_to_num(y_years, nan=30.0))
@@ -119,7 +128,7 @@ def run_baseline(
         {"model": model, "features": f"logCPM HVG {n_genes}", "params": params, "target_transform": transform, "n_shared_genes": len(genes),
          "train_set": ("bulk + pseudobulk" if with_pseudobulk else "bulk") + " train, healthy-or-unknown, exact"
          + (" + GTEx midpoints" if gtex_midpoints else ""),
-         "n_train": int(is_train.sum()), "hvg_sample": hv.height},
+         "n_train": int(is_train.sum()), "hvg_sample": n_hv},
     )  # fmt: skip
     if hasattr(est, "coef_"):
         pl.DataFrame({"gene_id": hvg, "coef": est.coef_.astype(np.float64)}).write_parquet(
