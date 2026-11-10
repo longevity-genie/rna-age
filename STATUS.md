@@ -71,6 +71,9 @@ stop before Anton is back; 07:00 report, then keep updating; one tabbed artifact
 - **Composition-adjusted disease gaps (blood, 18 held-out studies)**: deconvolving PBMC classes and adjusting
   shrinks the case gap 15–30 % but it survives (health-aware MLP 2.46 → 2.07 y [1.11, 3.32]; headline 1.25 → 0.89
   [0.17, 2.04]); unchanged with a granulocyte reference added (health-aware 2.08 [0.96, 3.08]).
+- **Composition outside blood**: brain (PsychENCODE, 783 and 299 donors) shows the blood pattern: fixed composition
+  r 0.82 / 0.91 ≈ whole tissue, composition alone 0.41 / 0.46; oligodendrocytes or astrocytes alone ≈ whole tissue.
+  Shuffled-age nulls give r ≈ 0 (brain and blood). Lung cohorts too small.
 - **Tabular foundation models** (TabICLv2, GeneICL, so far): test MAE 15.6–16.3, far behind our MLP (10.4).
 - **PRIMO (local, official scorer, 16 public tasks, nothing submitted)**: age fine-tunes match frozen Atlas
   (mean per-task difference −0.007 / −0.005, within fold noise): no forgetting, no gain.
@@ -154,6 +157,6 @@ stop before Anton is back; 07:00 report, then keep updating; one tabbed artifact
    MAE 15.6–16.3 vs 10.4 for our MLP; Mitra-v2 infeasible on 11 GB cards). TabFM 1.1 and LimiX-2 runs cancelled
    mid-prediction; TabPFN-3.5 not pursued. Runner code stays (`rna-age tabfm`) for a later return.
 2. Health-aware Atlas fine-tune (the ranking loss + disease head in `finetune.py`), then health ensemble.
-3. Composition: Terekhova cell-type pseudobulk; tissues (lung, brain).
+3. Composition: done for blood and brain (nulls pass); lung needs a larger cohort; Terekhova cell-type pseudobulk optional.
 4. Seed-1 fine-tune into the fine-tune mean; re-check the headline.
 5. PRIMO submission only on Anton's go (HF login, model name, email).
