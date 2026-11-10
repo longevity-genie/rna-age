@@ -98,6 +98,7 @@ def run_probe(
     study_weights: bool = False,
     hidden: tuple[int, ...] = (512, 128),
     dropout: float = 0.2,
+    train_set: str = "healthy",
 ) -> dict:
     from rna_age.train.baselines import horvath, horvath_inv
 
@@ -117,7 +118,7 @@ def run_probe(
         X = xin[[pos[sid] for sid in s["sample_id"].to_list()]].astype(np.float32)
     train = (
         (s["split"] == "train").to_numpy()
-        & (s["is_healthy"].fill_null(True)).to_numpy()
+        & ((s["is_healthy"].fill_null(True)).to_numpy() | (train_set == "all"))
         & ((s["age_type"] == "exact").to_numpy() | (gtex_midpoints & (s["source"] == "gtex").to_numpy()))
     )
     if features in ("cls+hvg", "hvg", "tpm"):
@@ -171,10 +172,10 @@ def run_probe(
         (f"{'tpm' if features == 'tpm' else ''}hvg{n_hvg}-{model}" if features in ("hvg", "tpm") else f"atlas-{features.replace('+', '-')}-{model}")
         + ("-horvath" if transform == "horvath" else "") + ("-interval" if interval else "")
         + ("-studyw" if study_weights else "") + ("" if hidden == (512, 128) else "-h" + "x".join(map(str, hidden)))
-        + (f"-seed{seed}" if seed else ""),
+        + ("-trainall" if train_set == "all" else "") + (f"-seed{seed}" if seed else ""),
         {"model": f"{model} probe", "features": "Atlas panel log2TPM (no encoder)" if features == "panel" else f"logCPM HVG {n_hvg}" if features == "hvg" else f"log2 TPM HVG {n_hvg}" if features == "tpm" else f"Atlas CLS{' + HVG ' + str(n_hvg) if features == 'cls+hvg' else ''}",
          "params": params, "target_transform": transform, "interval_loss": interval, "study_weights": study_weights,
-         "hidden": list(hidden), "dropout": dropout, "train_set": "bulk train, healthy-or-unknown, exact" + (" + GTEx midpoints" if gtex_midpoints else ""),
+         "hidden": list(hidden), "dropout": dropout, "train_set": ("bulk train, all health states" if train_set == "all" else "bulk train, healthy-or-unknown") + ", exact" + (" + GTEx midpoints" if gtex_midpoints else ""),
          "n_train": int(train.sum())},
     )  # fmt: skip
     row = finish_run(run_dir, out, {"seconds": time.time() - t0})
