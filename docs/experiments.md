@@ -234,3 +234,17 @@ stratum mean (strata = dataset × tissue; tAge is a relative clock). Only sample
   → worse than equal weights (beyond the 0.5 y noise floor); equal weighting stays.
 - Atlas fine-tune, last 2 blocks: val MAE 15.95 → 13.34 after epoch 1 (improving, still behind the MLP).
 - Running: seeds 2–4 of the 20k MLP; MLP trained on all health states (disease included).
+
+### 2026-11-10 03:00 · Seeds, training on all health states, ensembles, calibration
+| run | val MAE | test MAE | test r | bias slope | GTEx bin hit | transfer MAE / r |
+|---|---|---|---|---|---|---|
+| MLP 20k, seeds 0–4 (range) | 10.04–10.31 | 10.43–11.14 | 0.73–0.77 | −0.36 to −0.41 | 0.41–0.45 | 14.0–15.9 |
+| **5-seed ensemble** (healthy-or-unknown) | 10.00 | 10.44 | 0.767 | −0.39 | 0.440 | 14.6 / 0.62 |
+| MLP 20k trained on all health states | **9.48** | 10.28 | 0.765 | −0.37 | 0.437 | 16.5 / 0.46 |
+| **7-model ensemble** (5 seeds + train-all + Horvath) | 9.83 | **10.26** | **0.774** | −0.38 | 0.443 | 14.6 / 0.62 |
+| 7-model ensemble, val-fitted linear de-compression | 13.39 | 14.02 | 0.774 | **0.00** | 0.265 | 14.3 / 0.62 |
+- Training on disease samples too adds data and lowers val MAE (9.48, best single model); a train-all
+  ensemble (seeds + Horvath) is running.
+- De-compressing predictions with a line fitted on val removes the regression to the mean completely but
+  raises MAE by ~4 y: the MAE-optimal model shrinks towards the mean. Both versions are reported; the
+  uncalibrated ensemble is the headline.
