@@ -71,8 +71,6 @@ def build() -> str:
         if (SUMMARY / "ridge20k_top_genes.parquet").exists()
         else None
     )
-    clocks = sorted((OUTPUT / "clocks").glob("tage_*_summary.parquet"))
-    clock_df = pl.concat([pl.read_parquet(p) for p in clocks], how="diagonal_relaxed") if clocks else None
 
     eligible = int(by_source["eligible"].sum())
     exact = int(by_source.filter(pl.col("age_type") == "exact")["eligible"].sum())
@@ -80,6 +78,11 @@ def build() -> str:
     gtex_binned = int(by_source.filter(pl.col("source") == "gtex")["eligible"].sum())
     n_split = int(splits["samples"].sum()) if splits is not None else None
     best = exp.drop_nulls("val_exact_mae").row(0, named=True)
+    # like-for-like clock comparison for the best run (identical tAge-scored samples), else tAge alone
+    clocks = sorted((OUTPUT / "clocks").glob(f"tage_*_vs_{best['run_id']}_summary.parquet")) or sorted(
+        p for p in (OUTPUT / "clocks").glob("tage_*_summary.parquet") if "_vs_" not in p.name
+    )
+    clock_df = pl.concat([pl.read_parquet(p) for p in clocks], how="diagonal_relaxed") if clocks else None
     base_runs = exp.filter(pl.col("run_id").str.contains("ridge|elasticnet"))
     best_base = base_runs.row(0, named=True) if base_runs.height else None
     best_atlas = exp.filter(pl.col("run_id").str.contains("atlas")).drop_nulls("val_exact_mae")
@@ -222,8 +225,10 @@ GTEx bins, per-study sampling cap, early stopping on validation MAE.</li>
 scored by the correlation of their within-stratum deviation with the true within-stratum age deviation.
 Our ridge saw other GTEx donors in training; tAge never saw GTEx.</p>"""
         )
-    run_figs = ""
-    if best_base:
+    run_figs = fig(f"run_{best['run_id']}", f"Best model: {best['run_id']}")
+    run_figs += fig(f"run_{best['run_id']}_decade_bias", "Bias by age decade (test), best model")
+    run_figs += fig(f"run_{best['run_id']}_tissue_mae", "Test MAE by tissue (best 25), best model")
+    if best_base and False:
         run_figs += fig(f"run_{best_base['run_id']}", f"Best baseline: {best_base['run_id']}")
         run_figs += fig(f"run_{best_base['run_id']}_decade_bias", "Bias by age decade (test), best baseline")
         run_figs += fig(f"run_{best_base['run_id']}_tissue_mae", "Test MAE by tissue (best 25), best baseline")
