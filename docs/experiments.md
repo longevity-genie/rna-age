@@ -491,3 +491,6 @@ NNLS on the markers. Pooled OLS `pred − age ~ study + age + case [+ fractions]
 GeneICL (normal inference, 4k context of raw log-CPM 20k HVGs): val 15.75, test 16.26 — no better than fast mode
 (test 16.2) or TabICLv2 on PCs (15.7). Large FMs on 11 GB cards: TabFM 1.1 runs at a 2k context (4k and 10k ran out
 of memory); Mitra-v2 ran out of memory even at a 2k fine-tuning cap; LimiX-2 needed huggingface_hub in its env.
+- Mitra-v2 is not feasible on our 11 GB cards: with fine-tuning capped at 1,024 support rows it still asks for 9 GB at
+  prediction (every `predict` re-runs the 8-fold bagged fine-tune, so the 34,784 evaluation rows cannot be chunked).
+  Needs a larger GPU; not pursued (A100 nodes are reserved for other work).
