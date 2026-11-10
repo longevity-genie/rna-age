@@ -183,6 +183,8 @@ def pseudobulk(dataset_id: str, chunk: int = 200_000, by_cell_type: bool = False
             "disease", "sex", "tissue_type", "self_reported_ethnicity", "cell_type"}}  # fmt: skip
         n = len(cols["donor_id"])
         primary = cols.get("is_primary_data", np.ones(n, dtype=bool)).astype(bool)
+        if dataset_id in REFERENCES:  # reference-only subsets (e.g. Tabula Sapiens blood) re-publish primary cells
+            primary = np.ones(n, dtype=bool)  # held elsewhere; not double counted since never parsed into samples
         raw = "raw" in f and "X" in f["raw"]
         X = f["raw/X"] if raw else f["X"]
         genes = _var_ids(f, raw)
