@@ -170,6 +170,15 @@ def artifact() -> None:
 
 
 @app.command()
+def ensemble(run_ids: list[str] = typer.Argument(...), name: str = typer.Option("ensemble")) -> None:  # noqa: B008
+    """Average the predictions of finished runs into a new run."""
+    from rna_age.train.ensemble import ensemble as _ens
+
+    row = _ens(run_ids, name)
+    print({k: v for k, v in row.items() if k.startswith(("val_", "test_", "transfer_exact"))})
+
+
+@app.command()
 def summary() -> None:
     """Write data/output/summary/*.parquet from data/input/*."""
     from rna_age.summary import write_summary

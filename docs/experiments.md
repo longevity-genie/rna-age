@@ -175,3 +175,14 @@ stratum mean (strata = dataset × tissue; tAge is a relative clock). Only sample
 | GTEx | 2,926 / 52 | 0.316 | 0.284 | 0.727 | **0.758** |
 - tAge's training series barely overlap our test split (82 samples), so excluding them changes nothing.
 - One ARCHS4 stratum (a blood series) failed inside tAge's preprocessing and was skipped.
+
+### 2026-11-10 02:20 · MLP seeds, Horvath target, ensemble
+| run | val MAE | test MAE | test r | bias slope | GTEx bin hit | transfer MAE / r |
+|---|---|---|---|---|---|---|
+| MLP 20k HVG, seed 0 | 10.13 | 10.43 | 0.773 | −0.38 | 0.406 | 14.8 / 0.65 |
+| MLP 20k HVG, seed 1 | 10.04 | 10.64 | 0.759 | −0.38 | 0.447 | 14.0 / 0.66 |
+| MLP 20k HVG, Horvath target | 10.44 | 10.78 | 0.765 | −0.34 | 0.451 | 13.9 / 0.69 |
+| **ensemble of the three (mean)** | **10.00** | **10.36** | **0.775** | −0.36 | 0.440 | 14.0 / 0.68 |
+- Seed spread ≈ ±0.1 val / ±0.2 test MAE. The Horvath target trades a little MAE for less regression to the
+  mean and better transfer; the ensemble is the current best (`rna-age ensemble`).
+- Fine-tuning after epoch 0: last 2 blocks 15.95, last 4 blocks 14.14 val MAE (3k val subsample).
