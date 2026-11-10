@@ -22,30 +22,60 @@ from rna_age.train.runs import finish_run, new_run
 log = logging.getLogger(__name__)
 
 
-def _mlp(X, y, train, val, seed=0, epochs=200, delta=5.0):
+def _mlp(
+    X,
+    y,
+    train,
+    val,
+    seed=0,
+    epochs=200,
+    delta=5.0,
+    hidden=(512, 128),
+    dropout=0.2,
+    exact=None,
+    lo=None,
+    hi=None,
+    weights=None,
+    val_y=None,
+    inv=None,
+):
+    """MLP regressor with Huber loss on exact targets and, where ``exact`` is False, an interval hinge on
+    [lo, hi) (all in the target's space); optional per-sample weights; early stopping on val MAE in years."""
     import torch
 
     torch.manual_seed(seed)
     dev = "cuda" if torch.cuda.is_available() else "cpu"
     Xt = torch.as_tensor(X, device=dev)
-    yt = torch.as_tensor(y, dtype=torch.float32, device=dev)
-    net = torch.nn.Sequential(
-        torch.nn.Linear(X.shape[1], 512), torch.nn.GELU(), torch.nn.Dropout(0.2),
-        torch.nn.Linear(512, 128), torch.nn.GELU(), torch.nn.Linear(128, 1),
-    ).to(dev)  # fmt: skip
+    yt = torch.as_tensor(np.nan_to_num(y), dtype=torch.float32, device=dev)
+    n = len(y)
+    ex = torch.as_tensor(np.ones(n, bool) if exact is None else exact, device=dev)
+    lot = torch.as_tensor(np.zeros(n) if lo is None else np.nan_to_num(lo), dtype=torch.float32, device=dev)
+    hit = torch.as_tensor(np.zeros(n) if hi is None else np.nan_to_num(hi), dtype=torch.float32, device=dev)
+    wt = torch.as_tensor(np.ones(n) if weights is None else weights, dtype=torch.float32, device=dev)
+    layers, d = [], X.shape[1]
+    for h in hidden:
+        layers += [torch.nn.Linear(d, h), torch.nn.GELU(), torch.nn.Dropout(dropout)]
+        d = h
+    net = torch.nn.Sequential(*layers, torch.nn.Linear(d, 1)).to(dev)
     opt = torch.optim.AdamW(net.parameters(), lr=1e-3, weight_decay=1e-2)
     tr, va = np.flatnonzero(train), np.flatnonzero(val)
+    vy = torch.as_tensor(val_y if val_y is not None else y[va], dtype=torch.float32, device=dev)
+    inv = inv or (lambda a: a)
     best, best_state, bad = np.inf, None, 0
-    for _ in range(epochs):
+    for epoch in range(epochs):
         net.train()
-        for b in np.array_split(np.random.default_rng(_).permutation(tr), max(1, len(tr) // 512)):
-            loss = torch.nn.functional.huber_loss(net(Xt[b]).squeeze(-1), yt[b], delta=delta)
+        for b in np.array_split(np.random.default_rng(seed * 1000 + epoch).permutation(tr), max(1, len(tr) // 512)):
+            pred = net(Xt[b]).squeeze(-1)
+            exact_l = torch.nn.functional.huber_loss(pred, yt[b], delta=delta, reduction="none")
+            interval_l = torch.relu(lot[b] - pred) + torch.relu(pred - hit[b])
+            loss = (torch.where(ex[b], exact_l, interval_l) * wt[b]).sum() / wt[b].sum()
             opt.zero_grad()
             loss.backward()
             opt.step()
         net.eval()
         with torch.no_grad():
-            mae = (net(Xt[va]).squeeze(-1) - yt[va]).abs().mean().item()
+            pv = net(Xt[va]).squeeze(-1).float().cpu().numpy()
+        mae = float(np.mean(np.abs(inv(pv) - vy.cpu().numpy())))
         if mae < best - 0.01:
             best, best_state, bad = mae, {k: v.clone() for k, v in net.state_dict().items()}, 0
         else:
@@ -64,6 +94,10 @@ def run_probe(
     gtex_midpoints: bool = True,
     transform: str = "none",
     seed: int = 0,
+    interval: bool = False,
+    study_weights: bool = False,
+    hidden: tuple[int, ...] = (512, 128),
+    dropout: float = 0.2,
 ) -> dict:
     from rna_age.train.baselines import horvath, horvath_inv
 
@@ -116,15 +150,31 @@ def run_probe(
                 best = (mae, a, est)
         pred, params = inv(best[2].predict(Xs)), {"alpha": best[1]}
     else:
-        pred, _ = _mlp(Xs, y, train, val, seed=seed, delta=0.25 if transform == "horvath" else 5.0)
+        exact = (s["age_type"] == "exact").to_numpy()
+        if interval:  # GTEx / other bins: hinge on [min, max+1) instead of the midpoint target
+            train = train | ((s["split"] == "train").to_numpy() & (s["age_type"] == "binned").to_numpy())
+        lo = fwd(np.nan_to_num(s["age_min"].to_numpy(), nan=0.0))
+        hi = fwd(np.nan_to_num(s["age_max"].to_numpy(), nan=0.0) + 1)
+        w = None
+        if study_weights:  # each study counts ~sqrt(n) instead of n
+            n_study = s.group_by("study_id").len()
+            cnt = s.join(n_study, on="study_id", how="left")["len"].to_numpy().astype(float)
+            w = 1 / np.sqrt(cnt)
+        pred, _ = _mlp(
+            Xs, y, train, val, seed=seed, delta=0.25 if transform == "horvath" else 5.0, hidden=hidden,
+            dropout=dropout, exact=exact if interval else None, lo=lo, hi=hi, weights=w, val_y=y_years[val], inv=inv,
+        )  # fmt: skip
         pred = inv(pred)
         params = {"val_mae": float(np.mean(np.abs(pred[val] - y_years[val]))), "seed": seed}
     out = s.select([c for c in PRED_COLS if c in s.columns]).with_columns(pred=pl.Series(pred.astype(np.float64)))
     run_dir = new_run(
         (f"{'tpm' if features == 'tpm' else ''}hvg{n_hvg}-{model}" if features in ("hvg", "tpm") else f"atlas-{features.replace('+', '-')}-{model}")
-        + ("-horvath" if transform == "horvath" else "") + (f"-seed{seed}" if seed else ""),
+        + ("-horvath" if transform == "horvath" else "") + ("-interval" if interval else "")
+        + ("-studyw" if study_weights else "") + ("" if hidden == (512, 128) else "-h" + "x".join(map(str, hidden)))
+        + (f"-seed{seed}" if seed else ""),
         {"model": f"{model} probe", "features": "Atlas panel log2TPM (no encoder)" if features == "panel" else f"logCPM HVG {n_hvg}" if features == "hvg" else f"log2 TPM HVG {n_hvg}" if features == "tpm" else f"Atlas CLS{' + HVG ' + str(n_hvg) if features == 'cls+hvg' else ''}",
-         "params": params, "target_transform": transform, "train_set": "bulk train, healthy-or-unknown, exact" + (" + GTEx midpoints" if gtex_midpoints else ""),
+         "params": params, "target_transform": transform, "interval_loss": interval, "study_weights": study_weights,
+         "hidden": list(hidden), "dropout": dropout, "train_set": "bulk train, healthy-or-unknown, exact" + (" + GTEx midpoints" if gtex_midpoints else ""),
          "n_train": int(train.sum())},
     )  # fmt: skip
     row = finish_run(run_dir, out, {"seconds": time.time() - t0})
