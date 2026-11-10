@@ -162,17 +162,21 @@ def _var_ids(f: h5py.File, raw: bool) -> list[str]:
     return [x.decode() if isinstance(x, bytes) else str(x) for x in ids]
 
 
-def pseudobulk(dataset_id: str, chunk: int = 200_000) -> Path:
-    """Sum raw counts of primary cells per donor × tissue for one dataset (run as a Slurm job)."""
+def pseudobulk(dataset_id: str, chunk: int = 200_000, by_cell_type: bool = False) -> Path:
+    """Sum raw counts of primary cells per donor × tissue (× cell type) for one dataset (Slurm job).
+
+    ``by_cell_type`` writes donor × tissue × cell type groups to ``by_dataset_celltype/`` (composition analyses);
+    the default donor × tissue groups in ``by_dataset/`` are the model inputs.
+    """
     src = download_dir(NAME) / "h5ads" / f"{dataset_id}.h5ad"
-    out = input_dir(NAME) / "by_dataset" / dataset_id
+    out = input_dir(NAME) / ("by_dataset_celltype" if by_cell_type else "by_dataset") / dataset_id
     out.mkdir(parents=True, exist_ok=True)
     t0 = time.time()
     with h5py.File(src, "r") as f:
         obs = f["obs"]
         cols = {c: _obs_column(obs, c) for c in obs.keys() if c in {
             "donor_id", "tissue", "development_stage", "is_primary_data", "assay", "suspension_type",
-            "disease", "sex", "tissue_type", "self_reported_ethnicity"}}  # fmt: skip
+            "disease", "sex", "tissue_type", "self_reported_ethnicity", "cell_type"}}  # fmt: skip
         n = len(cols["donor_id"])
         primary = cols.get("is_primary_data", np.ones(n, dtype=bool)).astype(bool)
         raw = "raw" in f and "X" in f["raw"]
@@ -180,9 +184,9 @@ def pseudobulk(dataset_id: str, chunk: int = 200_000) -> Path:
         genes = _var_ids(f, raw)
         keys = pl.DataFrame(
             {c: pl.Series(cols[c].astype(str)) for c in ("donor_id", "tissue", "development_stage", "assay",
-                                                       "suspension_type", "disease", "sex") if c in cols}
+                                                       "suspension_type", "disease", "sex", "cell_type") if c in cols}
         ).with_columns(primary=pl.Series(primary))  # fmt: skip
-        group_cols = ["donor_id", "tissue"]
+        group_cols = ["donor_id", "tissue", "cell_type"] if by_cell_type else ["donor_id", "tissue"]
         groups = (
             keys.with_row_index("cell")
             .filter("primary")
@@ -222,6 +226,9 @@ def pseudobulk(dataset_id: str, chunk: int = 200_000) -> Path:
         .agg(
             pl.col("donor_id").first(),
             pl.col("tissue").first(),
+            (pl.col("cell_type").first() if "cell_type" in groups.columns else pl.lit(None, pl.String)).alias(
+                "cell_type"
+            ),
             pl.col("development_stage").first(),
             pl.col("development_stage").n_unique().alias("n_stages"),
             *[
@@ -237,7 +244,11 @@ def pseudobulk(dataset_id: str, chunk: int = 200_000) -> Path:
             dataset_id=pl.lit(dataset_id),
             n_cells=pl.Series(n_cells.astype(np.int64)),
             n_umis=pl.Series(np.rint(sums.sum(axis=1)).astype(np.int64)),
-            sample_id=pl.lit(dataset_id[:8] + ":") + pl.col("donor_id") + ":" + pl.col("tissue"),
+            sample_id=pl.lit(dataset_id[:8] + ":")
+            + pl.col("donor_id")
+            + ":"
+            + pl.col("tissue")
+            + (pl.lit(":") + pl.col("cell_type") if by_cell_type else pl.lit("")),
         )
     )
     meta.write_parquet(out / "groups.parquet")
