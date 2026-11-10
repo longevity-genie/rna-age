@@ -196,6 +196,15 @@ def age_gap(run_id: str) -> None:
 
 
 @app.command()
+def calibrate(run_id: str) -> None:
+    """Linear de-compression of a run's predictions fitted on validation (regression-to-the-mean fix)."""
+    from rna_age.train.calibrate import calibrate as _cal
+
+    row = _cal(run_id)
+    print({k: v for k, v in row.items() if k.startswith(("val_exact", "test_exact", "transfer_exact", "test_binned"))})
+
+
+@app.command()
 def summary() -> None:
     """Write data/output/summary/*.parquet from data/input/*."""
     from rna_age.summary import write_summary
