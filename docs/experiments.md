@@ -228,3 +228,9 @@ stratum mean (strata = dataset × tissue; tAge is a relative clock). Only sample
 - **Noise floor**: both runs train on exactly the same samples and features (they differ only in how
   pseudobulk rows are scaled), same seed, yet test MAE differs by 0.5 y (GPU nondeterminism + early stopping).
   Single-run differences below ~0.5 y are not meaningful; final comparisons use seed ensembles.
+
+### 2026-11-10 02:50 · Study weighting; fine-tune epoch 1
+- MLP 20k HVG with per-sample weight 1/sqrt(study size): val 10.39, test 11.93, r 0.700, transfer 15.7 / 0.52
+  → worse than equal weights (beyond the 0.5 y noise floor); equal weighting stays.
+- Atlas fine-tune, last 2 blocks: val MAE 15.95 → 13.34 after epoch 1 (improving, still behind the MLP).
+- Running: seeds 2–4 of the 20k MLP; MLP trained on all health states (disease included).
