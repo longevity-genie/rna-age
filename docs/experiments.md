@@ -349,4 +349,4 @@ evaluation samples), so absolute numbers are worse than the full-data runs; comp
 
 ### 2026-11-10 06:35 · Follow-up fine-tunes (after the morning report)
 - Last 4 blocks, all health states (`atlas-ft-u4-all`): epoch 0 val MAE 12.80 (healthy-only run: 14.14 at epoch 0).
-- Last 6 blocks, 20k samples/epoch, all health states (`atlas-ft-u6-all`): epoch 0 in progress (~67 min/epoch).
+- Last 6 blocks, 20k samples/epoch, all health states (`atlas-ft-u6-all`): epoch 0 val MAE 12.09 (~71 min/epoch).
