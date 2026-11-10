@@ -383,3 +383,22 @@ evaluation samples), so absolute numbers are worse than the full-data runs; comp
 | (previous) 7-MLP ensemble + u4 fine-tune | 8.72 | 9.26 | 6.56 | 0.816 | 0.384 | 13.6 / 0.67 |
 - The last-6-blocks fine-tune is the best fine-tune on test and the best model of all on pseudobulk transfer.
   Headline: `20261110-1329-ens-mlp7-plus-atlasft2` (plain mean, no tuned weights).
+
+### 2026-11-10 14:45 · Health-aware clocks (Anton: "can we push our model to learn health")
+Evaluation (`rna-age health-eval`): held-out val + test studies, bulk, exact ages; disease labels normalised into
+categories (generic labels such as "case" left out); per study with ≥ 5 cases and ≥ 5 controls, case − control
+mean age gap (pred − age, minus the control residual trend); mean over studies with 95 % study-bootstrap CI.
+
+| model (MLP, 20k log-CPM HVG) | control test MAE | aging-linked diseases (35 studies) | all diseases (44) | autoimmune/inflammatory (18) | infection (3, never in the ranking loss) |
+|---|---|---|---|---|---|
+| healthy-or-unknown 5-seed ensemble (existing) | 10.74 | +0.80 [−0.43, 1.97] | +1.04 [−0.15, 2.12] | +2.51 [0.83, 4.61] | +4.46 |
+| age loss on controls only | 11.21 | +1.10 [−0.43, 2.50] | +1.04 | +3.03 [0.96, 5.55] | +4.12 |
+| + within-study ranking loss (weight 1, margin 3 y) | 11.85 | **+2.43 [0.60, 4.24]** | +2.25 [0.68, 3.88] | +4.55 | +4.79 |
+| **+ ranking loss + disease head** | **11.32** | **+2.35 [0.61, 4.17]** | **+2.34 [0.83, 3.86]** | +4.59 [1.82, 7.51] | **+5.98** |
+| control-only age + disease head (no ranking) | 10.84 | +0.70 [−0.56, 1.90] | +0.83 | +2.51 | +4.17 |
+- The within-study ranking loss turns the aging-linked disease gap significant on unseen studies (+2.4 y); the
+  disease head keeps chronological accuracy close to the control-only model (11.32 vs 11.21). The gap also grows
+  for infection, a category the ranking loss never saw. β for `bio_age = pred + β·logit` was chosen as 0 within
+  the ≤ 1 y MAE budget, so the head acts as a regulariser rather than as an additive term.
+- The all-health-states headline model trains on disease samples and shows smaller gaps (autoimmune +1.5).
+- **Next**: ranking weight 3, seeds for the best variant; then the same loss in Atlas fine-tuning.

@@ -9,7 +9,7 @@ from types import ModuleType
 # sources are kept but flagged (is_tumor) and excluded from training and evaluation.
 SOURCES = ("gtex", "archs4", "ncbi_geo", "bgee", "geo_cohorts", "census_pseudobulk", "terekhova2023")
 # published-clock controls (no samples.parquet; read by merge / evaluation)
-CONTROLS = ("longevitybench", "clockbase")
+CONTROLS = ("longevitybench", "clockbase", "primo")
 
 
 def get(name: str) -> ModuleType:
