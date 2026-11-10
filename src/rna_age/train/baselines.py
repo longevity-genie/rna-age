@@ -48,12 +48,15 @@ def run_baseline(
     hvg_sample: int = 20000,
     name: str | None = None,
     transform: str = "none",
+    with_pseudobulk: bool = False,
 ) -> dict:
     t0 = time.time()
     s = sample_table()
     s = s.with_columns(target=age_mid(s))
     bulk = s.filter(~pl.col("is_pseudobulk"))
-    pseudo = s.filter(pl.col("is_pseudobulk")).with_columns(split=pl.lit("transfer"))
+    pseudo = s.filter(pl.col("is_pseudobulk"))
+    if not with_pseudobulk:  # pseudobulk only as a transfer test
+        pseudo = pseudo.with_columns(split=pl.lit("transfer"))
     train_mask = (
         (pl.col("split") == "train")
         & pl.col("is_healthy").fill_null(True)  # healthy or unknown
@@ -73,7 +76,9 @@ def run_baseline(
     X = np.log1p(counts[:, gi] / lib * 1e6).astype(np.float32)
     del counts
     split = allx["split"].to_numpy()
-    is_train = allx.select(train_mask.fill_null(False))[:, 0].to_numpy() & ~allx["is_pseudobulk"].to_numpy()
+    is_train = allx.select(train_mask.fill_null(False))[:, 0].to_numpy()
+    if not with_pseudobulk:
+        is_train &= ~allx["is_pseudobulk"].to_numpy()
     y_years = allx["target"].to_numpy()
     fwd, inv = (horvath, horvath_inv) if transform == "horvath" else (lambda a: a, lambda a: a)
     y = fwd(np.nan_to_num(y_years, nan=30.0))
@@ -98,9 +103,10 @@ def run_baseline(
         pred=pl.Series(inv(est.predict(Xs)).astype(np.float64))
     )
     run_dir = new_run(
-        name or f"{model}-hvg{n_genes}{'-gtexmid' if gtex_midpoints else ''}{'-horvath' if transform == 'horvath' else ''}",
+        name or f"{model}-hvg{n_genes}{'-gtexmid' if gtex_midpoints else ''}{'-horvath' if transform == 'horvath' else ''}{'-withpb' if with_pseudobulk else ''}",
         {"model": model, "features": f"logCPM HVG {n_genes}", "params": params, "target_transform": transform, "n_shared_genes": len(genes),
-         "train_set": "bulk train, healthy-or-unknown, exact" + (" + GTEx midpoints" if gtex_midpoints else ""),
+         "train_set": ("bulk + pseudobulk" if with_pseudobulk else "bulk") + " train, healthy-or-unknown, exact"
+         + (" + GTEx midpoints" if gtex_midpoints else ""),
          "n_train": int(is_train.sum()), "hvg_sample": hv.height},
     )  # fmt: skip
     pl.DataFrame({"gene_id": hvg, "coef": est.coef_.astype(np.float64)}).write_parquet(run_dir / "coefficients.parquet")
