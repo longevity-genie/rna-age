@@ -83,3 +83,15 @@ One dated entry per decision: hypothesis → what ran → result → next. Run d
   (probably single-nucleus brain) sits 20–30 y below the rest.
 - **Next**: ridge 20k genes; Horvath log-linear age target (for the young end); ElasticNet 5k running; Atlas
   probes when embeddings land.
+
+### 2026-11-10 01:05 · Rung 1 continued + attribution
+| run | val MAE | test MAE | test r | bias slope | GTEx bin hit | transfer MAE |
+|---|---|---|---|---|---|---|
+| ridge 20k HVG | 11.97 | **12.81** | 0.653 | −0.43 | 0.427 | **13.5** |
+| ridge 10k HVG, Horvath target | **11.93** | 12.91 | 0.649 | −0.45 | 0.398 | 16.1 |
+- The Horvath log-linear target helps a little on val; 20k genes helps test and transfer most.
+- **Attribution (ridge 20k)** → `data/output/summary/ridge20k_top_genes.parquet`: strongest "older" genes
+  include PTCHD4 (rank 5 overall), MIR34AHG and MIR29B2CHG (miR-34a / miR-29 hosts, both aging-linked), NEFL,
+  IGFBP3; "younger" include LRRN3 (the classic blood aging gene), CD248 (rank 24), KLRB1, NEFH. Sensible
+  biology; batch-driven features are not dominating the top of the list.
+- **Next**: ridge 20k + Horvath target as the bar to beat; Atlas probes.
