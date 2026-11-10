@@ -68,6 +68,10 @@ stop before Anton is back; 07:00 report, then keep updating; one tabbed artifact
 - **Composition vs within-cell-type (blood pseudobulk, 4 cohorts, 196–981 donors)**: equalising the cell mix
   keeps the clock (r 0.85 → 0.78–0.85), composition alone carries little (0.20–0.43); CD4 T cells alone match
   whole PBMC. The aging signal in blood is within cell types, mostly T cells.
+- **Composition-adjusted disease gaps (blood, 18 held-out studies)**: deconvolving PBMC classes and adjusting
+  shrinks the case gap 15–30 % but it survives (health-aware MLP 2.46 → 2.07 y [1.11, 3.32]; headline 1.25 → 0.89
+  [0.17, 2.04]). Caveat: no neutrophil reference yet.
+- **Tabular foundation models** (TabICLv2, GeneICL, so far): test MAE 15.6–16.3, far behind our MLP (10.4).
 - **PRIMO (local, official scorer, 16 public tasks, nothing submitted)**: age fine-tunes match frozen Atlas
   (mean per-task difference −0.007 / −0.005, within fold noise): no forgetting, no gain.
 - **Morning report**: `docs/reports/2026-11-10-overnight.md` (+ the report page linked at the top).
@@ -153,7 +157,6 @@ stop before Anton is back; 07:00 report, then keep updating; one tabbed artifact
    Prior Labs API key (`TABPFN_TOKEN` from ux.priorlabs.ai, after accepting the licence there) besides the HF
    gate; not bypassed.
 2. Health-aware Atlas fine-tune (the ranking loss + disease head in `finetune.py`), then health ensemble.
-3. Composition: Terekhova cell-type pseudobulk; tissues; deconvolve bulk and test whether the disease gaps
-   survive composition adjustment.
+3. Composition: add a granulocyte reference to the blood deconvolution; Terekhova cell-type pseudobulk; tissues.
 4. Seed-1 fine-tune into the fine-tune mean; re-check the headline.
 5. PRIMO submission only on Anton's go (HF login, model name, email).
