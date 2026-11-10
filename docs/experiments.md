@@ -95,3 +95,13 @@ One dated entry per decision: hypothesis → what ran → result → next. Run d
   IGFBP3; "younger" include LRRN3 (the classic blood aging gene), CD248 (rank 24), KLRB1, NEFH. Sensible
   biology; batch-driven features are not dominating the top of the list.
 - **Next**: ridge 20k + Horvath target as the bar to beat; Atlas probes.
+
+### 2026-11-10 01:30 · tAge control on GTEx test; ridge 20k + Horvath
+- **ridge 20k HVG + Horvath target**: val 11.57, **test 12.64**, r 0.653, GTEx bin hit 0.430, transfer 14.2
+  → current rung-1 bar.
+- **tAge vs ridge on identical samples/strata** (GTEx test, 2,926 samples, 52 tissue strata; metric = Pearson r
+  between the prediction's deviation from its stratum mean and the age deviation from the stratum mean, bin
+  midpoints): tAge EN multispecies scaled 0.316, YuGene 0.284; ridge 20k 0.727 (Horvath 0.727).
+  Caveat: ridge trained on other GTEx donors (in-distribution), tAge never saw GTEx; the ARCHS4 comparison
+  (tAge training series flagged) is the fairer one, rerunning after a per-stratum fix (one stratum broke tAge's
+  preprocessing).

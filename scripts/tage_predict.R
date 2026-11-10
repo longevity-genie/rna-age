@@ -24,14 +24,25 @@ meta <- meta[colnames(counts), , drop = FALSE]
 clocks <- list_clocks(type = "EN", outcome = "Chronological", species = "Multispecies", tissue = "Multi-Tissue")
 clocks <- download_clocks(clocks, dest_dir = clock_dir)
 
-eset <- make_ExpressionSet(counts, meta)
-# No dedicated control group: every stratum is filtered, normalised and centred on its own samples
-# (tAge's default of centring on the overall per-gene median, per stratum), so outputs are relative.
-tage_eset <- tAge_preprocessing(eset, species = "human", split_by = "stratum")
-res <- predict_tAge(tage_eset, clocks)
-res <- as.data.frame(res)
-res$sample_id <- rownames(res)
-units <- attr(res, "tage_units")
+# Strata (dataset x tissue) are processed one at a time, as tAge centres each on its own samples; a stratum that
+# tAge's preprocessing cannot handle (e.g. too few expressed genes) is skipped and listed, not fatal.
+results <- list()
+skipped <- character(0)
+for (st in unique(meta$stratum)) {
+  ids <- rownames(meta)[meta$stratum == st]
+  lib <- colSums(counts[, ids, drop = FALSE])
+  ids <- ids[lib > 0]
+  if (length(ids) < 6) { skipped <- c(skipped, st); next }
+  res <- tryCatch({
+    eset <- make_ExpressionSet(counts[, ids, drop = FALSE], meta[ids, , drop = FALSE])
+    pre <- suppressMessages(tAge_preprocessing(eset, species = "human", verbose = FALSE))
+    as.data.frame(predict_tAge(pre, clocks))
+  }, error = function(e) { message("skip stratum ", st, ": ", conditionMessage(e)); NULL })
+  if (is.null(res)) { skipped <- c(skipped, st); next }
+  res$sample_id <- rownames(res)
+  results[[st]] <- res
+}
+res <- do.call(rbind, results)
 write_parquet(res, file.path(input_dir, "predictions.parquet"))
-cat("tAge predictions:", nrow(res), "samples;", ncol(res) - 1, "columns\n")
-if (!is.null(units)) print(units)
+cat("tAge predictions:", nrow(res), "samples from", length(results), "strata; skipped", length(skipped), "\n")
+if (length(skipped)) writeLines(skipped, file.path(input_dir, "skipped_strata.txt"))
