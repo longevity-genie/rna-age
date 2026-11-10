@@ -373,3 +373,13 @@ evaluation samples), so absolute numbers are worse than the full-data runs; comp
   ensemble two fine-tunes.
 - Fine-tune seed 1 (last 4 blocks, all health states): val 12.35 → 10.81 → 10.62 (epochs 0–2); seed 0 had
   12.80 → 10.81 → 10.45, so seed variance is small.
+
+### 2026-11-10 13:30 · Last-6-blocks fine-tune; two fine-tunes + MLP = headline
+| run | val MAE | test MAE | test median AE | test r | GTEx bin hit | transfer MAE / r |
+|---|---|---|---|---|---|---|
+| Atlas fine-tune, last 6 blocks, all health states (6 × 20k) | 9.78 | 10.28 | 7.31 | 0.784 | 0.405 | **13.0 / 0.70** |
+| mean of the two all-health-states fine-tunes (u4, u6) | 9.44 | 10.10 | 7.24 | 0.794 | 0.366 | 13.1 / 0.70 |
+| **7-MLP ensemble + mean of the two fine-tunes (headline)** | **8.70** | **9.20** | **6.45** | **0.817** | 0.415 | 13.5 / 0.67 |
+| (previous) 7-MLP ensemble + u4 fine-tune | 8.72 | 9.26 | 6.56 | 0.816 | 0.384 | 13.6 / 0.67 |
+- The last-6-blocks fine-tune is the best fine-tune on test and the best model of all on pseudobulk transfer.
+  Headline: `20261110-1329-ens-mlp7-plus-atlasft2` (plain mean, no tuned weights).

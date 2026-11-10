@@ -3,7 +3,7 @@
 **Report page (private artifact, republished as results change):** https://claude.ai/artifact/TfY8RYwiVDLfm6pEwj81ic
 
 
-_Last update: 2026-11-10 10:30 CET (post-report follow-ups)._
+_Last update: 2026-11-10 13:35 CET (post-report follow-ups)._
 
 ## Mode (Anton, 2026-11-10 ~00:10)
 Fully autonomous overnight: data → baselines → BulkFormer embeddings/probes → fine-tuning, logging every run
@@ -61,7 +61,9 @@ stop before Anton is back; 07:00 report, then keep updating; one tabbed artifact
 
 ## Results so far (details: `docs/experiments.md`, `data/output/summary/experiments.parquet`)
 - **Morning report**: `docs/reports/2026-11-10-overnight.md` (+ the report page linked at the top).
-- **New headline (10:25)**: 7-model MLP ensemble + all-health-states Atlas fine-tune (mean): val 8.72, **test MAE
+- **Headline (13:35)**: 7-MLP ensemble + mean of the two all-health-states Atlas fine-tunes (last 4 and last 6
+  blocks): val 8.70, **test MAE 9.20**, r 0.817, transfer 13.5 / 0.67.
+- Previous headline (10:25): 7-model MLP ensemble + all-health-states Atlas fine-tune (mean): val 8.72, **test MAE
   9.26**, r 0.816, transfer 13.6 / 0.67.
 - Earlier headline: 7-model MLP ensemble on 20k log-CPM HVGs trained on all health states: val 9.00, **test MAE
   9.52**, r 0.793; + fine-tuned Atlas (last 4 blocks): test 9.45, r 0.817. Atlas fine-tune alone 10.85 (r 0.763),

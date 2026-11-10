@@ -40,6 +40,8 @@
 
 | run_id | model | features | val_exact_mae | test_exact_mae | test_exact_pearson_r | test_exact_bias_slope | test_binned_interval_hit | test_binned_mae_mid | transfer_exact_mae | transfer_exact_pearson_r |
 |---|---|---|---|---|---|---|---|---|---|---|
+| 20261110-1056-blend-mlp7-atlasft-u4all | blend (0.65·A + 0.35·B, weight chosen on val) | 20261110-0549-ens-mlp20k-trainall-7+20261110-0555-atlas-ft-u4-all | 8.68 | 9.19 | 0.82 | -0.33 | 0.41 | 6.80 | 13.89 | 0.65 |
+| 20261110-1329-ens-mlp7-plus-atlasft2 | ensemble (mean) | 20261110-0549-ens-mlp20k-trainall-7+20261110-1329-ens-atlasft-u4u6 | 8.70 | 9.20 | 0.82 | -0.33 | 0.41 | 6.93 | 13.47 | 0.67 |
 | 20261110-1023-ens-mlp7-plus-atlasft-u4all | ensemble (mean) | 20261110-0549-ens-mlp20k-trainall-7+20261110-0555-atlas-ft-u4-all | 8.72 | 9.26 | 0.82 | -0.33 | 0.38 | 7.19 | 13.56 | 0.67 |
 | 20261110-0549-ens-mlp20k-trainall-7 | ensemble (mean) | 20261110-0237-hvg20000-mlp-trainall+20261110-0248-hvg20000-mlp-trainall-seed1+20261110-0255-hvg20000-mlp-trainall-seed2+20261110-0302-hvg20000-mlp-trainall-seed3+20261110-0526-hvg20000-mlp-trainall-seed4+20261110-0530-hvg20000-mlp-trainall-seed5+20261110-0247-hvg20000-mlp-horvath-trainall | 9.00 | 9.52 | 0.79 | -0.33 | 0.46 | 6.23 | 15.21 | 0.57 |
 | 20261110-0304-ens-mlp20k-trainall-5 | ensemble (mean) | 20261110-0237-hvg20000-mlp-trainall+20261110-0248-hvg20000-mlp-trainall-seed1+20261110-0255-hvg20000-mlp-trainall-seed2+20261110-0302-hvg20000-mlp-trainall-seed3+20261110-0247-hvg20000-mlp-horvath-trainall | 9.02 | 9.63 | 0.79 | -0.33 | 0.46 | 6.25 | 15.02 | 0.60 |
@@ -53,8 +55,10 @@
 | 20261110-0312-atlas-cls-hvg-mlp-trainall | mlp probe | Atlas CLS + HVG 20000 | 9.22 | 9.80 | 0.78 | -0.35 | 0.45 | 6.48 | 18.61 | 0.54 |
 | 20261110-0247-hvg20000-mlp-horvath-trainall | mlp probe | logCPM HVG 20000 | 9.22 | 10.14 | 0.77 | -0.33 | 0.46 | 6.31 | 13.60 | 0.71 |
 | 20261110-0526-hvg20000-mlp-trainall-seed4 | mlp probe | logCPM HVG 20000 | 9.25 | 9.36 | 0.80 | -0.32 | 0.44 | 6.58 | 16.03 | 0.46 |
+| 20261110-1329-ens-atlasft-u4u6 | ensemble (mean) | 20261110-0555-atlas-ft-u4-all+20261110-0533-atlas-ft-u6-all | 9.44 | 10.10 | 0.79 | -0.32 | 0.37 | 8.28 | 13.08 | 0.70 |
 | 20261110-0237-hvg20000-mlp-trainall | mlp probe | logCPM HVG 20000 | 9.48 | 10.28 | 0.76 | -0.37 | 0.44 | 6.79 | 16.52 | 0.46 |
 | 20261110-0555-atlas-ft-u4-all | Atlas fine-tune (last 4 blocks + head) | Atlas panel 4096 | 9.58 | 10.39 | 0.78 | -0.34 | 0.32 | 8.93 | 13.31 | 0.69 |
+| 20261110-0533-atlas-ft-u6-all | Atlas fine-tune (last 6 blocks + head) | Atlas panel 4096 | 9.78 | 10.28 | 0.78 | -0.30 | 0.40 | 8.14 | 12.97 | 0.70 |
 | 20261110-0240-ens-mlp20k-7 | ensemble (mean) | 20261110-0210-hvg20000-mlp+20261110-0217-hvg20000-mlp-seed1+20261110-0232-hvg20000-mlp-seed2+20261110-0236-hvg20000-mlp-seed3+20261110-0239-hvg20000-mlp-seed4+20261110-0237-hvg20000-mlp-trainall+20261110-0217-hvg20000-mlp-horvath | 9.83 | 10.26 | 0.77 | -0.38 | 0.44 | 6.44 | 14.65 | 0.62 |
 | 20261110-0218-ens-mlp20k-3 | ensemble (mean) | 20261110-0210-hvg20000-mlp+20261110-0217-hvg20000-mlp-seed1+20261110-0217-hvg20000-mlp-horvath | 10.00 | 10.36 | 0.77 | -0.36 | 0.44 | 6.47 | 14.05 | 0.68 |
 | 20261110-0240-ens-mlp20k-5seeds | ensemble (mean) | 20261110-0210-hvg20000-mlp+20261110-0217-hvg20000-mlp-seed1+20261110-0232-hvg20000-mlp-seed2+20261110-0236-hvg20000-mlp-seed3+20261110-0239-hvg20000-mlp-seed4 | 10.00 | 10.44 | 0.77 | -0.39 | 0.44 | 6.50 | 14.59 | 0.62 |
@@ -137,6 +141,12 @@
 | archs4 | test | 20261110-1023-ens-mlp7-plus-atlasft-u4all | not_in_training | 8,561 | 0.71 | 184 |
 | archs4 | test | EN_Chronoage_Multispecies_Multitissue_scaleddiff | not_in_training | 8,561 | 0.33 | 184 |
 | archs4 | test | EN_Chronoage_Multispecies_Multitissue_yugenediff | not_in_training | 8,561 | 0.33 | 184 |
+| archs4 | test | 20261110-1329-ens-mlp7-plus-atlasft2 | all | 8,643 | 0.72 | 185 |
+| archs4 | test | EN_Chronoage_Multispecies_Multitissue_scaleddiff | all | 8,643 | 0.33 | 185 |
+| archs4 | test | EN_Chronoage_Multispecies_Multitissue_yugenediff | all | 8,643 | 0.34 | 185 |
+| archs4 | test | 20261110-1329-ens-mlp7-plus-atlasft2 | not_in_training | 8,561 | 0.72 | 184 |
+| archs4 | test | EN_Chronoage_Multispecies_Multitissue_scaleddiff | not_in_training | 8,561 | 0.33 | 184 |
+| archs4 | test | EN_Chronoage_Multispecies_Multitissue_yugenediff | not_in_training | 8,561 | 0.33 | 184 |
 | gtex | test | EN_Chronoage_Multispecies_Multitissue_scaleddiff.pkl | all | 2,926 | 0.32 | 52 |
 | gtex | test | EN_Chronoage_Multispecies_Multitissue_scaleddiff.pkl | not_in_training | 2,926 | 0.32 | 52 |
 | gtex | test | EN_Chronoage_Multispecies_Multitissue_yugenediff.pkl | all | 2,926 | 0.28 | 52 |
@@ -179,5 +189,11 @@
 | gtex | test | EN_Chronoage_Multispecies_Multitissue_scaleddiff | all | 2,926 | 0.32 | 52 |
 | gtex | test | EN_Chronoage_Multispecies_Multitissue_yugenediff | all | 2,926 | 0.28 | 52 |
 | gtex | test | 20261110-1023-ens-mlp7-plus-atlasft-u4all | not_in_training | 2,926 | 0.74 | 52 |
+| gtex | test | EN_Chronoage_Multispecies_Multitissue_scaleddiff | not_in_training | 2,926 | 0.32 | 52 |
+| gtex | test | EN_Chronoage_Multispecies_Multitissue_yugenediff | not_in_training | 2,926 | 0.28 | 52 |
+| gtex | test | 20261110-1329-ens-mlp7-plus-atlasft2 | all | 2,926 | 0.75 | 52 |
+| gtex | test | EN_Chronoage_Multispecies_Multitissue_scaleddiff | all | 2,926 | 0.32 | 52 |
+| gtex | test | EN_Chronoage_Multispecies_Multitissue_yugenediff | all | 2,926 | 0.28 | 52 |
+| gtex | test | 20261110-1329-ens-mlp7-plus-atlasft2 | not_in_training | 2,926 | 0.75 | 52 |
 | gtex | test | EN_Chronoage_Multispecies_Multitissue_scaleddiff | not_in_training | 2,926 | 0.32 | 52 |
 | gtex | test | EN_Chronoage_Multispecies_Multitissue_yugenediff | not_in_training | 2,926 | 0.28 | 52 |

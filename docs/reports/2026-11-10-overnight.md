@@ -7,6 +7,14 @@ _Written 2026-11-10 ~06:10 (cluster clock); updated if results change. Numbers c
 `report_tables.md` there) and the run directories; the experiment log with every decision is
 `docs/experiments.md`._
 
+## Update 13:35
+
+The last-6-blocks Atlas fine-tune (all health states, 6 × 20k samples) finished: val 9.78, test 10.28, r 0.784,
+best pseudobulk transfer of any model (MAE 13.0, r 0.70). **Headline now: mean of the 7-MLP ensemble and the
+average of the two all-health-states fine-tunes: val 8.70, test MAE 9.20 (median 6.45), r 0.817**, GTEx bin hit
+0.41, transfer 13.5 / 0.67. Same samples vs clocks (within-stratum r): ARCHS4 0.72 vs tAge 0.33; GTEx 0.75 vs
+0.32; ClockBase series 0.70 vs 0.23 / 0.30. A second fine-tune seed is still running (seed variance looks small).
+
 ## Update 10:25 (after the report)
 
 Fine-tuning the last 4 Atlas blocks on all health states (6 × 12k samples): val 9.58, test MAE 10.39, r 0.782,

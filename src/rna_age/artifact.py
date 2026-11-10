@@ -82,7 +82,9 @@ def build() -> str:
     pseudo = int(by_source.filter(pl.col("pseudobulk") > 0)["eligible"].sum())
     gtex_binned = int(by_source.filter(pl.col("source") == "gtex")["eligible"].sum())
     n_split = int(splits["samples"].sum()) if splits is not None else None
-    best = exp.drop_nulls("val_exact_mae").row(0, named=True)
+    # the headline is chosen on validation, so runs whose weights were fitted on validation (blends,
+    # calibrations) are excluded: their validation MAE is optimistically biased
+    best = exp.drop_nulls("val_exact_mae").filter(~pl.col("run_id").str.contains(r"blend-|-cal$")).row(0, named=True)
     # like-for-like clock comparison for the best run (identical tAge-scored samples), else tAge alone
     clocks = sorted((OUTPUT / "clocks").glob(f"tage_*_vs_{best['run_id']}_summary.parquet")) or sorted(
         p for p in (OUTPUT / "clocks").glob("tage_*_summary.parquet") if "_vs_" not in p.name
@@ -296,8 +298,8 @@ with the best single-model pseudobulk transfer (MAE {cite("atlas-ft-u4$", "trans
 {cite("atlas-ft-u4$", "transfer_exact_pearson_r", 2)}) after only 5 × 12k training samples. Trained on all health states it
 reaches {cite("atlas-ft-u4-all$")} with the best pseudobulk transfer of any model (r {cite("atlas-ft-u4-all$", "transfer_exact_pearson_r", 2)}),
 and averaged with the MLP ensemble it gives the best model overall: validation MAE
-{cite("ens-mlp7-plus-atlasft-u4all", "val_exact_mae")}, test MAE {cite("ens-mlp7-plus-atlasft-u4all")}, r
-{cite("ens-mlp7-plus-atlasft-u4all", "test_exact_pearson_r", 3)}: the fine-tuned encoder is complementary to expression
+{cite("ens-mlp7-plus-atlasft2", "val_exact_mae")}, test MAE {cite("ens-mlp7-plus-atlasft2")}, r
+{cite("ens-mlp7-plus-atlasft2", "test_exact_pearson_r", 3)}: the fine-tuned encoder is complementary to expression
 features.</li>
 </ol>"""
     tabs["results"] = (
