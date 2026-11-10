@@ -152,3 +152,14 @@ One dated entry per decision: hypothesis → what ran → result → next. Run d
   not help the 4 held-out ones (dataset-level shift: assay, nuclei vs cells, tissue). No pseudobulk study fell
   into the test split (few, large studies), so pseudobulk stays a transfer / val evaluation.
 - **Next**: MLP on log-CPM HVG 4,096 and 20,000 (is it the panel or the MLP?); fine-tuning continues (u2, u4).
+
+### 2026-11-10 02:15 · MLP on log-CPM HVGs (is it the panel or the MLP?)
+| run | val MAE | test MAE | test r | bias slope | GTEx bin hit | transfer MAE / r |
+|---|---|---|---|---|---|---|
+| **MLP, log-CPM HVG 20k** | **10.13** | **10.43** | **0.773** | −0.38 | 0.406 | 14.8 / **0.65** |
+| MLP, Atlas panel (4,096, log2 TPM) | 10.69 | 11.45 | 0.751 | −0.37 | 0.376 | 16.3 / 0.48 |
+| MLP, log-CPM HVG 4,096 | 11.07 | 11.88 | 0.711 | −0.42 | 0.438 | 20.4 / 0.18 |
+- **Reading**: the MLP is what matters (−2.2 y test MAE vs ridge on the same 20k genes); at equal size the
+  Atlas panel with BulkFormer's gene-length TPM normalisation beats log-CPM HVGs (11.45 vs 11.88), so the
+  normalisation is worth porting to the 20k feature set. Best transfer to pseudobulk so far as well.
+- **Next**: 20k MLP with the Horvath target; seeds; TPM-normalised 20k features; fine-tuning keeps running.
