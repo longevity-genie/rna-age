@@ -1,6 +1,6 @@
 # rna-age status
 
-_Last update: 2026-11-10 00:47 CET (overnight session)._
+_Last update: 2026-11-10 01:40 CET (overnight session)._
 
 ## Mode (Anton, 2026-11-10 ~00:10)
 Fully autonomous overnight: data → baselines → BulkFormer embeddings/probes → fine-tuning, logging every run
@@ -52,17 +52,20 @@ stop before Anton is back; 07:00 report, then keep updating; one tabbed artifact
   single-cell flags), waiting for the download.
 
 ## Running
-- Atlas CLS embeddings: 4 GPU jobs (shards 0–3; logs `slurm/logs/rna-age-embed-*.out`), val/test first,
-  ~40 min each → `data/interim/embeddings/atlas/`.
-- Rung-1 baselines (ridge 2k/5k/10k HVG, ElasticNet 5k): CPU jobs queued behind the shared CPU cap.
-- Census tier-2 pseudobulk (MSSM brain, HBCA): jobs running; rerun `rna-age parse census_pseudobulk` +
-  `rna-age merge` after them.
-- tAge env built (tAge 1.5.0); `rna-age tage` works (GTEx smoke test).
+- Rung-3 probes on Atlas CLS (ridge, MLP; CLS alone and CLS + 1,200 HVGs): 4 GPU jobs, logs
+  `slurm/logs/rna-age-probe-*.out`.
+- ElasticNet 5k HVG (CPU on a GPU node); tAge on the ARCHS4 test set (per-stratum rerun).
+- Next: Atlas fine-tuning (last 2 / 4 blocks + head, 12k samples per epoch) once the probes free the GPUs.
 
-## Results so far
-- 98,476 eligible de-duplicated samples (ARCHS4 74,293 exact; GTEx 19,461 binned; Census 2,958 + Terekhova
-  317 pseudobulk exact). Parsed ages vs Shokhirev 2021 curation: 5,370 / 5,371 within 1 year.
-- tAge (relative clock) on 551 GTEx test samples: r(delta) = 0.38 (scaled) / 0.33 (YuGene).
+## Results so far (details: `docs/experiments.md`, `data/output/summary/experiments.parquet`)
+- Data: 98,476 eligible de-duplicated samples (ARCHS4 74,293 exact; GTEx 19,461 binned; Census 2,958 +
+  Terekhova 317 pseudobulk exact); parsed ages vs Shokhirev 2021 curation: 5,370 / 5,371 within 1 year.
+- Constant (train median) reference: test MAE 18.2 y.
+- Best rung 1: ridge on 20k HVG log-CPM + Horvath target: val 11.57, **test MAE 12.64**, r 0.65; GTEx bin hit
+  0.43; bulk→pseudobulk transfer MAE 14.2.
+- tAge (relative clock) vs ridge on the same GTEx test strata: r(delta) 0.32 vs 0.73 (ridge saw other GTEx
+  donors; tAge never saw GTEx).
+- Atlas CLS embeddings for all 98,474 samples (2 ARCHS4 samples skipped: zero library).
 
 ## Decisions
 - Through the proxy one connection gets ~2–4 MB/s; parallel ranges stack (12 → ~16 MB/s).
