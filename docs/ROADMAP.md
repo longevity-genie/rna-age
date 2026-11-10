@@ -38,7 +38,7 @@ then the same composition-vs-within test in lung (HLCA) and brain (PsychENCODE, 
 
 ## RM5 — PRIMO submission
 
-**State:** waits until 2026-11-11: Anton's go in chat (HF login, model name, contact email); public, so the maintainers' · **Owner:** lead
+**State:** blocked: desk #9 (default: not submitted) · **Owner:** lead
 
 Local scoring done (16 public tasks, no gain over frozen Atlas). Submitting is public and needs Anton's account.
 
