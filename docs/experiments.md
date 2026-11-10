@@ -300,3 +300,8 @@ stratum mean (strata = dataset × tissue; tAge is a relative clock). Only sample
   all-health-states ensemble **0.661**.
 - Atlas fine-tune, last 4 blocks: epoch 3 val 12.22 (worse than 10.79 at epoch 2): early stopping will keep the
   epoch-2 checkpoint.
+
+### 2026-11-10 04:55 · Atlas fine-tune, last 4 blocks: epoch 4
+- val MAE (3k val subsample) by epoch: 14.14, 11.59, 10.79, 12.22, **10.35** → best checkpoint = epoch 4; the
+  run ends here (5 epochs × 12k samples) and predicts the evaluation samples (test/val/transfer).
+- Still improving at the end of its budget: a longer run over all training samples is the obvious next step.
