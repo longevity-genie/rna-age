@@ -122,3 +122,19 @@ One dated entry per decision: hypothesis → what ran → result → next. Run d
   worse to pseudobulk; the contrastive objective seems to encode sample identity / tissue more than age.
 - **Next**: CLS + HVG probes (running); fine-tuning the last 2 / 4 Atlas blocks with a regression head
   (running, 12k samples per epoch, early stopping on val).
+
+### 2026-11-10 01:45 · Rung 3 continued: what does the encoder add?
+| run | val MAE | test MAE | test r | GTEx bin hit | transfer MAE / r |
+|---|---|---|---|---|---|
+| ElasticNet 5k HVG | 12.82 | 13.40 | 0.642 | 0.371 | (backfilled) |
+| **panel only** (Atlas's 4,096 input genes, log2 TPM, ridge, no encoder) | 12.87 | 13.70 | 0.634 | 0.367 | 18.8 / 0.39 |
+| Atlas CLS + 1,200 HVG, ridge | 13.62 | 14.61 | 0.587 | 0.321 | 17.7 / 0.28 |
+| Atlas CLS, ridge | 14.73 | 15.45 | 0.542 | 0.313 | 19.4 / 0.09 |
+| Atlas CLS, MLP | 12.63 | 13.69 | 0.634 | 0.346 | 17.0 / 0.23 |
+- **Reading**: linearly, the frozen CLS is *worse* than the 4,096 panel genes it is computed from (14.7 vs
+  12.9 val MAE); a non-linear readout recovers it (MLP 12.6). The encoder does not add age information over
+  its own input when frozen; the CLS + HVG concatenation also loses to HVGs alone. Frozen Atlas is not the
+  route to a better clock; fine-tuning (running) is the real test of the model.
+- A Census probe crashed when the Census re-merge rewrote count parts mid-read; rerun (CLS + HVG MLP), plus a
+  panel-only MLP control.
+- **Next**: fine-tune results (u2, u4); then decide between more fine-tuning budget and the bulk→pseudobulk arm.
