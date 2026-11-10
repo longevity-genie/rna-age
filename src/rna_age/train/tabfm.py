@@ -21,12 +21,13 @@ import time
 import numpy as np
 import polars as pl
 
+from rna_age.paths import INTERIM
 from rna_age.train.baselines import PRED_COLS, hvg_design
 from rna_age.train.runs import finish_run, new_run
 
 log = logging.getLogger(__name__)
 
-MODELS = ("tabicl", "tabfm", "geneicl", "geneicl-fast", "mitra2", "tabpfn", "ridge")
+MODELS = ("tabicl", "tabfm", "geneicl", "geneicl-fast", "mitra2", "limix2", "tabpfn", "ridge")
 
 
 def _estimator(model: str, seed: int):
@@ -48,6 +49,8 @@ def _estimator(model: str, seed: int):
         return GeneICL(mode="regression", inference="fast" if model.endswith("fast") else "normal", device="cuda")
     if model == "mitra2":  # Mitra-v2: 50-step fine-tune, 8-fold bagged (AutoGluon); every predict re-runs the bag
         return _Mitra(seed)
+    if model == "limix2":
+        return _LimiX()
     if model == "tabpfn":
         from tabpfn import TabPFNRegressor
 
@@ -83,6 +86,31 @@ class _Mitra:
 
     def predict(self, X: np.ndarray) -> np.ndarray:
         return np.asarray(self.m.predict(self._df(X)), dtype=np.float64)
+
+
+class _LimiX:
+    """LimiX-2 (``stable-ai/LimiX-2``, inference code from the cloned repo) behind fit/predict."""
+
+    def __init__(self):
+        import os
+
+        import torch
+        from huggingface_hub import hf_hub_download
+        from inference.predictor import LimiXPredictor
+
+        for k, v in {"RANK": "0", "WORLD_SIZE": "1", "MASTER_ADDR": "127.0.0.1", "MASTER_PORT": "29511"}.items():
+            os.environ.setdefault(k, v)
+        repo = INTERIM.parent / "download" / "tfm" / "LimiX"
+        self.m = LimiXPredictor(device=torch.device("cuda"),
+                                model_path=hf_hub_download("stable-ai/LimiX-2", "LimiX-2.ckpt"),
+                                inference_config=str(repo / "config" / "reg_default_noretrieval_v2.json"))  # fmt: skip
+
+    def fit(self, X: np.ndarray, y: np.ndarray):
+        self.X, self.y = X, y
+        return self
+
+    def predict(self, X: np.ndarray) -> np.ndarray:
+        return np.asarray(self.m.predict(self.X, self.y, X, task_type="Regression"), dtype=np.float64).ravel()
 
 
 def context_rows(allx: pl.DataFrame, is_train: np.ndarray, cap_per_study: int, n_context: int, seed: int) -> np.ndarray:
