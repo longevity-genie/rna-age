@@ -163,3 +163,15 @@ One dated entry per decision: hypothesis → what ran → result → next. Run d
   Atlas panel with BulkFormer's gene-length TPM normalisation beats log-CPM HVGs (11.45 vs 11.88), so the
   normalisation is worth porting to the 20k feature set. Best transfer to pseudobulk so far as well.
 - **Next**: 20k MLP with the Horvath target; seeds; TPM-normalised 20k features; fine-tuning keeps running.
+
+### 2026-11-10 02:25 · tAge vs our models on identical test samples
+Metric: Pearson r between a model's deviation from its stratum mean and the true age deviation from the
+stratum mean (strata = dataset × tissue; tAge is a relative clock). Only samples tAge scored are used.
+
+| test set | samples / strata | tAge EN scaled | tAge EN YuGene | ridge 20k + Horvath | MLP 20k |
+|---|---|---|---|---|---|
+| ARCHS4 | 8,643 / 185 | 0.331 | 0.336 | 0.560 | **0.662** |
+| ARCHS4 without tAge training series | 8,561 / 184 | 0.328 | 0.334 | 0.557 | **0.659** |
+| GTEx | 2,926 / 52 | 0.316 | 0.284 | 0.727 | **0.758** |
+- tAge's training series barely overlap our test split (82 samples), so excluding them changes nothing.
+- One ARCHS4 stratum (a blood series) failed inside tAge's preprocessing and was skipped.

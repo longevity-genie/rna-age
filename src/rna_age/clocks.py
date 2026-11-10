@@ -89,14 +89,19 @@ def run(source: str, split: str = "test", max_samples: int | None = None) -> pl.
 def compare_run(run_id: str, source: str, split: str = "test") -> pl.DataFrame:
     """Score one of our runs on the tAge samples/strata: r of (pred − stratum mean pred) with age_delta."""
     t = pl.read_parquet(OUTPUT / "clocks" / f"tage_{source}_{split}.parquet")
+    tcols = [c for c in t.columns if "Chronoage" in c or "tAge" in c]
+    t = t.drop_nulls(tcols[:1])  # only samples tAge scored, so both are compared on identical samples
+    # recompute the age delta on exactly these samples (strata may have lost samples tAge could not score)
+    t = t.with_columns(age_delta=pl.col("age_mid") - pl.col("age_mid").mean().over("stratum"))
     p = pl.read_parquet(OUTPUT / "runs" / run_id / "predictions.parquet").select("sample_id", "pred")
     j = t.join(p, on="sample_id").with_columns(pred_delta=pl.col("pred") - pl.col("pred").mean().over("stratum"))
     rows = []
     for name, sub in (("all", j), ("not_in_training", j.filter(~pl.col("in_tage_training")))):
         if sub.height > 2:
-            r = float(np.corrcoef(sub["pred_delta"].to_numpy(), sub["age_delta"].to_numpy())[0, 1])
-            rows.append({"source": source, "split": split, "model": run_id, "subset": name, "n": sub.height,
-                         "r_delta": r, "strata": sub["stratum"].n_unique()})  # fmt: skip
+            for model, col in [(run_id, "pred_delta")] + [(c.removesuffix(".pkl"), c) for c in tcols]:
+                r = float(np.corrcoef(sub[col].to_numpy(), sub["age_delta"].to_numpy())[0, 1])
+                rows.append({"source": source, "split": split, "model": model, "subset": name, "n": sub.height,
+                             "r_delta": r, "strata": sub["stratum"].n_unique()})  # fmt: skip
     out = pl.DataFrame(rows)
     out.write_parquet(OUTPUT / "clocks" / f"tage_{source}_{split}_vs_{run_id}_summary.parquet")
     return out
