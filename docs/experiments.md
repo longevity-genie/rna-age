@@ -428,3 +428,18 @@ HVGs chosen in-fold, 5-fold CV grouped by donor); Pearson r with age on held-out
   u6-all) with the authors' PRIMO protocol → `data/output/primo/submission_*.parquet`.
 - Local scoring with the official `primo evaluate` needs installing and running the external primo-eval code,
   which the session's safety check blocked pending Anton's approval; leaderboard submission needs Anton's HF token.
+
+### 2026-11-10 15:20 · PRIMO, local scoring (official `primo evaluate`, primomics 0.1.7.dev0, nothing submitted)
+16 public bulk tasks, all datasets validated; each task's metric (Pearson, AUROC, centred Spearman) from the
+leaderboard probe; per-task scores in `data/output/summary/primo_local_scores.parquet`.
+
+| category (tasks) | Atlas frozen | Atlas age fine-tune, last 4 blocks | last 6 blocks |
+|---|---|---|---|
+| clinical scores, Pearson (6) | 0.450 | 0.446 | 0.442 |
+| endotype, AUROC (2) | 0.887 | 0.878 | 0.882 |
+| perturbation, centred Spearman (2) | 0.336 | 0.331 | 0.323 |
+| prognosis, AUROC (3) | 0.718 | 0.710 | 0.723 |
+| treatment outcome, AUROC (3) | 0.589 | 0.579 | 0.587 |
+- Age fine-tuning leaves the representation's usefulness for other clinical tasks unchanged: mean per-task
+  difference vs frozen −0.007 (u4, better on 4/16 tasks) and −0.005 (u6, better on 8/16), all within the probe's
+  fold sd. No forgetting, no transfer gain. A submission of our fine-tunes would sit next to frozen Atlas.
