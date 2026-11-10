@@ -57,7 +57,7 @@ stop before Anton is back; 07:00 report, then keep updating; one tabbed artifact
 ## Running
 - Atlas fine-tune, last 6 blocks + head, 20k samples/epoch, all health states (`atlas-ft-u6-all`): val
   12.09 → 10.24 (epochs 0–1); log `slurm/logs/rna-age-ft-u6-all-*.out`; checkpoints each epoch, resumable.
-- Atlas fine-tune, last 4 blocks + head, all health states (`atlas-ft-u4-all`): val 12.80 → 10.81 → 10.45 (epochs 0–2).
+- Atlas fine-tune, last 4 blocks + head, all health states (`atlas-ft-u4-all`): val 12.80 → 10.81 → 10.45 → 10.60 (epochs 0–3).
 
 ## Results so far (details: `docs/experiments.md`, `data/output/summary/experiments.parquet`)
 - **Morning report**: `docs/reports/2026-11-10-overnight.md` (+ the report page linked at the top).
