@@ -92,3 +92,20 @@ def select_hvg(train_logcpm: np.ndarray, genes: list[str], k: int, min_mean: flo
     var[mean < min_mean] = -1
     top = np.argsort(-var)[:k]
     return [genes[i] for i in sorted(top)]
+
+
+def gene_lengths(genes: list[str]) -> np.ndarray:
+    """Gene lengths (bp) from BulkFormer's released normalisation vocabulary; NaN where unknown."""
+    from rna_age.paths import DATA
+
+    v = pl.read_csv(DATA / "download" / "models" / "bulkformer" / "atlas" / "normalization_vocab.csv")
+    lens = dict(zip(v["ensembl_gene"].to_list(), v["gene_length_bp"].to_list(), strict=True))
+    return np.array([lens.get(g, np.nan) for g in genes], dtype=np.float64)
+
+
+def log_tpm(counts: np.ndarray, lengths: np.ndarray) -> np.ndarray:
+    """log2(TPM + 1) over the genes with a known length (BulkFormer's normalisation, on our gene axis)."""
+    rate = counts / (lengths[None, :] / 1000.0)
+    tot = rate.sum(axis=1, keepdims=True)
+    tot[tot == 0] = 1
+    return np.log2(rate / tot * 1e6 + 1).astype(np.float32)
