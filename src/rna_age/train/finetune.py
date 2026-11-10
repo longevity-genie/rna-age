@@ -197,9 +197,11 @@ def train(
     best_state = torch.load(ckpt_dir / "best.pt", map_location=dev, weights_only=False)
     head.load_state_dict(best_state["head"])
     model.load_state_dict(best_state["model"], strict=False)
-    all_rows = np.array([pos[s] for s in m["sample_id"].to_list()])
-    pred = predict(all_rows)
-    out = m.select([c for c in PRED_COLS if c in m.columns]).with_columns(pred=pl.Series(pred.astype(np.float64)))
+    # evaluation samples only (val, test, transfer): predicting the 67k training samples costs ~2 GPU-hours
+    ev = m.filter(pl.col("split") != "train")
+    ev_rows = np.array([pos[s] for s in ev["sample_id"].to_list()])
+    pred = predict(ev_rows, bs=8)
+    out = ev.select([c for c in PRED_COLS if c in ev.columns]).with_columns(pred=pl.Series(pred.astype(np.float64)))
     (run_dir / "checkpoint.json").write_text(json.dumps({"checkpoint_dir": str(ckpt_dir)}))
     row = finish_run(run_dir, out, {"seconds": time.time() - t0, "best_val_mae": best,
                                     "host_gpu": os.environ.get("CUDA_VISIBLE_DEVICES")})  # fmt: skip
