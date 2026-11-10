@@ -84,6 +84,8 @@ def analyse(
     """``mapping="broad"``: blood classes (``BROAD``); ``"cell_type"``: the dataset's own labels (tissues), the
     ``n_classes`` most abundant kept (the rest pooled as "other"), the ``n_major`` most abundant as ``major``."""
     d = INPUT / "census_pseudobulk" / "by_dataset_celltype" / dataset_id
+    if not d.exists():  # other sources' cell-type pseudobulk in the same layout (terekhova2023)
+        d = INPUT / dataset_id / "by_dataset_celltype" / dataset_id
     g = pl.read_parquet(d / "groups.parquet")
     counts = pl.read_parquet(d / "counts.parquet")
     genes = counts["gene_id"].to_list()

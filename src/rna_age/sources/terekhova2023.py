@@ -134,8 +134,12 @@ def _unpack(member: str, dest_root: Path) -> Path:
     return dest
 
 
-def parse(chunk: int = 100_000) -> None:
+def parse(chunk: int = 100_000, by_cell_type: bool = False) -> None:
     """Pseudobulk per tube (donor × visit): raw UMIs per cell summed per sample.
+
+    ``by_cell_type``: per tube × published cell cluster (``Cluster_names``) instead, written as
+    ``by_dataset_celltype/terekhova2023/{groups,counts}.parquet`` in the layout of the Census cell-type pseudobulk, for
+    the composition analyses (never merged into the age samples).
 
     Uses ``.raw.X`` / ``layers/counts`` / integer ``X`` when present; otherwise recovers UMIs from log1p-CP10k
     as ``round(expm1(x) * nCount_RNA / 1e4)`` with the per-cell total from the metadata, after checking on the
@@ -171,10 +175,18 @@ def parse(chunk: int = 100_000) -> None:
             X, genes, mode = f["X"], _var_ids(f, False), "X"
         log.info("Terekhova h5ad: %d cells × %d genes, matrix %s", len(barcodes), len(genes), mode)
         cells = pl.DataFrame({"barcode": barcodes.astype(str)}).with_row_index("cell")
-        cells = cells.join(meta.select("barcode", "Tube_id", "nCount_RNA"), on="barcode", how="left")
-        tubes = cells["Tube_id"].drop_nulls().unique().sort().to_list()
+        cells = cells.join(meta.select("barcode", "Tube_id", "Cluster_names", "nCount_RNA"), on="barcode", how="left")
+        key = (
+            pl.when(pl.col("Tube_id").is_not_null() & pl.col("Cluster_names").is_not_null()).then(
+                pl.col("Tube_id") + "\x1f" + pl.col("Cluster_names")
+            )
+            if by_cell_type
+            else pl.col("Tube_id")
+        )
+        cells = cells.with_columns(key=key)
+        tubes = cells["key"].drop_nulls().unique().sort().to_list()
         tindex = {t: i for i, t in enumerate(tubes)}
-        cell_group = np.array([tindex.get(t, -1) if t is not None else -1 for t in cells["Tube_id"].to_list()])
+        cell_group = np.array([tindex.get(t, -1) if t is not None else -1 for t in cells["key"].to_list()])
         ncount = cells["nCount_RNA"].fill_null(0).to_numpy().astype(np.float64)
         n = len(barcodes)
         sums = np.zeros((len(tubes), len(genes)), dtype=np.float64)
@@ -204,6 +216,9 @@ def parse(chunk: int = 100_000) -> None:
             sums += (ind @ m).toarray()
             log.info("Terekhova: %d/%d cells (%.0fs)", hi, n, time.time() - t0)
     n_cells = np.bincount(cell_group[cell_group >= 0], minlength=len(tubes))
+    if by_cell_type:
+        _write_cell_type(meta, tubes, n_cells, sums, genes)
+        return
     per_tube = (
         meta.group_by("Tube_id")
         .agg(
@@ -257,3 +272,35 @@ def parse(chunk: int = 100_000) -> None:
                     "samples": samples.height, "min_cells": MIN_CELLS, "min_umis": MIN_UMIS}, indent=2)
     )  # fmt: skip
     log.info("Terekhova pseudobulk: %d tubes from %d donors", samples.height, df["Donor_id"].n_unique())
+
+
+def _write_cell_type(meta, keys: list[str], n_cells, sums, genes: list[str]) -> None:
+    """Tube × cluster pseudobulk in the Census cell-type layout (``composition.analyse`` reads it)."""
+    import numpy as np
+    import polars as pl
+
+    from rna_age.paths import input_dir
+
+    per_tube = meta.group_by("Tube_id").agg(pl.col("Donor_id").first(), pl.col("Age").first(), pl.col("Sex").first())
+    g = pl.DataFrame(
+        {"key": keys, "n_cells": n_cells.astype(np.int64), "n_umis": np.rint(sums.sum(axis=1)).astype(np.int64)}
+    )
+    g = g.with_columns(pl.col("key").str.split_exact("\x1f", 1).struct.rename_fields(["Tube_id", "cell_type"])).unnest(
+        "key"
+    )
+    g = g.join(per_tube, on="Tube_id", how="left").with_columns(
+        donor_id=pl.col("Tube_id"),  # a tube is one donor visit; composition groups by donor:tissue
+        tissue=pl.lit("blood"),
+        development_stage=pl.col("Age").cast(pl.Int64).cast(pl.String) + "-year-old stage",
+        disease=pl.lit("normal"),
+        dataset_id=pl.lit("terekhova2023"),
+        sample_id=pl.lit("terekhova2023:") + pl.col("Tube_id") + ":" + pl.col("cell_type"),
+    )
+    out = input_dir(NAME) / "by_dataset_celltype" / "terekhova2023"
+    out.mkdir(parents=True, exist_ok=True)
+    g.write_parquet(out / "groups.parquet")
+    counts = pl.DataFrame({"gene_id": genes}).with_columns(
+        [pl.Series(sid, np.rint(sums[i]).astype(np.uint32)) for i, sid in enumerate(g["sample_id"].to_list())]
+    )
+    counts.write_parquet(out / "counts.parquet", compression="zstd")
+    log.info("Terekhova by cell type: %d tube × cluster groups, %d genes → %s", g.height, len(genes), out)

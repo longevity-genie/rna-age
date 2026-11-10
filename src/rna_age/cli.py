@@ -270,6 +270,14 @@ def deconv_gap(run_id: str, aging_only: bool = typer.Option(False)) -> None:
     print(gap_adjusted(run_id, aging_only=aging_only))
 
 
+@app.command("terekhova-celltype")
+def terekhova_celltype(chunk: int = typer.Option(100_000)) -> None:
+    """Terekhova 2023 PBMC pseudobulk per tube × published cluster, for the composition analyses (Slurm job)."""
+    from rna_age.sources.terekhova2023 import parse as _parse
+
+    _parse(chunk=chunk, by_cell_type=True)
+
+
 @app.command("health-eval")
 def health_eval(run_id: str, score: str = typer.Option("pred", help="pred | bio_age")) -> None:
     """Within-study case − control age gap per disease category (held-out studies, bootstrap CIs)."""
