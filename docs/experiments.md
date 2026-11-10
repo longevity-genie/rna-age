@@ -465,4 +465,8 @@ samples (≤ 200 per study, 1,353 studies), features = 200 PCs fitted on train r
 | TabICLv2, Atlas CLS | 15.25 | 15.77 | 0.515 | −0.67 |
 | ridge, same HVG PCs and same 10k rows (control) | 16.61 | 16.28 | 0.473 | −0.76 |
 - TabICLv2 beats a linear readout of the same inputs, but the inputs are the limit: 200 PCs of 10k samples lose
-  most of what the MLP on 20k genes and 60k+ samples uses (test 10.4). Running: 30k context.
+  most of what the MLP on 20k genes and 60k+ samples uses (test 10.4).
+- 30k context (1,583 studies): val 14.86, test 15.62, r 0.515: three times the context buys 0.1 y. The bottleneck
+  is the 200 unsupervised PCs (ridge on them: 16.3; ridge on the 20k genes: 12.6), not the prompt size.
+  Off-the-shelf tabular foundation models need a supervised or much wider gene input to compete here; GeneICL
+  (20k genes, transcriptome-specific prior) is the one worth a run; the generic ones are deprioritised.
