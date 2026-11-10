@@ -75,6 +75,10 @@ TIER2: dict[str, str] = {
     "ff4235bb-1cdf-4dcf-a13a-dc4f32244400": "Immunobiology of Aging cohort PBMC, 234 donors (40 GB)",
     "55003f67-c494-46f1-83fb-902745646379": "Integrated human breast cell atlas, 287 donors (19 GB)",
 }
+# reference-only datasets: fetched and pseudobulked by cell type for deconvolution, never parsed into age samples
+REFERENCES: dict[str, str] = {
+    "983d5ec9-40e8-4512-9e65-a572a9c486cb": "Tabula Sapiens blood (healthy donors, includes neutrophils)",
+}
 CANCER = r"(?i)cancer|carcinoma|tumou?r|leuka?emia|lymphoma|melanoma|glioma|glioblastoma|myeloma|neoplas|sarcoma"
 
 
@@ -118,7 +122,7 @@ def fetch(connections: int = 8) -> None:
         discover.write_bytes(httpx.get(DISCOVER_URL, timeout=300).raise_for_status().content)
     listing = _listing()
     log.info("Census %s: %d h5ads in the release", CENSUS_VERSION, len(listing))
-    for dataset_id, label in selected().items():
+    for dataset_id, label in (selected() | REFERENCES).items():
         if dataset_id not in listing:
             log.warning("Census: %s (%s) not in release %s", dataset_id, label, CENSUS_VERSION)
             continue

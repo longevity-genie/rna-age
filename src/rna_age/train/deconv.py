@@ -1,7 +1,7 @@
 """Do the disease age gaps survive adjustment for blood cell composition?
 
 1. Reference: broad blood classes (``composition.BROAD``) from the single-cell pseudobulk of large healthy-ish PBMC
-   cohorts (OneK1K, AIDA): per class, summed counts → CPM.
+   cohorts (OneK1K, AIDA) plus Tabula Sapiens blood for granulocytes: per class, summed counts → CPM.
 2. Markers: per class the ``n_markers`` genes with the largest log-fold change over the other classes (CPM ≥ 10).
 3. Deconvolution: bulk blood samples of the held-out studies (val + test, exact ages); on the marker genes, reference
    and sample are both scaled to sum 1 and the fractions are non-negative least squares, renormalised to 1.
@@ -25,10 +25,10 @@ from rna_age.train.composition import broad_class
 
 log = logging.getLogger(__name__)
 
-REFERENCE = ("3faad104", "c838aec3")  # OneK1K, AIDA
+REFERENCE = ("3faad104", "c838aec3", "983d5ec9")  # OneK1K, AIDA, Tabula Sapiens blood (granulocytes)
 BLOOD = r"(?i)blood|pbmc|leuk|peripheral|wbs|buffy"
 NOT_BLOOD = r"(?i)nasal|cord|marrow|tumou?r|biopsy"
-CLASSES = ("CD4 T", "CD8 T", "other T", "NK", "B", "monocyte", "DC", "platelet")
+CLASSES = ("CD4 T", "CD8 T", "other T", "NK", "B", "monocyte", "DC", "platelet", "granulocyte")
 
 
 def reference_profiles(prefixes=REFERENCE) -> tuple[list[str], np.ndarray, list[str]]:
@@ -36,7 +36,10 @@ def reference_profiles(prefixes=REFERENCE) -> tuple[list[str], np.ndarray, list[
     root = INPUT / "census_pseudobulk" / "by_dataset_celltype"
     tables = []
     for p in prefixes:
-        d = next(root.glob(f"{p}*"))
+        d = next(root.glob(f"{p}*"), None)
+        if d is None:
+            log.warning("reference %s has no cell-type pseudobulk yet; skipped", p)
+            continue
         g = pl.read_parquet(d / "groups.parquet")
         g = g.with_columns(cls=pl.Series([broad_class(c) for c in g["cell_type"].to_list()]))
         counts = pl.read_parquet(d / "counts.parquet")
@@ -46,7 +49,8 @@ def reference_profiles(prefixes=REFERENCE) -> tuple[list[str], np.ndarray, list[
     t = tables[0]
     for other in tables[1:]:
         t = t.join(other, on="gene_id", how="inner")
-    acc = np.stack([sum(t[f"{p}|{c}"].to_numpy() for p in prefixes) for c in CLASSES]).astype(np.float64)
+    used = [p for p in prefixes if f"{p}|{CLASSES[0]}" in t.columns]
+    acc = np.stack([sum(t[f"{p}|{c}"].to_numpy() for p in used) for c in CLASSES]).astype(np.float64)
     keep = acc.sum(axis=1) > 0
     acc = acc[keep]
     cpm = acc / acc.sum(axis=1, keepdims=True) * 1e6

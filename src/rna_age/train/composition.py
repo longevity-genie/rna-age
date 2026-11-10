@@ -39,6 +39,7 @@ BROAD = [
     ("monocyte", r"monocyte"),
     ("DC", r"dendritic"),
     ("platelet", r"platelet|megakaryocyte"),
+    ("granulocyte", r"neutrophil|granulocyte|basophil|eosinophil"),
     ("progenitor", r"progenitor|stem cell"),
 ]
 
