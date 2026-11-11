@@ -37,7 +37,7 @@ genome order, from scratch. Runs, in order (GPU, one card each):
 2. Context sweep, seed 0, `--epochs 8` for all (a sweep, not full training): `--encoding rank --length 512 | 2048 | 4096`.
 3. The best length (validation), seeds 1 and 2; `--encoding genome` and `--encoding genome-shuffled`, seeds 0-2
    (20k tokens: lower `--batch` or `--d-model` to fit the card, the same for both).
-4. Ablation: `rna-age kron-rank-mlp --length <best> --seed 0|1|2`.
+4. Ablation: `rna-age kron-rank-mlp --length <best> --seed 0|1|2`. Moved ahead on Anton's word (2026-11-11 11:08, in the runner's session): seed 0 at 512 | 2048 | 4096 now, and very bad, unpromising runs stopped early.
 5. The bar: `rna-age kron-compare <arm's 3 runs> <three seeds of hvg20000-mlp-trainall>`, for each arm and for
    the rank-MLP; logged with the per-source lines.
 
