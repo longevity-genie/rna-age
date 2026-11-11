@@ -54,3 +54,27 @@ bar, three attempts) was answered by this message; the lead settled the rest as 
 - **kron-fm as an optional dependency** (`uv sync --extra kron`), pinned to a commit: kron-fm is public, and the
   kernels need CUDA, so the base install stays without it.
 - Rejected: a deliberately small model (Anton: no need); single cells first (no labelled split or reference yet).
+
+## D3 — D2 amended after its critic: leakage, the bar, ablations, pretraining not conditional (2026-11-11)
+
+A fresh critic read D2 alone (the lead's step before building); its must-fixes, as the lead settled them (Anton away;
+each reversible, listed for his review):
+
+- **No leakage:** every tokenizer statistic (the per-gene medians of the rank encoding, the HVGs, the value scaling)
+  is computed on training samples only; masked-gene pretraining reads only training-split studies, never a
+  validation or test study, although ARCHS4 holds them.
+- **The bar is paired and by study:** three seeds of each KronLSTM arm against three seeds of the 20k-HVG MLP
+  trained on all health states (same samples, same splits); the arm passes only if its mean validation MAE is lower
+  and the 95 % CI of the difference, bootstrapped over validation studies, excludes 0. Reported per source (GTEx,
+  ARCHS4, Bgee) and on pseudobulk transfer, never only pooled. Test is read once, for the arm that passed. Replaces
+  D2's fixed 0.5 y margin and "three attempts".
+- **The encoder is separated from the encoding:** an MLP on the same rank encoding (each gene's rank score, 0 when
+  outside the top L), and the genome-ordered arm against the same genes in a shuffled order. A result is the
+  KronLSTM's only where it beats both its own ablation and the MLP.
+- **The context length is swept**, 512 / 2,048 / 4,096 tokens on the rank arm, one seed each, before the three-seed
+  runs; parameter counts and epochs are recorded with every run.
+- **Pretraining is not conditional:** a masked-gene pretraining probe on training studies runs whatever the
+  from-scratch result, since Geneformer's gain came from pretraining; a from-scratch failure is reported as
+  "from scratch", never as the line's end. It is its own plan item, after the from-scratch code lands.
+- Single cells stay out of this item: the bulk medians do not carry to cells (mostly zero); a cell tokenizer needs
+  its own statistics (non-zero medians, as Geneformer) and is planned only on a bulk result.

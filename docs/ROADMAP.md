@@ -15,13 +15,20 @@ The ranking loss and disease head (`src/rna_age/train/health.py`) applied to the
 (`src/rna_age/train/finetune.py`). When it ends: the case − control gap on held-out studies against the health-aware
 MLP (+2.35 y), and a health ensemble (health-aware MLPs + this fine-tune) scored for test MAE and the gap.
 
-## RM8 — KronLSTM expression encoder (D2)
+## RM8 — KronLSTM expression encoder, from scratch (D2, D3)
 
 **State:** building · **Owner:** lead (model, `rna-age kron`), then runner (runs)
 
-Bidirectional KronLSTM (kron-fm's `kron_core`) over Geneformer-style rank tokens (top 2,048 genes) or the 20k HVGs in
-genome order, trained from scratch on our splits; masked-gene pretraining on ARCHS4 only if it nears the bar (beat
-the single 20k-HVG MLP on validation by > 0.5 y). Then single cells through the same tokenizer if bulk earns it.
+Bidirectional KronLSTM (kron-fm's `kron_core`) over rank tokens (Geneformer-style) or the 20k HVGs in genome order,
+from scratch on our splits, with its ablations (MLP on the rank encoding; shuffled gene order) and a context sweep.
+Passes only on the paired, study-bootstrapped bar of D3.
+
+## RM9 — Masked-gene pretraining probe for the KronLSTM encoder (D3)
+
+**State:** after RM8 · **Owner:** lead (pretraining code), then runner (runs)
+
+Masked-gene prediction over rank tokens of training-split studies only (ARCHS4 + GTEx), then the RM8 age head on
+top; runs whatever RM8's from-scratch result.
 
 ## RM5 — PRIMO submission
 
