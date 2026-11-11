@@ -75,7 +75,7 @@ where a flagged group needs it.
 
 **State:** building · **Owner:** runner (runs), then lead (re-scored headline)
 
-The re-parse and re-merge ran (6429048, 07:20): eligible 100,312 → 94,526; train 47,493, val 12,793, test 9,097
+The re-parse and re-merge ran (6429048, 06:58): eligible 100,312 → 94,526; train 47,493, val 12,793, test 9,097
 (ARCHS4). Runs on the new table, in order: RM1 seed 1 restarted, seed 2 (released), seed 0 again; the 20k-HVG MLP
 (all health states) seeds 0-2; the health-aware MLPs (rank1-head) s0-s2; then the headline and the health ensembles
 rebuilt from them (old fine-tunes inside until the new seeds land, noted). The sweep keeps the old table (it only
