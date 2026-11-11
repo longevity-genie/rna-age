@@ -17,11 +17,19 @@ MLP (+2.35 y), and a health ensemble (health-aware MLPs + this fine-tune) scored
 
 ## RM8 — KronLSTM expression encoder, from scratch (D2, D3)
 
-**State:** building · **Owner:** lead (model, `rna-age kron`), then runner (runs)
+**State:** building · **Owner:** runner (the runs below; code landed in 52b6f16), then lead (what they mean)
 
-Bidirectional KronLSTM (kron-fm's `kron_core`) over rank tokens (Geneformer-style) or the 20k HVGs in genome order,
-from scratch on our splits, with its ablations (MLP on the rank encoding; shuffled gene order) and a context sweep.
-Passes only on the paired, study-bootstrapped bar of D3.
+Bidirectional KronLSTM (kron-fm's `kron_core`, read from the `../kron-fm` clone) over rank tokens or the HVGs in
+genome order, from scratch. Runs, in order (GPU, one card each):
+
+1. Smoke: `rna-age kron --encoding rank --length 512 --epochs 1 --name kron-smoke`: the Triton kernels under this
+   project's torch were never run; a failure here comes back to the lead.
+2. Context sweep, seed 0: `--encoding rank --length 512 | 2048 | 4096`.
+3. The best length (validation), seeds 1 and 2; `--encoding genome` and `--encoding genome-shuffled`, seeds 0-2
+   (20k tokens: lower `--batch` or `--d-model` to fit the card, the same for both).
+4. Ablation: `rna-age kron-rank-mlp --length <best> --seed 0|1|2`.
+5. The bar: `rna-age kron-compare <arm's 3 runs> <three seeds of hvg20000-mlp-trainall>`, for each arm and for
+   the rank-MLP; logged with the per-source lines.
 
 ## RM9 — Masked-gene pretraining probe for the KronLSTM encoder (D3)
 
