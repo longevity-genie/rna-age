@@ -734,3 +734,10 @@ All rank encoding, 8 epochs planned, batch 32, seed 0, pre-RM12 table; validatio
   important stuff to do than numerous ablation experiments", relayed by the lead). Its first try (6429586) ran out
   of GPU memory at the MLP step (the dense rank matrix, 15.6 GB, on an 11 GB card); the CPU retry (6429643) was
   cancelled before a result. No new KronLSTM run until Anton and the lead settle the next step.
+
+### 2026-11-11 18:52 · RM1 seed 2 on the RM12 table done
+`20261111-0717-atlas-ft-u4-rank1-s2` (job 6428869, same flags as seed 0, `--seed 2`): val by epoch 11.95, 11.49, …,
+10.94, 10.80, 9.84 (best, epoch 5). On the RM12 sample set: val MAE 10.07, test 10.20 (r 0.79).
+Within-study gap, held-out studies: aging-linked **+2.85 y [1.20, 4.66]** (33 studies), all +2.67 [1.29, 4.26],
+autoimmune +4.40 [1.40, 7.68], neurodegenerative +4.65 [1.55, 7.86] (7 studies). Seed 0 (old table) gave +2.93
+[1.17, 4.67]. Seed 1 finishing; seed 0 on the RM12 table ends ~00:35; then the three-seed gap with the null.
