@@ -182,3 +182,75 @@ def run_all(run_ids: list[str], n_perm: int = 2000) -> pl.DataFrame:
     out = pl.DataFrame(rows)
     out.write_parquet(OUTPUT / "summary" / "biology_tests.parquet")
     return out
+
+
+def paired_frame(test: PairedTest) -> pl.DataFrame:
+    """``sample_id``, ``subject`` (or null), ``after`` (bool) for the test's samples, from their characteristics."""
+    import re
+
+    meta = pl.read_parquet(
+        INPUT / "archs4" / "metadata_all.parquet",
+        columns=["geo_accession", "characteristics_ch1", "series_id", "title"],
+    ).filter(pl.col("series_id").str.contains(rf"\b{test.study}\b"))
+    rows = []
+    for gsm, chars, title in meta.select("geo_accession", "characteristics_ch1", "title").iter_rows():
+        d = {k.strip().lower(): v.strip().lower() for k, v in split_items(chars or "")}
+        if any(d.get(k) != v for k, v in test.where):
+            continue
+        v = d.get(test.time_key)
+        if v not in test.before and v not in test.after:
+            continue
+        subj = None
+        if test.subject and test.subject.startswith("title:"):
+            m = re.search(test.subject[6:], (title or "").lower())
+            subj = m.group(1) if m else None
+        elif test.subject:
+            subj = d.get(test.subject)
+        rows.append({"sample_id": gsm, "subject": subj, "after": v in test.after})
+    return pl.DataFrame(rows, schema={"sample_id": pl.String, "subject": pl.String, "after": pl.Boolean})
+
+
+def paired_stat(d: pl.DataFrame, direction: int, n_perm: int = 5000, seed: int = 0) -> dict:
+    """``d``: ``subject`` (may be null), ``after``, ``pred``. Within subjects: the mean of (after − before) per
+    subject, sign-flip permutation; without: difference of group means, label permutation. p in ``direction``
+    (two-sided for 0)."""
+    rng = np.random.default_rng(seed)
+    paired = d["subject"].null_count() == 0 and d.height > 0
+    if paired:
+        per = d.group_by("subject", "after").agg(pl.col("pred").mean()).pivot(on="after", index="subject",
+                                                                               values="pred")  # fmt: skip
+        if "true" not in per.columns or "false" not in per.columns:
+            return {"design": "paired", "n": 0, "delta": float("nan"), "p": float("nan")}
+        diff = (per["true"] - per["false"]).drop_nulls().to_numpy()
+        obs = float(diff.mean()) if len(diff) else float("nan")
+        null = np.array([(diff * rng.choice([-1, 1], len(diff))).mean() for _ in range(n_perm)])
+        n = len(diff)
+    else:
+        a, x = d["after"].to_numpy(), d["pred"].to_numpy()
+        obs = float(x[a].mean() - x[~a].mean()) if a.any() and (~a).any() else float("nan")
+        null = np.array([(lambda p: x[p].mean() - x[~p].mean())(rng.permutation(a)) for _ in range(n_perm)])
+        n = d.height
+    if not np.isfinite(obs) or n < 3:
+        return {"design": "paired" if paired else "groups", "n": n, "delta": obs, "p": float("nan")}
+    if direction == 0:
+        p = float((1 + (np.abs(null) >= abs(obs)).sum()) / (1 + n_perm))
+    else:
+        p = float((1 + (direction * null >= direction * obs).sum()) / (1 + n_perm))
+    return {"design": "paired" if paired else "groups", "n": n, "delta": obs, "p": p}
+
+
+def run_paired_all(run_ids: list[str], name: str = "model", n_perm: int = 5000) -> pl.DataFrame:
+    """The registered paired tests on the mean external prediction of ``run_ids``."""
+    parts = [pl.read_parquet(OUTPUT / "runs" / r / "predictions_external.parquet") for r in run_ids]
+    pred = pl.concat(parts).group_by("sample_id").agg(pl.col("pred").mean())
+    rows = []
+    for t in PAIRED:
+        d = paired_frame(t).join(pred, on="sample_id", how="inner")
+        s = paired_stat(d, t.direction, n_perm)
+        verdict = ("too few" if not np.isfinite(s["p"]) else "as expected" if s["p"] < 0.05 and t.direction
+                   else "opposite" if t.direction and s["delta"] * t.direction < 0 else "not significant")  # fmt: skip
+        rows.append({"model": name, "test": t.name, "study": t.study, "direction": t.direction, **s,
+                     "verdict": verdict})  # fmt: skip
+    out = pl.DataFrame(rows)
+    out.write_parquet(OUTPUT / "summary" / f"biology_paired_{name}.parquet")
+    return out

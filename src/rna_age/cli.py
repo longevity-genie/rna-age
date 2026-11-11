@@ -109,6 +109,7 @@ def probe(
     dropout: float = typer.Option(0.2),
     train_set: str = typer.Option("healthy", help="healthy (healthy-or-unknown) | all (incl. disease)"),
     restrict_to: str = typer.Option("", help="latest: only samples with Latest embeddings"),
+    external: bool = typer.Option(False, help="also score data/input/external (rna-age external); --features hvg"),
 ) -> None:
     """Probe / MLP on Atlas CLS, panel genes or HVGs; writes a run under data/output/runs/."""
     from rna_age.train.probes import run_probe
@@ -116,7 +117,7 @@ def probe(
     run_probe(
         features, model, n_hvg, transform=transform, seed=seed, interval=interval, study_weights=study_weights,
         hidden=tuple(int(h) for h in hidden.split(",")), dropout=dropout, train_set=train_set,
-        restrict_to=restrict_to,
+        restrict_to=restrict_to, external=external,
     )  # fmt: skip
 
 
@@ -301,12 +302,34 @@ def train_health_cmd(
     disease_head: bool = typer.Option(False, help="add a case-vs-control head; bio_age = pred + beta*logit"),
     all_diseases: bool = typer.Option(False, help="use every categorised disease, not only aging-linked ones"),
     seed: int = typer.Option(0),
+    external: bool = typer.Option(False, help="also score data/input/external (rna-age external)"),
 ) -> None:
     """Health-aware MLP (age loss on controls + optional ranking loss / disease head)."""
     from rna_age.train.health import train_health
 
     train_health(rank_weight=rank_weight, margin=margin, disease_head=disease_head, aging_only=not all_diseases,
-                 seed=seed)  # fmt: skip
+                 seed=seed, external=external)  # fmt: skip
+
+
+@app.command("external")
+def external_cmd(series: str = typer.Argument(..., help="comma-separated GEO series")) -> None:
+    """RM10: every ARCHS4 sample of these series to data/input/external/ (never in the age table or training)."""
+    from rna_age.train.external import extract
+
+    extract(series.split(","))
+
+
+@app.command("biology-paired")
+def biology_paired_cmd(
+    run_ids: str = typer.Argument(..., help="comma-separated runs with predictions_external.parquet, averaged"),
+    name: str = typer.Option("model", help="label for the averaged model in the output"),
+    permutations: int = typer.Option(5000),
+) -> None:
+    """RM10: the registered before/after tests on external samples."""
+    from rna_age.train.biology import run_paired_all
+
+    with __import__("polars").Config(tbl_rows=40, fmt_str_lengths=40, tbl_width_chars=170):
+        print(run_paired_all(run_ids.split(","), name, permutations))
 
 
 @app.command()

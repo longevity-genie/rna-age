@@ -38,6 +38,8 @@ def _mlp(
     weights=None,
     val_y=None,
     inv=None,
+    X_extra=None,
+    extra_out=None,
 ):
     """MLP regressor with Huber loss on exact targets and, where ``exact`` is False, an interval hinge on
     [lo, hi) (all in the target's space); optional per-sample weights; early stopping on val MAE in years."""
@@ -84,6 +86,8 @@ def _mlp(
                 break
     net.load_state_dict(best_state)
     with torch.no_grad():
+        if X_extra is not None and extra_out is not None:  # samples outside the table (train/external.py)
+            extra_out.append(net(torch.as_tensor(X_extra, device=dev)).squeeze(-1).float().cpu().numpy())
         return net(Xt).squeeze(-1).float().cpu().numpy(), best
 
 
@@ -100,6 +104,7 @@ def run_probe(
     dropout: float = 0.2,
     train_set: str = "healthy",
     restrict_to: str = "",
+    external: bool = False,
 ) -> dict:
     from rna_age.train.baselines import horvath, horvath_inv
 
@@ -138,13 +143,23 @@ def run_probe(
         del counts
         hvg = select_hvg(lc[train][: min(20000, int(train.sum()))], genes, n_hvg)
         gi = [genes.index(g) for g in hvg]
+        if external and features == "hvg":
+            from rna_age.train.external import log_cpm_matrix
+
+            ext_ids, ext_lc = log_cpm_matrix(genes)
+            X_ext = ext_lc[:, gi]
+            del ext_lc
         X = lc[:, gi] if features in ("hvg", "tpm") else np.hstack([X, lc[:, gi]])
         del lc
     y_years = s["target"].to_numpy()
     fwd, inv = (horvath, horvath_inv) if transform == "horvath" else (lambda a: a, lambda a: a)
     y = fwd(np.nan_to_num(y_years, nan=30.0))
     val = (s["split"] == "val").to_numpy() & (s["age_type"] == "exact").to_numpy()
-    Xs = StandardScaler().fit(X[train]).transform(X).astype(np.float32)
+    scaler = StandardScaler().fit(X[train])
+    Xs = scaler.transform(X).astype(np.float32)
+    ext_out: list = []
+    if external and features != "hvg":
+        raise ValueError("external scoring needs --features hvg")
     if model == "ridge":
         best = None
         for a in (1, 10, 100, 1e3, 1e4, 1e5, 1e6):
@@ -168,6 +183,7 @@ def run_probe(
         pred, _ = _mlp(
             Xs, y, train, val, seed=seed, delta=0.25 if transform == "horvath" else 5.0, hidden=hidden,
             dropout=dropout, exact=exact if interval else None, lo=lo, hi=hi, weights=w, val_y=y_years[val], inv=inv,
+            X_extra=scaler.transform(X_ext).astype(np.float32) if external else None, extra_out=ext_out,
         )  # fmt: skip
         pred = inv(pred)
         params = {"val_mae": float(np.mean(np.abs(pred[val] - y_years[val]))), "seed": seed}
@@ -183,6 +199,10 @@ def run_probe(
          "hidden": list(hidden), "dropout": dropout, "train_set": ("bulk train, all health states" if train_set == "all" else "bulk train, healthy-or-unknown") + ", exact" + (" + GTEx midpoints" if gtex_midpoints else ""),
          "n_train": int(train.sum())},
     )  # fmt: skip
+    if ext_out:
+        pl.DataFrame({"sample_id": ext_ids, "pred": inv(ext_out[0]).astype(np.float64)}).write_parquet(
+            run_dir / "predictions_external.parquet"
+        )
     row = finish_run(run_dir, out, {"seconds": time.time() - t0})
     log.info("run %s: %s", run_dir.name, {k: v for k, v in row.items() if k.startswith("test_")})
     return row

@@ -201,6 +201,7 @@ def train_health(
     seed: int = 0,
     epochs: int = 200,
     name: str | None = None,
+    external: bool = False,
 ) -> dict:
     import torch
 
@@ -223,6 +224,12 @@ def train_health(
     del lc
     mu, sd = X[age_mask].mean(0), X[age_mask].std(0) + 1e-6
     X = ((X - mu) / sd).astype(np.float32)
+    if external:  # samples outside the table, scored with the same genes and scaling (train/external.py)
+        from rna_age.train.external import log_cpm_matrix
+
+        ext_ids, ext_lc = log_cpm_matrix(genes)
+        X_ext = ((ext_lc[:, [genes.index(g) for g in hvg]] - mu) / sd).astype(np.float32)
+        del ext_lc
     y = np.nan_to_num(t["target"].to_numpy(), nan=30.0).astype(np.float32)
     case = (t["group"] == "case").to_numpy()
     if aging_only:
@@ -289,6 +296,11 @@ def train_health(
     with torch.no_grad():
         outs = [fwd(idx, False) for idx in np.array_split(np.arange(len(y)), max(1, len(y) // 4096))]
     pred = torch.cat([o[0] for o in outs]).cpu().numpy().astype(np.float64)
+    ext_pred = None
+    if external:
+        body.eval()
+        with torch.no_grad():
+            ext_pred = age_head(body(torch.as_tensor(X_ext, device=dev))).squeeze(-1).cpu().numpy().astype(np.float64)
     logit = torch.cat([o[1] for o in outs]).cpu().numpy().astype(np.float64)
     out = t.select([c for c in PRED_COLS if c in t.columns]).with_columns(
         pred=pl.Series(pred), health_logit=pl.Series(logit)
@@ -327,6 +339,8 @@ def train_health(
          "disease_head": disease_head, "aging_linked_only": aging_only, "beta": beta, "n_pairs": int(len(pairs)),
          "train_set": "age loss on controls (bulk train); ranking/head on train-study cases"},
     )  # fmt: skip
+    if ext_pred is not None:
+        pl.DataFrame({"sample_id": ext_ids, "pred": ext_pred}).write_parquet(run_dir / "predictions_external.parquet")
     row = finish_run(run_dir, out, {"seconds": time.time() - t0, "beta": beta})
     for score in ["pred"] + (["bio_age"] if disease_head else []):
         res = evaluate_health(run_dir.name, score)
