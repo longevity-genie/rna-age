@@ -52,6 +52,8 @@ uv run rna-age kron --encoding rank --length 2048 --seed 0  # KronLSTM from scra
 uv run rna-age kron-rank-mlp --length 2048 ; uv run rna-age kron-compare A1,A2,A3 B1,B2,B3   # its ablation; the paired bar (D3)
 uv run rna-age kron-pretrain --length 2048 ; uv run rna-age kron --init PRETRAIN_RUN   # masked-gene pretraining on train studies, then the age model on its encoder (RM9)
 uv run rna-age ensemble RUN_ID RUN_ID ... --name my-ensemble
+uv run rna-age health-eval RUN_ID --permutations 200   # within-study disease gap with its label-shuffle null
+uv run rna-age robustness RUN_ID ; uv run rna-age biology RUN_ID,RUN_ID   # error by tissue/platform; the pre-registered gap tests
 uv run rna-age tage archs4 --split test    # tAge control (isolated R env: scripts/setup_tage_env.sh)
 uv run rna-age compare-tage RUN_ID --source archs4 ; uv run rna-age compare-clockbase RUN_ID
 uv run rna-age figures RUN_ID ; uv run rna-age report-tables ; uv run rna-age artifact
@@ -83,3 +85,9 @@ Age strings are parsed in `src/rna_age/ages.py` (`age: 54`, `54 years`, `6 month
 rejects gestational age, passage, time post infection, `adult`, `NA`); the raw string is kept for audit.
 
 Status of the current build: see `STATUS.md`.
+
+**Where the clock is not supported** (`rna-age robustness`, the headline ensemble
+`20261111-0747-ens-mlp3t2-plus-atlasft2` on the clean table of `docs/DECISIONS.md` D4): test error above 1.5x the
+overall 7.5 y in bone marrow (13.4 y, 6 studies), on HiSeq X Ten libraries (13.3 y, 4 studies) and in tissues
+outside the named classes (12.4 y). Gut biopsies read 2.9 y, mostly a narrow range of young donors. Single-cell
+pseudobulk is a separate domain and transfers worse (18-20 y for bulk-only MLPs).

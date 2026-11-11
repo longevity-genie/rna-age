@@ -63,14 +63,6 @@ before/after data of the same people (a treatment that reverses tissue damage, e
 therapy liver biopsies, or a training programme in muscle), registered before it is fetched and run; the fetches
 are the runner's.
 
-## RM11 — Robustness: error by tissue and platform (plan line 3)
-
-**State:** after RM12 · **Owner:** lead
-
-`rna-age robustness RUN` landed (d63c73c). After the re-merge: the table for the headline and the health ensemble,
-and what it means (first look: NextSeq 500 flagged, blood over-predicted by ~7 y); leave-one-tissue-out runs only
-where a flagged group needs it.
-
 ## RM12 — Re-train on the clean table (D4)
 
 **State:** building · **Owner:** runner (runs), then lead (re-scored headline)
