@@ -7,6 +7,13 @@ The lead (`docs/seats/LEAD.md`) keeps it. Seeded at the lead's first seating (20
 
 ## Items
 
+## RM13 — A manuscript draft of the results (plan line 5)
+
+**State:** waits until 2026-11-13: Anton's answer, desk #23 and #rna-age > decisions; default: start the draft · **Owner:** lead
+
+Outline, methods and figures regenerated from the recorded runs (D4 clean table, D6 health clock, RM10 tests),
+kept private in the repository until Anton decides where it goes.
+
 ## RM5 — PRIMO submission
 
 **State:** blocked: desk #9 (default: not submitted) · **Owner:** lead
