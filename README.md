@@ -48,6 +48,8 @@ uv run rna-age embed archs4,gtex,...       # BulkFormer-Atlas CLS embeddings (GP
 uv run rna-age embed-latest archs4,gtex,...# BulkFormer-Latest embeddings (GPU)
 uv run rna-age probe --features hvg --model mlp --n-hvg 20000 --train-set all --seed 0
 uv run rna-age finetune --unfreeze 4 --epochs 5 --max-train 12000   # Atlas fine-tuning (GPU, resumable)
+uv run rna-age kron --encoding rank --length 2048 --seed 0  # KronLSTM from scratch (GPU, resumable; a kron-fm clone at ../kron-fm or $RNA_AGE_KRON_FM)
+uv run rna-age kron-rank-mlp --length 2048 ; uv run rna-age kron-compare A1,A2,A3 B1,B2,B3   # its ablation; the paired bar (D3)
 uv run rna-age ensemble RUN_ID RUN_ID ... --name my-ensemble
 uv run rna-age tage archs4 --split test    # tAge control (isolated R env: scripts/setup_tage_env.sh)
 uv run rna-age compare-tage RUN_ID --source archs4 ; uv run rna-age compare-clockbase RUN_ID

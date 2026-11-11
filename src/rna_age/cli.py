@@ -338,3 +338,48 @@ def summary() -> None:
 
 def main() -> None:
     app()
+
+
+@app.command("kron")
+def kron_cmd(
+    encoding: str = typer.Option("rank", help="rank | genome | genome-shuffled"),
+    length: int = typer.Option(2048, help="rank tokens per sample"),
+    n_hvg: int = typer.Option(20000, help="genes of the genome encodings"),
+    d_model: int = typer.Option(256),
+    n_layers: int = typer.Option(4),
+    n_heads: int = typer.Option(4),
+    dropout: float = typer.Option(0.1),
+    epochs: int = typer.Option(30),
+    patience: int = typer.Option(4),
+    batch: int = typer.Option(32),
+    lr: float = typer.Option(3e-4),
+    seed: int = typer.Option(0),
+    name: str | None = typer.Option(None, help="run name (resumes an unfinished run of the same name)"),
+) -> None:
+    """Rung 5 (D2, D3): a bidirectional KronLSTM age model from scratch (GPU job, resumable; needs a kron-fm clone, see train/kron.py)."""
+    from rna_age.train.kron import train
+
+    row = train(encoding=encoding, length=length, n_hvg=n_hvg, d_model=d_model, n_layers=n_layers, n_heads=n_heads,
+                dropout=dropout, epochs=epochs, patience=patience, batch=batch, lr=lr, seed=seed, run_name=name)  # fmt: skip
+    print({k: v for k, v in row.items() if k.startswith(("val_exact", "test_exact", "transfer_exact"))})
+
+
+@app.command("kron-rank-mlp")
+def kron_rank_mlp(length: int = typer.Option(2048), seed: int = typer.Option(0)) -> None:
+    """D3's ablation: the baseline MLP on the KronLSTM's rank encoding."""
+    from rna_age.train.kron import train_rank_mlp
+
+    row = train_rank_mlp(length=length, seed=seed)
+    print({k: v for k, v in row.items() if k.startswith(("val_exact", "test_exact", "transfer_exact"))})
+
+
+@app.command("kron-compare")
+def kron_compare(
+    runs_a: str = typer.Argument(..., help="comma-separated run ids (the challenger's seeds)"),
+    runs_b: str = typer.Argument(..., help="comma-separated run ids (the reference's seeds)"),
+) -> None:
+    """D3's bar: validation MAE of A minus B (seed-averaged), 95 % CI over validation studies, per source."""
+    from rna_age.train.kron import compare
+
+    for k, v in compare(runs_a.split(","), runs_b.split(",")).items():
+        print(f"{k}: {v['diff']:+.2f} y [{v['lo']:+.2f}, {v['hi']:+.2f}]  n={v['n']} studies={v['studies']}")
