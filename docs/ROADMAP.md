@@ -34,7 +34,7 @@ genome order, from scratch. Runs, in order (GPU, one card each):
 
 1. Smoke: `rna-age kron --encoding rank --length 512 --epochs 1 --name kron-smoke`: the Triton kernels under this
    project's torch were never run; a failure here comes back to the lead.
-2. Context sweep, seed 0: `--encoding rank --length 512 | 2048 | 4096`.
+2. Context sweep, seed 0, `--epochs 8` for all (a sweep, not full training): `--encoding rank --length 512 | 2048 | 4096`.
 3. The best length (validation), seeds 1 and 2; `--encoding genome` and `--encoding genome-shuffled`, seeds 0-2
    (20k tokens: lower `--batch` or `--d-model` to fit the card, the same for both).
 4. Ablation: `rna-age kron-rank-mlp --length <best> --seed 0|1|2`.
