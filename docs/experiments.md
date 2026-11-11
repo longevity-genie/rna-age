@@ -609,3 +609,18 @@ control, 2,000 within-study permutations, four models.
 re-merge; `robustness_*.parquet`): test MAE 9.34 over 232 studies; by sequencer, HiSeq 2000/2500 5.9-6.7 y,
 NovaSeq 6000 10.2, NextSeq 500 15.5 (1,692 samples, 33 studies; flagged as an unsupported group), MiSeq 22.4
 (46 samples). To be redone on the RM12 table.
+
+### 2026-11-11 07:20 · RM12: re-parse ARCHS4 and re-merge (D4: meningioma as tumour; plate single-cell series out)
+Job 6429048 (`rna-age parse archs4 && rna-age merge`, code 98f1c5e/2a5a05b, 2.5 min). Checked on the merged table:
+GSE116672 (single-cell plates, 1,161 test "samples" from 10 donors) 0 eligible; the 77 samples labelled
+meningioma are `is_tumor` and none eligible.
+
+| split | ARCHS4 eligible before → after | all sources after |
+|---|---|---|
+| train | 51,450 → 47,493 | 63,735 |
+| val | 13,312 → 12,793 | 17,894 |
+| test | 10,407 → 9,097 | 12,144 |
+| (no split: Bgee) | – | 753 |
+- 100,312 → 94,526 eligible (−5,786, all ARCHS4; GTEx, Bgee, Census pseudobulk and Terekhova unchanged).
+- Jobs started before 06:53 (the KronLSTM sweep, RM1 seed 1) trained on the old table; RM1 seed 2 and every later
+  run on the new one. Evaluations read only currently eligible samples.
