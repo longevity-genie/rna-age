@@ -51,6 +51,21 @@ Runs once RM8's smoke has passed and its context sweep has named the best length
 2. `rna-age kron --init <its run id> --seed 0|1|2`, and `kron-compare` against the from-scratch rank arm and the
    20k-HVG MLP.
 
+## RM10 — Does the disease gap mean biology? Severity and before/after data (plan line 2)
+
+**State:** unattended · **Owner:** lead (datasets, analysis), then runner (any runs)
+
+Desk #19 asks Anton whether now; its default is now, so it is built under that. Public held-out series with disease
+severity within a study, or the same people before and after a treatment or an intervention; the existing models
+(health ensemble, RM1 fine-tune, the headline) scored on them; the expected direction written before each run.
+
+## RM11 — Robustness: error by tissue and platform (plan line 3)
+
+**State:** unattended · **Owner:** lead
+
+Test error per tissue and per platform for the headline and the health ensemble, and leave-one-tissue-out where a
+tissue has enough studies. A tissue worse than 1.5x the overall MAE is flagged unsupported in the README.
+
 ## RM5 — PRIMO submission
 
 **State:** blocked: desk #9 (default: not submitted) · **Owner:** lead
