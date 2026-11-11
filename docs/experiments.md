@@ -586,3 +586,26 @@ fine-tune → run `20261111-0406-ens-health3-plus-atlasft-rank1`; `health-eval -
   [1.85, 7.77] (each above all 200 shuffles, p = 1/201); neurodegenerative +1.93 [−0.60, 4.86] (p 0.02).
 - Against the fine-tune alone (+2.93 aging-linked, neurodegenerative +3.84 [0.66, 7.47]): the ensemble buys ~0.4 y of
   test MAE and loses the neurodegenerative signal, which only the fine-tune carries.
+
+### 2026-11-11 07:00 · RM10 first biology battery and RM11 robustness preview (run by the lead, logged here)
+**RM10** (registry 99f56bc committed before the run; code a407f4b; `data/output/summary/biology_tests.parquet`):
+does the age gap (age regressed out within study) rise with disease severity? 12 directional tests + 1 negative
+control, 2,000 within-study permutations, four models.
+
+| test (study) | headline (no disease labels) | health ensemble | health fine-tune | control-only MLP |
+|---|---|---|---|---|
+| Braak stage, AD fusiform gyrus (GSE95587) | ρ 0.28, p 0.001 | **ρ 0.56, p 0.0005** | **ρ 0.56, p 0.0005** | ρ 0.24, p 0.007 |
+| liver fibrosis stage, cohort A (GSE162694) | ρ 0.21, p 0.006 | ρ 0.38, p 0.0005 | – | ρ 0.30, p 0.0005 |
+| liver fibrosis stage, cohort B (GSE174478) | ρ 0.22, p 0.013 | ρ 0.24, p 0.013 | – | n.s. |
+| Lewy stage, PD cortex (GSE216281) | ρ 0.20, p 0.03 | – | ρ 0.27, p 0.008 | ρ 0.23, p 0.017 |
+| COVID / acute viral severity, RA activity, MMSE, NYHA, LVAD unloading | n.s. or opposite | n.s. or opposite | n.s. or opposite | n.s. or opposite |
+| negative control: one exercise bout (GSE202295) | nothing | nothing | nothing | nothing |
+- Every model, the headline included (never trained on disease), puts higher fibrosis, Braak and Lewy stages older;
+  the health-aware models most strongly. Blood-based acute severity, cognition and heart failure class: nothing or
+  the opposite. Braak and fibrosis cohort A survive Bonferroni over the 12 tests. ("–" = row not shown in the
+  lead's summary; all 52 rows in the parquet.)
+
+**RM11 preview** (robustness of the 3-fine-tune headline `20261110-1528-ens-mlp7-plus-atlasft3`, before RM12's
+re-merge; `robustness_*.parquet`): test MAE 9.34 over 232 studies; by sequencer, HiSeq 2000/2500 5.9-6.7 y,
+NovaSeq 6000 10.2, NextSeq 500 15.5 (1,692 samples, 33 studies; flagged as an unsupported group), MiSeq 22.4
+(46 samples). To be redone on the RM12 table.
