@@ -187,9 +187,8 @@ def _clean_tab() -> str:
     runs = {
         "headline (3 MLPs + 2 BulkFormer fine-tunes)": "20261111-0747-ens-mlp3t2-plus-atlasft2",
         "20k-gene MLP, seed 0": "20261111-0707-hvg20000-mlp-trainall",
-        "health ensemble (3 health MLPs + health fine-tune)": "20261111-0747-ens-health3t2-plus-atlasft-rank1",
-        "health ensemble, 3-seed fine-tune mean": "20261112-0022-ens-health3t2-plus-atlasft-rank1-3s",
-        "health-aware BulkFormer fine-tune, mean of 3 seeds": "20261112-0022-ens-atlasft-rank1-3s",
+        "health clock (reported, D6): health-aware BulkFormer fine-tune, mean of 3 seeds": "20261112-0022-ens-atlasft-rank1-3s",
+        "health clock, accuracy-balanced variant (+ 3 health MLPs)": "20261112-0022-ens-health3t2-plus-atlasft-rank1-3s",
         "health-aware fine-tune seed 0": "20261111-1233-atlas-ft-u4-rank1-s0-t2",
         "health-aware fine-tune seed 1": "20261111-0659-atlas-ft-u4-rank1-s1-t2",
         "health-aware fine-tune seed 2": "20261111-0717-atlas-ft-u4-rank1-s2",
@@ -209,26 +208,41 @@ table (D4, RM12): 100,312 → 94,526 eligible samples. Every number on this tab 
     if acc is not None:
         parts.append("<h3>Age prediction on held-out studies</h3>" + table(acc, digits=3))
     parts.append(fig("headline_pred_vs_age", "Headline: predicted vs true age, held-out studies (clean set)"))
-    h = SUMMARY / "health_20261111-0747-ens-health3t2-plus-atlasft-rank1_pred_null.parquet"
-    if h.exists():
-        hd = pl.read_parquet(h).filter(pl.col("category").is_in(["all_aging_linked", "all", "autoimmune_inflammatory",
-                                                                   "neurodegenerative", "infection"]))  # fmt: skip
-        parts.append("""<h3>Can the clock see disease? (health ensemble)</h3><p>Within each held-out study, mean
-(predicted − true age) of cases minus controls, 95 % study-bootstrap CI; null_p: share of 200 within-study label
-shuffles at least as large.</p>""" + table(hd.select("category", "studies", "cases", "within_study_gap", "ci_low",
-                                                      "ci_high", "null_p"), digits=3))  # fmt: skip
-    seeds = {"seed 0": "20261111-1233-atlas-ft-u4-rank1-s0-t2", "seed 1": "20261111-0659-atlas-ft-u4-rank1-s1-t2",
-             "seed 2": "20261111-0717-atlas-ft-u4-rank1-s2"}
+    hv = {
+        "reported (3-seed fine-tune mean)": "20261112-0022-ens-atlasft-rank1-3s",
+        "accuracy-balanced variant": "20261112-0022-ens-health3t2-plus-atlasft-rank1-3s",
+    }
+    hp = [(k, SUMMARY / f"health_{v}_pred_null.parquet") for k, v in hv.items()]
+    if all(x.exists() for _, x in hp):
+        cats = ["all_aging_linked", "all", "autoimmune_inflammatory", "neurodegenerative", "infection"]
+        hd = pl.concat(
+            [pl.read_parquet(x).with_columns(model=pl.lit(k)) for k, x in hp], how="diagonal_relaxed"
+        ).filter(pl.col("category").is_in(cats))
+        parts.append("""<h3>Can the clock see disease? (the health clock, D6)</h3><p>Within each held-out study,
+mean (predicted − true age) of cases minus controls, 95 % study-bootstrap CI; null_p: share of 200 within-study label
+shuffles at least as large. The reported health clock is the mean of the three health-aware BulkFormer fine-tunes;
+the variant adds the three health-aware MLPs, gains 1 y of accuracy and loses the neurodegenerative signal.</p>"""
+                     + table(hd.select("model", "category", "studies", "cases", "within_study_gap", "ci_low",
+                                       "ci_high", "null_p"), digits=3))  # fmt: skip
+    seeds = {
+        "seed 0": "20261111-1233-atlas-ft-u4-rank1-s0-t2",
+        "seed 1": "20261111-0659-atlas-ft-u4-rank1-s1-t2",
+        "seed 2": "20261111-0717-atlas-ft-u4-rank1-s2",
+    }
     sp = [(k, SUMMARY / f"health_{v}_pred.parquet") for k, v in seeds.items()]
     m3 = SUMMARY / "health_20261112-0022-ens-atlasft-rank1-3s_pred_null.parquet"
     if m3.exists() and all(x.exists() for _, x in sp):
         cols = ["category", "studies", "cases", "within_study_gap", "ci_low", "ci_high"]
         keep = ["all_aging_linked", "autoimmune_inflammatory", "neurodegenerative"]
-        hs = pl.concat(
-            [pl.read_parquet(x).select(cols).with_columns(model=pl.lit(k)) for k, x in sp]
-            + [pl.read_parquet(m3).select(*cols, "null_p").with_columns(model=pl.lit("mean of 3 seeds"))],
-            how="diagonal_relaxed",
-        ).filter(pl.col("category").is_in(keep)).select("model", *cols, "null_p")
+        hs = (
+            pl.concat(
+                [pl.read_parquet(x).select(cols).with_columns(model=pl.lit(k)) for k, x in sp]
+                + [pl.read_parquet(m3).select(*cols, "null_p").with_columns(model=pl.lit("mean of 3 seeds"))],
+                how="diagonal_relaxed",
+            )
+            .filter(pl.col("category").is_in(keep))
+            .select("model", *cols, "null_p")
+        )
         parts.append("""<h3>Health-aware BulkFormer fine-tune, three seeds (RM1, done 2026-11-12)</h3><p>Same
 within-study gap, per seed and for the mean of the three seeds (null_p for the mean only, 200 shuffles). Accuracy
 moves about 1 y between seeds (test MAE 10.2 to 11.5); the aging-linked gap stays at +2.9 to +3.1 y.</p>"""
@@ -237,8 +251,9 @@ moves about 1 y between seeds (test MAE 10.2 to 11.5); the aging-linked gap stay
     if b.exists():
         bt = pl.read_parquet(b).with_columns(pl.col("run_id").str.replace("20261111-0747-", ""))
         parts.append("""<h3>Does the gap mean biology? Disease stage (registered before the run)</h3><p>Age gap
-(age regressed out within study) against disease stage, Spearman ρ, 2,000 permutations. The health ensemble also
-moves after one exercise bout (the negative control), so it partly reads acute state.</p>"""
+(age regressed out within study) against disease stage, Spearman ρ, 2,000 permutations. Run before D6 with the
+earlier health ensemble (now retired), which also moves after one exercise bout (the negative control), so it partly
+reads acute state.</p>"""
                      + table(bt.select("run_id", "test", "study", "n", "rho", "p", "verdict"), digits=3)
                      + fig("biology_stage_tests", "Disease-stage tests of both ensembles (clean set)"))  # fmt: skip
     pp = [SUMMARY / f"biology_paired_{n}.parquet" for n in ("plain", "health")]

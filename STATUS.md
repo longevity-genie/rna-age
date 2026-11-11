@@ -3,7 +3,7 @@
 **Report page (private artifact, republished as results change):** https://claude.ai/artifact/TfY8RYwiVDLfm6pEwj81ic
 
 
-_Last update: 2026-11-12 00:23 CET (runner seat; the plan is docs/ROADMAP.md, the lead's)._
+_Last update: 2026-11-12 00:55 CET (runner seat; the plan is docs/ROADMAP.md, the lead's)._
 
 ## Mode (Anton, 2026-11-10 ~00:10)
 Fully autonomous overnight: data → baselines → BulkFormer embeddings/probes → fine-tuning, logging every run
@@ -55,8 +55,7 @@ stop before Anton is back; 07:00 report, then keep updating; one tabbed artifact
   single-cell flags), waiting for the download.
 
 ## Running (jobs carry seat / what / eta in their Slurm comment)
-- Nothing. Two GPU slots free and left free on the lead's word until Anton decides on KronLSTM (default stop,
-  2026-11-12).
+- Nothing. Both GPU slots free; nothing queued (the lead, 2026-11-12).
 
 ## Results so far (details: `docs/experiments.md`, `data/output/summary/experiments.parquet`)
 - **Sample sets (2026-11-11, RM12)**: meningioma and 169 plate single-cell series removed; eligible 100,312 →
@@ -165,9 +164,10 @@ stop before Anton is back; 07:00 report, then keep updating; one tabbed artifact
 - Bgee: GTEx inside Bgee (SRP012682) is skipped (same bins as our GTEx source).
 
 ## Next (order and owner: docs/ROADMAP.md)
-1. RM1 done (00:30): the lead closes it and posts the milestone; which health ensemble stays the reported one is the
-   lead's call (new: same gap, test 9.53 vs 9.21).
-2. RM8/RM9 KronLSTM: blocked on Anton (#rna-age > decisions: one pretraining try, or stop; default stop).
+1. RM1 and RM12 closed (D6, the lead): the reported health clock is the three-seed fine-tune mean
+   (`20261112-0022-ens-atlasft-rank1-3s`); the MLP-plus-fine-tune ensemble is its accuracy-balanced variant; the earlier
+   health ensemble is retired (pre-D4 fine-tune). Page (v14) and state switched.
+2. RM8/RM9 canceled (D6): KronLSTM stopped, the default of the unanswered decision; its code stays in the tree.
 3. Done 2026-11-11: RM4 (Terekhova composition), RM10 (biology: stage effects yes, interventions no; closed by the lead),
    RM11 (robustness), RM12 (clean table: meningioma and plate single-cell series out).
 4. Blocked on Anton: PRIMO submission (desk); tabular foundation models paused.
