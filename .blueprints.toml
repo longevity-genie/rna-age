@@ -37,6 +37,11 @@ pool = "~/.config/agent-seat-blueprints/zulip/pool"
 [seat.runner.watch.desk]
 cmd = "sh kit:bin/py.sh kit:classes/desk/watch-answers.py rna-age runner"
 
+# All of the runner's jobs (rna-age-*): start, requeue, end with its state and log; a restart says what ended
+# meanwhile. Replaces the watch the runner armed after each sbatch (kit v0.1.182).
+[seat.runner.watch.jobs]
+cmd = "bash kit:drivers/slurm/watch-jobs.sh"
+
 # The cluster's queue at every start: this repository's jobs by job_prefix; off the cluster it says the queue is
 # unread. The partition and the account are the cluster machine's, never this file's.
 [slurm]
