@@ -55,13 +55,12 @@ Runs once RM8's smoke has passed and its context sweep has named the best length
 
 **State:** unattended · **Owner:** lead
 
-First battery done (registry 99f56bc, before results; run a407f4b; `data/output/summary/biology_tests.parquet`):
-in the affected tissue the gap rises with disease stage for every model, the headline included (liver fibrosis in
-two cohorts, Braak, Lewy), strongest for the health models; blood-based acute severity, MMSE, NYHA and LVAD show
-nothing; the exercise control shows nothing. Next: (1) re-run after RM12 on the clean table; (2) paired
-before/after data of the same people (a treatment that reverses tissue damage, e.g. bariatric surgery or NASH
-therapy liver biopsies, or a training programme in muscle), registered before it is fetched and run; the fetches
-are the runner's.
+First battery done (registry 99f56bc, before results; run a407f4b), re-run on the clean table (D4) for the new
+headline and health ensembles: the stage effects in the diseased tissue replicate for both (liver fibrosis x2,
+Braak, Lewy); the plain headline passes the exercise control; the health ensemble fails it (one exercise bout shifts
+its gap, p 0.034): it reads acute inflammation as "older". Next: paired before/after data of the same people (a
+treatment that reverses tissue damage), registered before it is fetched; and the health models' inflammation
+response, which the plan line-1 claim must state.
 
 ## RM12 — Re-train on the clean table (D4)
 
