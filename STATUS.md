@@ -3,7 +3,7 @@
 **Report page (private artifact, republished as results change):** https://claude.ai/artifact/TfY8RYwiVDLfm6pEwj81ic
 
 
-_Last update: 2026-11-10 15:20 CET (afternoon: health, composition, PRIMO, tabular foundation models)._
+_Last update: 2026-11-11 09:40 CET (runner seat; the plan is docs/ROADMAP.md, the lead's)._
 
 ## Mode (Anton, 2026-11-10 ~00:10)
 Fully autonomous overnight: data → baselines → BulkFormer embeddings/probes → fine-tuning, logging every run
@@ -54,11 +54,11 @@ stop before Anton is back; 07:00 report, then keep updating; one tabbed artifact
 - ARCHS4 parser written (`sources/archs4.py`, `annotate.py`: sex/tissue/disease/tumour/cell line/stem/prenatal/
   single-cell flags), waiting for the download.
 
-## Running
-- Atlas fine-tune, last 4 blocks, all health states, **seed 1** (seed variance; second fine-tune for the
-  ensemble): val 12.35 → 10.81 → 10.62 → 10.26 → 10.34 → 10.00 (epoch 5); seed 0 reached 9.58.
-- TabICLv2 (in-context tabular foundation model) as an age regressor: on 200 PCs of the 20k log-CPM HVGs and on
-  200 PCs of the Atlas CLS; context 10k train samples, ≤ 200 per study (`rna-age tabfm`).
+## Running (jobs carry seat / what / eta in their Slurm comment)
+- RM1: health-aware Atlas fine-tune seeds on the RM12 table: seed 1 (6429117) and seed 2 (6428869) training,
+  seed 0 again (6429118) queued after seed 2; ~1.85 h per epoch, 6 epochs.
+- RM8: KronLSTM context sweep, 8 epochs, batch 32: 512 done (val 14.41); 2,048 (6429023, micro 16) and 4,096
+  (6429024, micro 8) training, ~45 and ~91 min per epoch.
 
 ## Results so far (details: `docs/experiments.md`, `data/output/summary/experiments.parquet`)
 - **Sample sets (2026-11-11, RM12)**: meningioma and 169 plate single-cell series removed; eligible 100,312 →
@@ -159,11 +159,11 @@ stop before Anton is back; 07:00 report, then keep updating; one tabbed artifact
   fetched; it costs nothing).
 - Bgee: GTEx inside Bgee (SRP012682) is skipped (same bins as our GTEx source).
 
-## Next
-1. Tabular foundation models: **paused by Anton (2026-11-10 19:30)** after poor results (TabICLv2, GeneICL: test
-   MAE 15.6–16.3 vs 10.4 for our MLP; Mitra-v2 infeasible on 11 GB cards). TabFM 1.1 and LimiX-2 runs cancelled
-   mid-prediction; TabPFN-3.5 not pursued. Runner code stays (`rna-age tabfm`) for a later return.
-2. Health-aware Atlas fine-tune (the ranking loss + disease head in `finetune.py`), then health ensemble.
-3. Composition: done for blood and brain (nulls pass); lung needs a larger cohort; Terekhova cell-type pseudobulk optional.
-4. Seed-1 fine-tune into the fine-tune mean; re-check the headline.
-5. PRIMO submission only on Anton's go (HF login, model name, email).
+## Next (order and owner: docs/ROADMAP.md)
+1. RM1: the three-seed health-aware fine-tune on the RM12 table, its gap and null; then the ensembles with the new
+   fine-tunes.
+2. RM8: the sweep's best length → full-length seeds, genome arms, rank-MLP ablation, the paired bar; RM9 pretraining
+   after.
+3. Done today: RM4 (Terekhova composition), RM10 (biology: stage effects yes, interventions no; closed by the lead),
+   RM11 (robustness), RM12 (clean table: meningioma and plate single-cell series out).
+4. Blocked on Anton: PRIMO submission (desk); tabular foundation models paused.
