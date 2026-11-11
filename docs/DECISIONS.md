@@ -78,3 +78,20 @@ each reversible, listed for his review):
   "from scratch", never as the line's end. It is its own plan item, after the from-scratch code lands.
 - Single cells stay out of this item: the bulk medians do not carry to cells (mostly zero); a cell tokenizer needs
   its own statistics (non-zero medians, as Geneformer) and is planned only on a bulk result.
+
+## D4 — A plate single-cell series is excluded whole; meningioma is a tumour (2026-11-11)
+
+Found by the lead while building RM10 and RM11 (Anton away; both follow the repository's rules, the threshold is a
+constant the lead picked, listed for his review):
+
+- **Single cells:** ARCHS4's per-sample single-cell probability (> 0.5 excluded) misses plate-based protocols,
+  whose cells score just under it: GSE116672 (viscRNA-seq, 1,161 cells of 10 dengue patients, median 0.45) was
+  11 % of the exact-age test set; GSE152197 (1,215, 32 donors) and GSE249746 (545, 3 donors) were in training. A
+  series whose samples' median probability exceeds **0.4** is now excluded whole: 169 series with then-eligible
+  samples, 5,308 samples (3,866 train, 132 val, 1,310 test). Rejected: 0.3 (39 more series, 866 samples, more
+  borderline low-input bulk among them); a samples-per-donor rule (donor ids are mostly missing).
+- **Tumours:** meningioma (471 eligible samples, 5 studies) and other benign or CNS tumour names join the tumour
+  flag; the no-cancer rule already required it.
+- Both take effect at one re-parse of ARCHS4 and a re-merge (RM12). Splits are hashed per study, so no remaining
+  study changes side. Every result before RM12 includes these samples; `kron-compare` and `robustness` read only
+  currently eligible samples, and the headline is re-scored on the new table before it is quoted again.

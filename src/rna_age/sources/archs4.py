@@ -120,6 +120,26 @@ def split_items(text: str) -> list[tuple[str, str]]:
     return out
 
 
+# A series whose samples' median single-cell probability exceeds this is single-cell as a whole (plate-based
+# protocols such as Smart-seq or viscRNA-seq score below 0.5 sample by sample: GSE116672, 1,161 cells of 10 donors,
+# median 0.45). 0.4 is the conservative cut: 169 series, 5,308 then-eligible samples; 0.3 would add 39 series, 866
+# samples, among them more borderline low-input bulk (docs/DECISIONS.md D4).
+SC_SERIES_MEDIAN = 0.4
+
+
+def single_cell_series(meta: pl.DataFrame, threshold: float = SC_SERIES_MEDIAN) -> set[str]:
+    """First-listed GEO series whose samples' median ARCHS4 single-cell probability exceeds ``threshold``, over all
+    of the series' samples in the file (not only those with an age)."""
+    if "singlecellprobability" not in meta.columns or "series_id" not in meta.columns:
+        return set()
+    m = meta.select(
+        sid=pl.col("series_id").str.replace_all(r"\s+", "").str.split(",").list.first(),
+        scp=pl.col("singlecellprobability").cast(pl.Float64, strict=False),
+    )
+    st = m.group_by("sid").agg(pl.col("scp").median().alias("med"))
+    return set(st.filter(pl.col("med") > threshold)["sid"].drop_nulls().to_list())
+
+
 def parse_metadata(meta: pl.DataFrame) -> tuple[pl.DataFrame, pl.DataFrame]:
     """Samples whose characteristics carry a donor age (schema-conformed, with flags), plus an audit table."""
     m = meta.with_columns(
@@ -162,11 +182,16 @@ def parse_metadata(meta: pl.DataFrame) -> tuple[pl.DataFrame, pl.DataFrame]:
     df = cand.join(parsed, on="geo_accession", how="inner")
     log.info("ARCHS4: %d samples with a parsed donor age", df.height)
     organism = pl.col("organism_ch1") if "organism_ch1" in df.columns else pl.lit("Homo sapiens")
+    sc_series = single_cell_series(meta)
+    log.info("ARCHS4: %d series are single-cell as a whole (median probability > %g)", len(sc_series), SC_SERIES_MEDIAN)
     sc = (
         (pl.col("singlecellprobability").cast(pl.Float64, strict=False) > 0.5)
         if "singlecellprobability" in df.columns
         else pl.lit(False)
     )
+    if sc_series:
+        first = pl.col("series_id").str.replace_all(r"\s+", "").str.split(",").list.first()
+        sc = sc | first.is_in(list(sc_series))
     df = df.with_columns(
         exclude_reason=pl.when(~organism.str.contains("(?i)homo sapiens"))
         .then(pl.lit("non_human"))
