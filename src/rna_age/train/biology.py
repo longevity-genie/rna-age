@@ -69,6 +69,53 @@ REGISTRY: list[GapTest] = [
 ]  # fmt: skip
 
 
+@dataclass(frozen=True)
+class PairedTest:
+    """Before/after the same intervention. ``delta`` = prediction after − before, within a person when ``subject``
+    names them (a characteristics key, or ``title:<regex>`` with one group), else between the two groups' means.
+    Age needs no adjustment within a person over weeks or months."""
+
+    name: str
+    study: str
+    time_key: str
+    before: tuple[str, ...]
+    after: tuple[str, ...]
+    direction: int  # -1: younger after; +1: older after; 0: no change expected
+    why: str
+    subject: str | None = None
+    where: tuple[tuple[str, str], ...] = ()  # (key, value) filters, lower-case
+
+
+PAIRED: list[PairedTest] = [
+    PairedTest("bariatric_adipose", "GSE65540", "time", ("t0",), ("t3",), -1,
+               "subcutaneous adipose 3 months after gastric bypass or banding: younger", subject=r"title:sat(\d+)"),
+    PairedTest("weight_loss_saat", "GSE274137", "time", ("pre weight-loss",), ("post weight-loss",), -1,
+               "subcutaneous abdominal adipose after a weight-loss programme: younger", subject=r"title:lip\.(\d+)",
+               where=(("tissue type", "saat"),)),
+    PairedTest("weight_loss_sfat", "GSE274137", "time", ("pre weight-loss",), ("post weight-loss",), -1,
+               "subcutaneous femoral adipose after a weight-loss programme: younger", subject=r"title:lip\.(\d+)",
+               where=(("tissue type", "sfat"),)),
+    PairedTest("calorie_restriction_adipose", "GSE192587", "timepoint", ("before",), ("after",), -1,
+               "adipose tissue after calorie restriction: younger", subject="participant",
+               where=(("treatment", "calorie restriction"),)),
+    PairedTest("protein_restriction_adipose", "GSE192587", "timepoint", ("before",), ("after",), -1,
+               "adipose tissue after protein restriction: younger", subject="participant",
+               where=(("treatment", "protein restriction"),)),
+    PairedTest("bariatric_monocytes", "GSE66306", "time point", ("t0; before bariatric surgery",),
+               ("t3; 3 months after bariatric surgery",), -1,
+               "blood monocytes 3 months after bariatric surgery: younger (less inflammation)", subject="subject id"),
+    PairedTest("rygb_muscle", "GSE137631", "group", ("rygb pre surgery", "rygb + exercise training pre surgery"),
+               ("rygb post surgery", "rygb + exercise training post surgery"), -1,
+               "vastus lateralis after gastric bypass (with or without training): younger; groups, no subject ids"),
+    PairedTest("metformin_muscle", "GSE107894", "drug", ("placebo",), ("metformin",), -1,
+               "vastus lateralis on metformin vs placebo, crossover within person: younger", subject="subject id",
+               where=(("tissue", "vastus lateralis muscle"),)),
+    PairedTest("metformin_adipose", "GSE107894", "drug", ("placebo",), ("metformin",), -1,
+               "subcutaneous adipose on metformin vs placebo, crossover within person: younger", subject="subject id",
+               where=(("tissue", "abdominal subcutaneous adipose"),)),
+]  # fmt: skip
+
+
 def covariates(test: GapTest) -> pl.DataFrame:
     """``sample_id``, ``x`` for the test's study: its characteristics value mapped through ``order``."""
     meta = pl.read_parquet(
