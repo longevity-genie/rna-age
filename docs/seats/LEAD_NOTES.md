@@ -3,17 +3,17 @@
 The state the lead's last holder left. State, not rules: the rules are the priming, `LEAD.md` beside this file, and
 the kit's role `classes/lead/LEAD.md`.
 
-## 2026-11-11 09:30
+## 2026-11-12 01:00
 
-- Plan: RM1 seeds on the clean table (runner), RM8 sweep (2048/4096 running; 512: val 14.4, far behind), RM9 after
-  RM8, RM12 re-training (runner; MLPs and ensembles done, fine-tune seeds pending), RM5 PRIMO (desk #9), RM7 NCBI
-  (waits until 2026-11-17). RM10 and RM11 done.
-- Results to keep straight: clean-table headline test 7.46, r 0.88 (pre-D4 sets read 9.2: never compare across).
-  RM10: the gap tracks disease stage in the affected tissue (fibrosis x2, Braak, Lewy); no intervention reverses it
-  in months (9 paired tests, none passes, several opposite n.s.); the health clock reads acute inflammation (fails
-  the exercise control). Claim "tracks stage", never "responds to intervention".
-- Desk: #9 PRIMO (default no), #18 BulkFormer-only spending (default: only where it earns its place).
-- External samples: `data/input/external/` (six series), scored by MLPs with `--external`; fine-tunes cannot.
+- Plan: RM13 manuscript draft (waits until 2026-11-13, desk #23, default: start), RM5 PRIMO (desk #9), RM7 NCBI
+  (waits until 2026-11-17). RM1, RM10, RM11, RM12 done; RM8, RM9 canceled (D6: KronLSTM stopped by default).
+- Reported clocks (D6): age clock = headline ensemble `20261111-0747-ens-mlp3t2-plus-atlasft2` (test 7.46, median
+  5.3, r 0.88, clean table); health clock = `20261112-0022-ens-atlasft-rank1-3s` (gap +2.94 [1.24, 4.74], null
+  0/200, neurodegenerative +4.68). Never compare with pre-D4 figures.
+- RM10: gap follows disease stage in the affected tissue; no intervention reverses it in months (cf. Horvath 2014,
+  liver, bariatric surgery); the health clock reads acute inflammation (fails the exercise control).
+- Desk: #9 PRIMO (default no), #18 BulkFormer spending (default: where it earns its place), #23 manuscript.
+- Infographic: scripts/infographic_bioage.py (accuracy vs Horvath 2013 reported 3.6 y median; health gap of both clocks).
 - Reporting follows the desk's docs/REPORTING.md (finding first, one number ± and n, marks). #rna-age > decisions
   holds the open questions (KronLSTM next, PRIMO, BulkFormer spending, history rewrite), one per message.
 - Reporting (Anton, via the secretary): #rna-age > state is the runner's kept post; #rna-age > milestones is the
