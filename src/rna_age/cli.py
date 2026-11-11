@@ -279,14 +279,19 @@ def terekhova_celltype(chunk: int = typer.Option(100_000)) -> None:
 
 
 @app.command("health-eval")
-def health_eval(run_id: str, score: str = typer.Option("pred", help="pred | bio_age")) -> None:
+def health_eval(
+    run_id: str,
+    score: str = typer.Option("pred", help="pred | bio_age"),
+    permutations: int = typer.Option(0, help="labels shuffled within study: the null's mean and one-sided p"),
+) -> None:
     """Within-study case − control age gap per disease category (held-out studies, bootstrap CIs)."""
     from rna_age.train.health import evaluate_health
 
+    out = evaluate_health(run_id, score, permutations=permutations)
+    cols = ["category", "studies", "cases", "within_study_gap", "ci_low", "ci_high", "frac_studies_positive"]
+    cols += ["null_mean", "null_p"] if permutations else []
     with __import__("polars").Config(tbl_rows=30, fmt_str_lengths=30, tbl_width_chars=160):
-        print(evaluate_health(run_id, score).select(
-            "category", "studies", "cases", "within_study_gap", "ci_low", "ci_high", "frac_studies_positive",
-            "control_test_mae"))  # fmt: skip
+        print(out.select(*cols, "control_test_mae"))
 
 
 @app.command("train-health")

@@ -100,7 +100,40 @@ def _boot_ci(x: np.ndarray, n: int = 2000, seed: int = 0) -> tuple[float, float]
     return float(np.percentile(means, 2.5)), float(np.percentile(means, 97.5))
 
 
-def evaluate_health(run_id: str, score: str = "pred", min_per_group: int = 5) -> pl.DataFrame:
+def _category_gaps(p: pl.DataFrame, min_per_group: int) -> dict[str, np.ndarray]:
+    """Per category, the per-study (mean case gap − mean control gap) over studies with enough of both."""
+    out: dict[str, np.ndarray] = {}
+    cases = p.filter(pl.col("group") == "case")
+    ks = p.filter(pl.col("group") == "control").group_by("study_id").agg(ctrl_gap=pl.col("gap").mean(), n_ctrl=pl.len())
+    for cat in ["all_aging_linked", "all", *sorted(cases["category"].unique().drop_nulls().to_list())]:
+        if cat == "all":
+            c = cases
+        elif cat == "all_aging_linked":
+            c = cases.filter(pl.col("category").is_in(list(AGING_LINKED)))
+        else:
+            c = cases.filter(pl.col("category") == cat)
+        cs = c.group_by("study_id").agg(case_gap=pl.col("gap").mean(), n_case=pl.len())
+        j = cs.join(ks, on="study_id").filter((pl.col("n_case") >= min_per_group) & (pl.col("n_ctrl") >= min_per_group))
+        if j.height:
+            out[cat] = np.stack([(j["case_gap"] - j["ctrl_gap"]).to_numpy(), j["n_case"].to_numpy()])
+    return out
+
+
+def permute_within_study(p: pl.DataFrame, rng: np.random.Generator) -> pl.DataFrame:
+    """The case/control labels (with their categories) shuffled among each study's samples: the null where the
+    model's gap has nothing to do with disease. Every study keeps its own numbers of cases and controls."""
+    p = p.with_row_index("_r").sort("study_id", "_r")
+    perm = np.empty(p.height, dtype=np.int64)
+    starts = np.r_[0, np.flatnonzero(p["study_id"].to_numpy()[1:] != p["study_id"].to_numpy()[:-1]) + 1, p.height]
+    for a, b in zip(starts[:-1], starts[1:], strict=True):
+        perm[a:b] = a + rng.permutation(b - a)
+    lab = p.select("group", "category")[perm]
+    return p.drop("group", "category").hstack(lab).drop("_r")
+
+
+def evaluate_health(run_id: str, score: str = "pred", min_per_group: int = 5, permutations: int = 0) -> pl.DataFrame:
+    """Within-study case − control gap per category. With ``permutations`` > 0, also the null from labels shuffled
+    within study: its mean and the one-sided p (share of shuffles with a gap at least the observed one)."""
     p = pl.read_parquet(OUTPUT / "runs" / run_id / "predictions.parquet")
     h = health_table().select("sample_id", "group", "category")
     p = p.join(h, on="sample_id", how="inner").filter(
@@ -111,30 +144,28 @@ def evaluate_health(run_id: str, score: str = "pred", min_per_group: int = 5) ->
     ctrl = p.filter(pl.col("group") == "control")
     coef = np.polyfit(ctrl["age_years"].to_numpy(), (ctrl[score] - ctrl["age_years"]).to_numpy(), 1)
     p = p.with_columns(gap=pl.col(score) - pl.col("age_years") - (coef[0] * pl.col("age_years") + coef[1]))
+    obs = _category_gaps(p, min_per_group)
+    nulls: dict[str, list[float]] = {k: [] for k in obs}
+    rng = np.random.default_rng(0)
+    for _ in range(permutations):
+        for k, v in _category_gaps(permute_within_study(p, rng), min_per_group).items():
+            if k in nulls:
+                nulls[k].append(float(v[0].mean()))
     rows = []
-    cases = p.filter(pl.col("group") == "case")
-    for cat in ["all_aging_linked", "all", *sorted(cases["category"].unique().drop_nulls().to_list())]:
-        if cat == "all":
-            c = cases
-        elif cat == "all_aging_linked":
-            c = cases.filter(pl.col("category").is_in(list(AGING_LINKED)))
-        else:
-            c = cases.filter(pl.col("category") == cat)
-        cs = c.group_by("study_id").agg(case_gap=pl.col("gap").mean(), n_case=pl.len())
-        ks = p.filter(pl.col("group") == "control").group_by("study_id").agg(ctrl_gap=pl.col("gap").mean(),
-                                                                            n_ctrl=pl.len())  # fmt: skip
-        j = cs.join(ks, on="study_id").filter((pl.col("n_case") >= min_per_group) & (pl.col("n_ctrl") >= min_per_group))
-        if not j.height:
-            continue
-        d = (j["case_gap"] - j["ctrl_gap"]).to_numpy()
+    for cat, (d, n_case) in obs.items():
         lo, hi = _boot_ci(d)
-        rows.append({"run_id": run_id, "score": score, "category": cat, "studies": j.height,
-                     "cases": int(j["n_case"].sum()), "within_study_gap": float(d.mean()), "ci_low": lo, "ci_high": hi,
-                     "frac_studies_positive": float((d > 0).mean())})  # fmt: skip
+        row = {"run_id": run_id, "score": score, "category": cat, "studies": len(d), "cases": int(n_case.sum()),
+               "within_study_gap": float(d.mean()), "ci_low": lo, "ci_high": hi,
+               "frac_studies_positive": float((d > 0).mean())}  # fmt: skip
+        if permutations:
+            nl = np.array(nulls[cat])
+            row |= {"null_mean": float(nl.mean()) if len(nl) else float("nan"),
+                    "null_p": float((1 + (nl >= d.mean()).sum()) / (1 + len(nl))), "permutations": len(nl)}  # fmt: skip
+        rows.append(row)
     out = pl.DataFrame(rows)
     test_ctrl = p.filter((pl.col("split") == "test") & (pl.col("group") == "control"))
     out = out.with_columns(control_test_mae=pl.lit(float((test_ctrl[score] - test_ctrl["age_years"]).abs().mean())))
-    path = OUTPUT / "summary" / f"health_{run_id}_{score}.parquet"
+    path = OUTPUT / "summary" / f"health_{run_id}_{score}{'_null' if permutations else ''}.parquet"
     out.write_parquet(path)
     return out
 
