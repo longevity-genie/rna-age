@@ -7,7 +7,8 @@ _Seated 2026-11-10 21:10 CET by the session that ran the overnight loop (session
 
 ## The brief
 
-`/data/uq2347/briefs/rna-age-overnight.md` (outside the repository). Worked with `STATUS.md`'s "Next".
+The brief outside the repository (the maintainers' overnight plan; its path is in the session's start prompt,
+never in a tracked file). Worked with `STATUS.md`'s "Next" and `docs/ROADMAP.md`.
 Standing words of the maintainers recorded there and in `docs/experiments.md`: parquet only, no cancer cohorts,
 ≤ 4 GPUs at once and never the A100 nodes, ≤ ~64 CPU cores, NCBI paced, the Synapse token read at run time only and
 never written to Synapse; tabular foundation models paused (Anton, 2026-11-10 19:30); PRIMO submission only on
@@ -51,5 +52,5 @@ comment (seat / what / eta / cuda).
 - `unattended`: RM8 sweep → best length → full-length seeds, genome arms, ablation, paired bar (ROADMAP order).
 - `blocked: Anton`: PRIMO submission (desk); tabular FMs paused.
 - `unattended`: report page republished after the next headline change.
-- Note: until ef455e2's successor, this file named cluster nodes (removed; history not rewritten, a maintainers'
-  call).
+- Note: from e1e09bd until 84883c4 this file named cluster nodes and the account's data path (removed; history not
+  rewritten, a maintainers' call).
