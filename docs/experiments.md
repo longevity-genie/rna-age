@@ -741,3 +741,7 @@ All rank encoding, 8 epochs planned, batch 32, seed 0, pre-RM12 table; validatio
 Within-study gap, held-out studies: aging-linked **+2.85 y [1.20, 4.66]** (33 studies), all +2.67 [1.29, 4.26],
 autoimmune +4.40 [1.40, 7.68], neurodegenerative +4.65 [1.55, 7.86] (7 studies). Seed 0 (old table) gave +2.93
 [1.17, 4.67]. Seed 1 finishing; seed 0 on the RM12 table ends ~00:35; then the three-seed gap with the null.
+- 18:57 · seed 1 on the RM12 table done: `20261111-0659-atlas-ft-u4-rank1-s1-t2` (job 6429117), best val 10.22 (epoch 5);
+  on the RM12 set val MAE 10.38, test 11.12 (r 0.75). Gap: aging-linked **+2.88 y [1.10, 4.79]**, all +2.83 [1.36,
+  4.45], autoimmune +4.36 [1.27, 7.69], neurodegenerative +4.82 [1.59, 8.04]. Accuracy differs by ~0.9 y between seeds
+  1 and 2; the aging-linked gap does not (+2.88 vs +2.85).
