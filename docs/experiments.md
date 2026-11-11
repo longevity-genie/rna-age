@@ -631,3 +631,18 @@ pre-RM12 table): val MAE per epoch 16.48, 14.98, 14.94, 14.74, 14.69, 14.45, 14.
 ~11.6 min per epoch alone on a card (the 21.5 min of the smoke included Triton compilation and the shared-card time).
 Still improving slowly at epoch 7; far from the 20k-HVG MLP (val ~9.2-10.0). 2,048 (micro 16) and 4,096 (micro 8)
 running.
+
+### 2026-11-11 08:00 · RM12 refresh: 20k-HVG MLP (all health states), seeds 0-2 on the new table (job 6429121)
+Runs `20261111-0707/0717/0724-hvg20000-mlp-trainall[-seed1|-seed2]`. As each run reports: val 8.76 / 8.70 / 8.73,
+test 8.03 / 8.24 / 8.14 (r 0.85-0.86), pseudobulk transfer 18.5-20.4. **Not comparable with the old runs' reported
+numbers**: the test and val sets themselves changed (RM12 removed 1,161 plate "samples" of one series from test).
+Old and new seeds scored on the same, currently eligible exact-age bulk samples (val n 12,864, test n 8,843):
+
+| 20k-HVG MLP, seeds 0-2 | val MAE (mean) | test MAE (mean) |
+|---|---|---|
+| old (trained on the pre-RM12 table) | 9.21 / 8.90 / 8.94 (9.02) | 8.48 / 7.85 / 7.94 (8.09) |
+| new (RM12 table) | 8.76 / 8.70 / 8.73 (**8.73**) | 8.03 / 8.24 / 8.14 (8.14) |
+- Cleaner training gains ~0.3 y on validation, nothing on test; most of the drop from ~9.5 to ~8.1 test MAE is the
+  test set losing hard plate-single-cell samples. Pseudobulk transfer worsens (old 15-16.5 → new 18.5-20.4): the
+  removed plate series may have helped carry the model to single-cell pseudobulk. Every comparison from here reads
+  currently eligible samples only.
