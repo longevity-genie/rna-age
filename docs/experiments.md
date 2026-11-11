@@ -527,3 +527,23 @@ abundant as the counterfactual classes); ridge clock, 5-fold CV by donor, Pearso
 - Null check (`--null-seed 0`, donors' ages shuffled), MSSM brain: natural r −0.01, proportions −0.01, fixed
   composition 0.01, composition only 0.00 (vs 0.82 / 0.42 / 0.82 / 0.41 on the real ages). OneK1K blood null: natural 0.01, proportions −0.02, fixed
   composition −0.08, composition only −0.04 (vs 0.85 / 0.34 / 0.78 / 0.43). The CV clock does not leak, in either tissue.
+
+### 2026-11-11 01:40 · RM4: Terekhova 2023 PBMC by published cluster (`rna-age terekhova-celltype`)
+317 tubes (visits) of 166 donors, 2,811 tube × cluster groups from the 1.9M-cell h5ad; each tube its own sample with
+its age at that visit; composition analysis with the dataset's own clusters, **5-fold CV grouped by donor**.
+
+| representation | r (CV by donor) | null (ages shuffled) |
+|---|---|---|
+| natural PBMC | 0.87 | −0.04 |
+| fixed composition | **0.88** | −0.13 |
+| composition only | 0.40 | −0.07 |
+| proportions | 0.47 | −0.04 |
+| CD4+ T cells alone | **0.91** | 0.01 |
+| CD8+ T cells (TRAV1-2−) alone | 0.82 | 0.02 |
+| myeloid / NK / B alone | 0.63 / 0.62 / 0.40 | ≤ 0 |
+- Same as the four Census blood cohorts: within-cell-type signal, CD4 T cells alone at least as good as whole PBMC.
+- **Gate caught a leak first**: the first run folded by tube, so one donor's visits sat on both sides (natural 0.93,
+  fixed 0.95, CD4 T 0.95, null slightly negative); the code now folds by person when a cohort carries a `cv_group`
+  (83958f2). Only the donor-grouped numbers above count.
+
+RM1 progress: health-aware fine-tune val 12.59 → 11.72 → 11.04 → 10.65 → 10.82 (epoch 4); last epoch running.
