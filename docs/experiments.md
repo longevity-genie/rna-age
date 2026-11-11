@@ -577,3 +577,12 @@ Within-study case − control age gap, held-out studies (95 % study-bootstrap CI
   all 200 shuffles (p = 1/201) for aging-linked, all, autoimmune and neurodegenerative. Health-aware MLP (rank 1 +
   head, s0): p = 1/201 except neurodegenerative (p 0.20). Control-only MLP (rank 0 + head): aging-linked p 0.10,
   all 0.06, autoimmune 1/201, neurodegenerative 0.55. Summaries `health_*_pred_null.parquet`.
+
+### 2026-11-11 04:30 · RM1 step 1: the health ensemble
+`rna-age ensemble` (plain mean) of the three health-aware MLPs (rank 1 + head, seeds 0-2) and the health-aware Atlas
+fine-tune → run `20261111-0406-ens-health3-plus-atlasft-rank1`; `health-eval --permutations 200` (job 6428619).
+- Accuracy: val MAE 9.81, test MAE 10.10 (control test MAE 9.85).
+- Within-study gap (held-out studies): aging-linked +2.56 y [0.71, 4.26], all +2.55 [1.05, 4.03], autoimmune +4.76
+  [1.85, 7.77] (each above all 200 shuffles, p = 1/201); neurodegenerative +1.93 [−0.60, 4.86] (p 0.02).
+- Against the fine-tune alone (+2.93 aging-linked, neurodegenerative +3.84 [0.66, 7.47]): the ensemble buys ~0.4 y of
+  test MAE and loses the neurodegenerative signal, which only the fine-tune carries.
