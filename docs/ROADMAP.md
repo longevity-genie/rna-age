@@ -53,11 +53,15 @@ Runs once RM8's smoke has passed and its context sweep has named the best length
 
 ## RM10 — Does the disease gap mean biology? Severity and before/after data (plan line 2)
 
-**State:** unattended · **Owner:** lead (datasets, analysis), then runner (any runs)
+**State:** unattended · **Owner:** lead
 
-Desk #19 asks Anton whether now; its default is now, so it is built under that. Public held-out series with disease
-severity within a study, or the same people before and after a treatment or an intervention; the existing models
-(health ensemble, RM1 fine-tune, the headline) scored on them; the expected direction written before each run.
+First battery done (registry 99f56bc, before results; run a407f4b; `data/output/summary/biology_tests.parquet`):
+in the affected tissue the gap rises with disease stage for every model, the headline included (liver fibrosis in
+two cohorts, Braak, Lewy), strongest for the health models; blood-based acute severity, MMSE, NYHA and LVAD show
+nothing; the exercise control shows nothing. Next: (1) re-run after RM12 on the clean table; (2) paired
+before/after data of the same people (a treatment that reverses tissue damage, e.g. bariatric surgery or NASH
+therapy liver biopsies, or a training programme in muscle), registered before it is fetched and run; the fetches
+are the runner's.
 
 ## RM11 — Robustness: error by tissue and platform (plan line 3)
 
