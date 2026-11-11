@@ -7,13 +7,23 @@ The lead (`docs/seats/LEAD.md`) keeps it. Seeded at the lead's first seating (20
 
 ## Items
 
-## RM1 — Health-aware Atlas fine-tune, then the health ensemble
+## RM1 — Health-aware Atlas fine-tune: seeds and the health ensemble
 
-**State:** building · **Owner:** runner (job `rna-age-ft-u4-rank1`, started 2026-11-10 ~20:15), then lead (what it means); last epoch, eta ~03:30
+**State:** building · **Owner:** runner (the runs below), then lead (what they mean)
 
-The ranking loss and disease head (`src/rna_age/train/health.py`) applied to the Atlas fine-tune
-(`src/rna_age/train/finetune.py`). When it ends: the case − control gap on held-out studies against the health-aware
-MLP (+2.35 y), and a health ensemble (health-aware MLPs + this fine-tune) scored for test MAE and the gap.
+Seed 0 (run 20261110-1516-atlas-ft-u4-rank1) passes plan line 1 on one seed: aging-linked within-study gap +2.93 y
+[1.17, 4.67] on 35 held-out studies at control test MAE 10.37; the within-study label-shuffle null is ~0 and below
+the observed gap in all 200 shuffles (054db35). Neurodegenerative +3.84 [0.66, 7.47], the first significant one.
+Pseudobulk transfer worse (17.7 vs 13.3). Runs:
+
+1. Health ensemble (CPU): `rna-age ensemble` of the three health-aware MLPs (rank1-head s0, s1, s2) and this
+   fine-tune, then `health-eval --permutations 200` and its accuracy.
+2. Seeds 1 and 2 of the fine-tune, the same flags (`finetune --unfreeze 4 --epochs 6 --max-train 20000
+   --rank-weight 1 --seed 1|2`), sharing GPU slots with RM8 (RM8's sweep first); then the three-seed gap.
+
+What a positive gap means is open: the ranking loss teaches "cases older" on training studies, so a held-out gap
+shows that disease signal generalises into the age axis, not yet that disease ages the body. Plan line 2 (dose,
+severity, interventions) is the test of that.
 
 ## RM8 — KronLSTM expression encoder, from scratch (D2, D3)
 
