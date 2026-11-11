@@ -650,3 +650,19 @@ Old and new seeds scored on the same, currently eligible exact-age bulk samples 
   comparable with figures on the RM12 set; every number is quoted with its sample set from here. The transfer drop is
   plausible (the plate series were the nearest thing to pseudobulk in training); pseudobulk stays a separate domain
   by the rules, so it is an open question, not a reason to put single cells back.
+
+### 2026-11-11 07:48 · RM12 refresh: headline and health ensembles rebuilt from the new MLPs
+Health-aware MLPs (rank 1 + head) seeds 0-2 on the RM12 table: job 6429122, runs `20261111-0718/0731/0743-health-mlp-rank1-head-s0..s2`.
+Rebuilt (plain means; the fine-tunes are still the old-table ones until RM1's new seeds land):
+`20261111-0747-ens-mlp3t2-plus-atlasft2` = mean(3 new 20k-HVG MLPs) + mean(2 Atlas fine-tunes, u4 and u6), and
+`20261111-0747-ens-health3t2-plus-atlasft-rank1` = 3 new health MLPs + the health-aware fine-tune.
+All scored on the **RM12 sample set** (currently eligible exact-age bulk: val n 12,864, test n 8,843):
+
+| ensemble | val MAE (r) | test MAE (median, r) |
+|---|---|---|
+| old headline (7 old MLPs + 2 fine-tunes) | 8.44 (0.846) | 7.43 (5.41, 0.884) |
+| **new headline (3 new MLPs + 2 fine-tunes)** | **8.36 (0.849)** | **7.46 (5.31, 0.882)** |
+| old health ensemble | 9.57 (0.808) | 9.01 (6.71, 0.835) |
+| new health ensemble | 9.62 (0.803) | 9.21 (6.85, 0.825) |
+- On the RM12 set the headline is test MAE 7.46 (r 0.88); not comparable with the 9.20 of the pre-RM12 set. Three
+  clean-table MLPs match seven old ones. New health ensemble's gap eval with the 200-shuffle null: job 6429191.
