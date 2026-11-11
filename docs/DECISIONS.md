@@ -104,3 +104,17 @@ with it. The from-scratch context sweep ended at validation MAE 13.95 y (2,048 t
 epoch 3, 14.52) against ~8.7 for the 20k-HVG MLP, so the KronLSTM line is behind by ~5 y without telling encoding
 from model apart. What comes next for it (one pretraining run, or stop) is asked of Anton; until he answers, no new
 KronLSTM run starts.
+
+## D6 — The reported health clock: the three-seed health-aware fine-tune; KronLSTM stopped (2026-11-12)
+
+The lead's calls (Anton away; each reversible, listed for his review):
+
+- **The reported health clock is the mean of the three health-aware Atlas fine-tunes on the clean table**
+  (`20261112-0022-ens-atlasft-rank1-3s`): aging-linked within-study gap +2.94 y [1.24, 4.74] over 33 unseen studies,
+  0 of 200 label shuffles reach it, neurodegenerative +4.68 [1.46, 7.96], test MAE 10.6. The gap is the stable
+  part (+2.85 to +3.09 across seeds); accuracy moves ~0.9 y. Rejected: the health ensemble with the MLPs (test 9.5,
+  gap +2.79, but the MLPs dilute the neurodegenerative signal to n.s.), kept as the accuracy-balanced variant; and
+  the earlier health ensemble (its fine-tune trained on the pre-D4 table). The plain headline stays the age clock.
+- **KronLSTM for rna-age is stopped** (RM8, RM9 canceled): the question to Anton (#rna-age > decisions, asked
+  2026-11-11 12:42) went unanswered to its date, and its default was to stop. From scratch it trailed the plain MLP
+  by ~5 y on validation; the pretraining code (412030a) stays in the tree for a later try.
