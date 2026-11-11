@@ -716,3 +716,17 @@ gap falls after the intervention (one-sided p).
 - None of the nine registered tests passes for either model; seven of nine move the opposite way for the health
   models, six for the plain ones (bypass muscle and fat loss by ~+4 y). Results in
   `biology_paired_plain.parquet`, `biology_paired_health.parquet`. What it means is the lead's (step 3).
+
+### 2026-11-11 12:29 · RM8 context sweep ends: 2,048 done, 4,096 stopped early (Anton's word)
+All rank encoding, 8 epochs planned, batch 32, seed 0, pre-RM12 table; validation MAE by epoch:
+
+| length | curve | result |
+|---|---|---|
+| 512 | 16.48, 14.98, 14.94, 14.74, 14.69, 14.45, 14.42, 14.41 | val 14.41, test 13.76 (r 0.59) |
+| 2,048 (micro 16) | 15.71, 14.49, 14.87, 14.90, 14.12, 14.04, 13.95, 13.95 | val 13.95 (`20261111-0613-kron-sweep-rank2048-e8-m16`) |
+| 4,096 (micro 8) | 15.86, 14.84, 14.82, 14.52 | **stopped at 12:29 after epoch 3** (job 6429024) |
+- Stopped on Anton's instruction (#rna-age, "do we have early stop?", and earlier "if something is super bad in
+  metrics and not promising just early stop"): 4,096 tracked 512 and 2,048 within ~0.5 y while all three sit
+  ~5 y behind the 20k-HVG MLP (val ~8.7); ~6 GPU-hours left. Context length buys ~0.5 y at most.
+- The lead's rule (stop when > 2 y worse than the rank-MLP at the same length for 2 epochs) is applied with the
+  ablation (job 6429586, running); the best length for the full-length seeds is 2,048.
