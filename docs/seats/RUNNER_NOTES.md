@@ -20,18 +20,10 @@ The rigger's queue map (`~/.config/agent-seat-blueprints/rigger/queue.toml`): rn
 cores on the account's cap; GPU jobs are outside it. GPU jobs go to the preemptible requeue partition on the RTX 2080 Ti 11 GB
 nodes, excluding the A100 nodes; partition and node names only in `slurm/env.local.sh`.
 
-## Running (2026-11-11 09:40 CET)
+## Running (2026-11-12 00:27 CET)
 
-All watched by the seat's jobs watcher (`[seat.runner.watch.jobs]`, kit v0.1.183); every job carries the account's
-comment (seat / what / eta / cuda).
-
-| job | what |
-|---|---|
-| 6429117 | RM1 health-aware fine-tune seed 1, RM12 table (`atlas-ft-u4-rank1-s1-t2`) |
-| 6428869 | RM1 seed 2, RM12 table (`atlas-ft-u4-rank1-s2`) |
-| 6429118 | RM1 seed 0 again, RM12 table (`atlas-ft-u4-rank1-s0-t2`), queued after seed 2 |
-| 6429023 | RM8 sweep, 2,048 tokens, 8 epochs, batch 32 as micro 16 |
-| 6429024 | RM8 sweep, 4,096 tokens, 8 epochs, batch 32 as micro 8 |
+Nothing. RM1 finished (75f72cd); both GPU slots left free on the lead's word until Anton decides on KronLSTM
+(default stop, 2026-11-12). The seat's jobs watcher (`[seat.runner.watch.jobs]`) follows any new rna-age-* job.
 
 ## Cluster facts found by trial
 
@@ -47,9 +39,9 @@ comment (seat / what / eta / cuda).
 
 ## Open items
 
-- `unattended`: RM1 seeds 0-2 on the RM12 table → gap with the 200-shuffle null, then the ensembles with the new
-  fine-tunes.
-- `unattended`: RM8 sweep → best length → full-length seeds, genome arms, ablation, paired bar (ROADMAP order).
+- `done`: RM1 (three seeds, gap +2.94 y [1.24, 4.74], null 0 of 200; ensembles rebuilt). Which health ensemble is
+  reported: the lead's call, asked in #rna-age > plan 2026-11-12.
+- `blocked: Anton`: RM8/RM9 KronLSTM (one pretraining try or stop; default stop); the ablation cancelled on his word.
 - `blocked: Anton`: PRIMO submission (desk); tabular FMs paused.
 - `unattended`: report page republished after the next headline change.
 - Every result: edit the kept state report in place (`watchdog.py keep runner rna-age-state '#rna-age>state' FILE`;
