@@ -624,3 +624,10 @@ meningioma are `is_tumor` and none eligible.
 - 100,312 → 94,526 eligible (−5,786, all ARCHS4; GTEx, Bgee, Census pseudobulk and Terekhova unchanged).
 - Jobs started before 06:53 (the KronLSTM sweep, RM1 seed 1) trained on the old table; RM1 seed 2 and every later
   run on the new one. Evaluations read only currently eligible samples.
+
+### 2026-11-11 07:45 · RM8 context sweep: 512 tokens done (`20261111-0539-kron-sweep-rank512-e8`)
+KronLSTM, rank encoding, 512 tokens, 8 epochs, batch 32, seed 0 (job 6428862, code 937866e, started 05:35 on the
+pre-RM12 table): val MAE per epoch 16.48, 14.98, 14.94, 14.74, 14.69, 14.45, 14.42, **14.41**; test 13.76 (r 0.59).
+~11.6 min per epoch alone on a card (the 21.5 min of the smoke included Triton compilation and the shared-card time).
+Still improving slowly at epoch 7; far from the 20k-HVG MLP (val ~9.2-10.0). 2,048 (micro 16) and 4,096 (micro 8)
+running.
