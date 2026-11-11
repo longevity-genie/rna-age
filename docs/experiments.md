@@ -730,3 +730,7 @@ All rank encoding, 8 epochs planned, batch 32, seed 0, pre-RM12 table; validatio
   ~5 y behind the 20k-HVG MLP (val ~8.7); ~6 GPU-hours left. Context length buys ~0.5 y at most.
 - The lead's rule (stop when > 2 y worse than the rank-MLP at the same length for 2 epochs) is applied with the
   ablation (job 6429586, running); the best length for the full-length seeds is 2,048.
+- 12:45: the rank-MLP ablation (RM8 step 4) cancelled on Anton's word ("do not resume ablation, we have more
+  important stuff to do than numerous ablation experiments", relayed by the lead). Its first try (6429586) ran out
+  of GPU memory at the MLP step (the dense rank matrix, 15.6 GB, on an 11 GB card); the CPU retry (6429643) was
+  cancelled before a result. No new KronLSTM run until Anton and the lead settle the next step.
