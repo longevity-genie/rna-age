@@ -693,3 +693,26 @@ flagged unsupported: HiSeq X Ten (66 samples), bone marrow, "other".
 **Health ensemble gap** (job 6429191, 200 shuffles, RM12 set): aging-linked +2.81 y [0.80, 4.88] (33 studies), all
 +2.55 [0.85, 4.33], autoimmune +4.89 [1.90, 8.11], neurodegenerative +2.33 [−0.89, 5.71] (7 studies); each above all
 200 shuffles.
+
+### 2026-11-11 09:22 · RM10 step 2: the registered before/after tests (bba614a), run once
+Job 6429223 (`slurm/rm10_paired.sh`, 29d886e): `rna-age external` of GSE65540, GSE274137, GSE192587, GSE66306,
+GSE137631, GSE107894 (285 samples, never in the age table or training); retrained on the RM12 table with
+`--external`: plain 20k-HVG MLPs `20261111-0821/0830/0837-hvg20000-mlp-trainall[-seed1|-seed2]` and health MLPs
+`20261111-0854/0908/0918-health-mlp-rank1-head-s0..s2`; `biology-paired` (5,000 permutations, three seeds
+averaged). The external predictions were not opened before these tests. Expected direction for every test: the
+gap falls after the intervention (one-sided p).
+
+| test (study, pairs) | plain: Δ gap y (p) | health: Δ gap y (p) |
+|---|---|---|
+| bariatric surgery, adipose (GSE65540, 22) | +0.73 (0.86) | +0.67 (0.81) |
+| weight loss, abdominal SAT (GSE274137, 8) | −0.03 (0.49) | −0.56 (0.41) |
+| weight loss, subcutaneous fat (GSE274137, 8) | +4.08 (0.98) | +4.82 (0.98) |
+| calorie restriction, adipose (GSE192587, 10) | +1.03 (0.72) | +1.61 (0.75) |
+| protein restriction, adipose (GSE192587, 9) | −1.12 (0.28) | −1.46 (0.26) |
+| bariatric surgery, monocytes (GSE66306, 19) | −0.34 (0.35) | +0.88 (0.83) |
+| gastric bypass, skeletal muscle (GSE137631, 24) | +3.66 (0.95) | +4.29 (0.99) |
+| metformin, muscle (GSE107894, 13) | +0.82 (0.65) | +2.00 (0.82) |
+| metformin, adipose (GSE107894, 14) | +2.06 (0.78) | +2.87 (0.83) |
+- None of the nine registered tests passes for either model; seven of nine move the opposite way for the health
+  models, six for the plain ones (bypass muscle and fat loss by ~+4 y). Results in
+  `biology_paired_plain.parquet`, `biology_paired_health.parquet`. What it means is the lead's (step 3).
