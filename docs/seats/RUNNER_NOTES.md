@@ -52,5 +52,7 @@ comment (seat / what / eta / cuda).
 - `unattended`: RM8 sweep → best length → full-length seeds, genome arms, ablation, paired bar (ROADMAP order).
 - `blocked: Anton`: PRIMO submission (desk); tabular FMs paused.
 - `unattended`: report page republished after the next headline change.
+- Every result: edit the kept state report in place (`watchdog.py keep runner rna-age-state '#rna-age>state' FILE`;
+  source text kept in the session's scratchpad, rebuilt from STATUS.md); milestones are the lead's.
 - Note: from e1e09bd until 84883c4 this file named cluster nodes and the account's data path (removed; history not
   rewritten, a maintainers' call).
