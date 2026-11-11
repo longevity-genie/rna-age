@@ -67,14 +67,15 @@ severity within a study, or the same people before and after a treatment or an i
 and what it means (first look: NextSeq 500 flagged, blood over-predicted by ~7 y); leave-one-tissue-out runs only
 where a flagged group needs it.
 
-## RM12 — Re-parse ARCHS4 and re-merge: meningioma out (the no-cancer rule)
+## RM12 — Re-parse ARCHS4 and re-merge: tumours and plate single-cell series out (D4)
 
-**State:** unattended · **Owner:** runner
+**State:** unattended · **Owner:** runner, then lead (the headline re-scored)
 
-d63c73c flags meningioma and other benign or CNS tumours as tumours; 471 meningioma samples in 5 studies (380 val,
-91 train) were eligible. `rna-age parse archs4` then `rna-age merge` (CPU; splits are hashed per study, so no other
-study moves). It rewrites `data/input/archs4/counts/`: run it when no rna-age job is loading data, and before the
-next new run starts. Old runs stay comparable: `kron-compare` and `robustness` read only currently eligible samples.
+d63c73c (meningioma and other tumours) and 98f1c5e (series with median single-cell probability > 0.4: 169 series,
+5,308 samples, GSE116672 among them) take effect at `rna-age parse archs4` then `rna-age merge` (CPU; splits hashed
+per study, no other study moves). It rewrites `data/input/archs4/counts/`: run it when no rna-age job is loading
+data, before the next new run. Then the headline ensemble and the health ensemble are re-scored on the new table
+(existing predictions, currently eligible samples) before either number is quoted again.
 
 ## RM5 — PRIMO submission
 
