@@ -33,10 +33,13 @@ genome order, from scratch. Runs, in order (GPU, one card each):
 
 ## RM9 — Masked-gene pretraining probe for the KronLSTM encoder (D3)
 
-**State:** building · **Owner:** lead (pretraining code, `rna-age kron-pretrain`), then runner (runs)
+**State:** after RM8 · **Owner:** runner (runs; code landed in 412030a), then lead (what they mean)
 
-Masked-gene prediction over rank tokens of training-split studies only (ARCHS4 + GTEx), then the RM8 age head on
-top; runs whatever RM8's from-scratch result.
+Runs once RM8's smoke has passed and its context sweep has named the best length L:
+
+1. `rna-age kron-pretrain --length L` (training-split studies only, ages unused; resumable).
+2. `rna-age kron --init <its run id> --seed 0|1|2`, and `kron-compare` against the from-scratch rank arm and the
+   20k-HVG MLP.
 
 ## RM5 — PRIMO submission
 
