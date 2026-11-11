@@ -610,7 +610,7 @@ re-merge; `robustness_*.parquet`): test MAE 9.34 over 232 studies; by sequencer,
 NovaSeq 6000 10.2, NextSeq 500 15.5 (1,692 samples, 33 studies; flagged as an unsupported group), MiSeq 22.4
 (46 samples). To be redone on the RM12 table.
 
-### 2026-11-11 07:20 · RM12: re-parse ARCHS4 and re-merge (D4: meningioma as tumour; plate single-cell series out)
+### 2026-11-11 06:58 · RM12: re-parse ARCHS4 and re-merge (D4: meningioma as tumour; plate single-cell series out)
 Job 6429048 (`rna-age parse archs4 && rna-age merge`, code 98f1c5e/2a5a05b, 2.5 min). Checked on the merged table:
 GSE116672 (single-cell plates, 1,161 test "samples" from 10 donors) 0 eligible; the 77 samples labelled
 meningioma are `is_tumor` and none eligible.
@@ -625,14 +625,14 @@ meningioma are `is_tumor` and none eligible.
 - Jobs started before 06:53 (the KronLSTM sweep, RM1 seed 1) trained on the old table; RM1 seed 2 and every later
   run on the new one. Evaluations read only currently eligible samples.
 
-### 2026-11-11 07:45 · RM8 context sweep: 512 tokens done (`20261111-0539-kron-sweep-rank512-e8`)
+### 2026-11-11 07:15 · RM8 context sweep: 512 tokens done (`20261111-0539-kron-sweep-rank512-e8`)
 KronLSTM, rank encoding, 512 tokens, 8 epochs, batch 32, seed 0 (job 6428862, code 937866e, started 05:35 on the
 pre-RM12 table): val MAE per epoch 16.48, 14.98, 14.94, 14.74, 14.69, 14.45, 14.42, **14.41**; test 13.76 (r 0.59).
 ~11.6 min per epoch alone on a card (the 21.5 min of the smoke included Triton compilation and the shared-card time).
 Still improving slowly at epoch 7; far from the 20k-HVG MLP (val ~9.2-10.0). 2,048 (micro 16) and 4,096 (micro 8)
 running.
 
-### 2026-11-11 08:00 · RM12 refresh: 20k-HVG MLP (all health states), seeds 0-2 on the new table (job 6429121)
+### 2026-11-11 07:25 · RM12 refresh: 20k-HVG MLP (all health states), seeds 0-2 on the new table (job 6429121)
 Runs `20261111-0707/0717/0724-hvg20000-mlp-trainall[-seed1|-seed2]`. As each run reports: val 8.76 / 8.70 / 8.73,
 test 8.03 / 8.24 / 8.14 (r 0.85-0.86), pseudobulk transfer 18.5-20.4. **Not comparable with the old runs' reported
 numbers**: the test and val sets themselves changed (RM12 removed 1,161 plate "samples" of one series from test).
@@ -646,7 +646,7 @@ Old and new seeds scored on the same, currently eligible exact-age bulk samples 
   test set losing hard plate-single-cell samples. Pseudobulk transfer worsens (old 15-16.5 → new 18.5-20.4): the
   removed plate series may have helped carry the model to single-cell pseudobulk. Every comparison from here reads
   currently eligible samples only.
-- Lead's reading (2026-11-11 08:05): earlier headline figures (test 9.20, on the pre-RM12 sample set) are not
+- Lead's reading (2026-11-11 07:28): earlier headline figures (test 9.20, on the pre-RM12 sample set) are not
   comparable with figures on the RM12 set; every number is quoted with its sample set from here. The transfer drop is
   plausible (the plate series were the nearest thing to pseudobulk in training); pseudobulk stays a separate domain
   by the rules, so it is an open question, not a reason to put single cells back.

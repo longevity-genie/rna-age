@@ -62,7 +62,7 @@ stop before Anton is back; 07:00 report, then keep updating; one tabbed artifact
 
 ## Results so far (details: `docs/experiments.md`, `data/output/summary/experiments.parquet`)
 - **Sample sets (2026-11-11, RM12)**: meningioma and 169 plate single-cell series removed; eligible 100,312 →
-  94,526. Figures before 07:20 (the 9.20 headline included) are on the old set and not comparable with figures on
+  94,526. Figures before 06:58 (the 9.20 headline included) are on the old set and not comparable with figures on
   the new one; each figure below says which. On the new set, 20k-HVG MLP seeds: val 8.73, test 8.14 (old seeds 9.02 /
   8.09 on the same samples).
 - **Health-aware clock (afternoon)**: MLP on 20k HVGs with a within-study ranking loss (cases older than their
