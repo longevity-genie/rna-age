@@ -745,3 +745,24 @@ autoimmune +4.40 [1.40, 7.68], neurodegenerative +4.65 [1.55, 7.86] (7 studies).
   on the RM12 set val MAE 10.38, test 11.12 (r 0.75). Gap: aging-linked **+2.88 y [1.10, 4.79]**, all +2.83 [1.36,
   4.45], autoimmune +4.36 [1.27, 7.69], neurodegenerative +4.82 [1.59, 8.04]. Accuracy differs by ~0.9 y between seeds
   1 and 2; the aging-linked gap does not (+2.88 vs +2.85).
+
+### 2026-11-12 00:24 · RM1 done: seed 0 on the RM12 table, the three-seed gap with its null, the health ensemble rebuilt
+`20261111-1233-atlas-ft-u4-rank1-s0-t2` (job 6429118, 11 h 47 min, same flags as seeds 1-2, `--seed 0`): val by
+epoch 12.57, 11.12, 11.09, 10.54 (best, epoch 3), 10.79, 10.83. On the RM12 set val MAE 10.71, test 11.47 (r 0.75).
+Gap: aging-linked **+3.09 y [1.26, 4.95]**, all +3.15 [1.60, 4.77], autoimmune +4.97 [1.91, 8.15], neurodegenerative
++4.56 [1.13, 8.02].
+Built at 909fbda (plain means, `rna-age ensemble`; null by `health-eval --permutations 200`, labels shuffled within study):
+
+| run (RM12 set) | val MAE | test MAE (median, r) | aging-linked gap [95 % CI] | null mean, shuffles ≥ gap |
+|---|---|---|---|---|
+| `20261112-0022-ens-atlasft-rank1-3s` (mean of seeds 0-2) | 10.13 | 10.62 (8.10, 0.78) | +2.94 [1.24, 4.74] | 0.02, 0 of 200 |
+| `20261112-0022-ens-health3t2-plus-atlasft-rank1-3s` (3 health MLPs + that mean) | 9.63 | 9.53 (7.15, 0.81) | +2.79 [0.88, 4.88] | 0.02, 0 of 200 |
+| `20261111-0747-ens-health3t2-plus-atlasft-rank1` (earlier: old-table fine-tune) | 9.62 | 9.21 (6.85, 0.83) | +2.81 [0.80, 4.88] | 0.01, 0 of 200 |
+
+- Three-seed fine-tune mean, other categories: neurodegenerative +4.68 [1.46, 7.96] (7 studies), autoimmune +4.58
+  [1.68, 7.67] (18), infection +4.77 (3), psychiatric +3.15 [0.26, 6.63] (7); cardiovascular −1.69 (4, n.s.). In the
+  health ensemble neurodegenerative falls to +2.28 [−0.83, 5.43] and psychiatric to +0.77: the MLPs dilute what the
+  fine-tune sees in brain.
+- Seeds: test MAE 11.47 / 11.12 / 10.20, aging-linked gap +3.09 / +2.88 / +2.85. The gap is the stable part; the new
+  health ensemble keeps it with a 0.3 y worse test MAE than the earlier one. The headline (plain) ensemble is
+  unchanged: it uses the plain fine-tunes, not these.

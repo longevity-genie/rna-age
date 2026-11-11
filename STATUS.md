@@ -3,7 +3,7 @@
 **Report page (private artifact, republished as results change):** https://claude.ai/artifact/TfY8RYwiVDLfm6pEwj81ic
 
 
-_Last update: 2026-11-11 09:40 CET (runner seat; the plan is docs/ROADMAP.md, the lead's)._
+_Last update: 2026-11-12 00:23 CET (runner seat; the plan is docs/ROADMAP.md, the lead's)._
 
 ## Mode (Anton, 2026-11-10 ~00:10)
 Fully autonomous overnight: data → baselines → BulkFormer embeddings/probes → fine-tuning, logging every run
@@ -55,16 +55,21 @@ stop before Anton is back; 07:00 report, then keep updating; one tabbed artifact
   single-cell flags), waiting for the download.
 
 ## Running (jobs carry seat / what / eta in their Slurm comment)
-- RM1: health-aware Atlas fine-tune seeds on the RM12 table: seed 1 (6429117) and seed 2 (6428869) training,
-  seed 0 again (6429118) queued after seed 2; ~1.85 h per epoch, 6 epochs.
-- RM8: KronLSTM context sweep, 8 epochs, batch 32: 512 done (val 14.41); 2,048 (6429023, micro 16) and 4,096
-  (6429024, micro 8) training, ~45 and ~91 min per epoch.
+- Nothing. Two GPU slots free and left free on the lead's word until Anton decides on KronLSTM (default stop,
+  2026-11-12).
 
 ## Results so far (details: `docs/experiments.md`, `data/output/summary/experiments.parquet`)
 - **Sample sets (2026-11-11, RM12)**: meningioma and 169 plate single-cell series removed; eligible 100,312 →
   94,526. Figures before 06:58 (the 9.20 headline included) are on the old set and not comparable with figures on
   the new one; each figure below says which. On the new set, 20k-HVG MLP seeds: val 8.73, test 8.14 (old seeds 9.02 /
   8.09 on the same samples).
+- **RM1 done (2026-11-12 00:30, RM12 set)**: health-aware Atlas fine-tune, three seeds on the clean table. Test MAE
+  11.47 / 11.12 / 10.20 (seeds 0 / 1 / 2); aging-linked case − control gap +3.09 / +2.88 / +2.85 y, each CI above 0.
+  Mean of the three (`20261112-0022-ens-atlasft-rank1-3s`): test 10.62 (r 0.78), aging-linked **+2.94 y [1.24, 4.74]**
+  (33 held-out studies), neurodegenerative +4.68 [1.46, 7.96], autoimmune +4.58; 0 of 200 label shuffles reach it.
+  Health ensemble rebuilt with that mean (`20261112-0022-ens-health3t2-plus-atlasft-rank1-3s`): test 9.53 (r 0.81),
+  aging-linked +2.79 [0.88, 4.88]; the earlier one (old-table fine-tune) test 9.21, +2.81. The gap is stable across
+  seeds and ensembles; accuracy moves ~1 y between seeds.
 - **Health-aware clock (afternoon)**: MLP on 20k HVGs with a within-study ranking loss (cases older than their
   study's controls) + disease head makes the case − control age gap on **held-out studies** significant:
   aging-linked diseases +2.35 [0.61, 4.17] y (seed 0), +2.62 [0.64, 4.56] (seed 1), +2.34 [0.49, 4.27] (seed 2),
@@ -160,10 +165,9 @@ stop before Anton is back; 07:00 report, then keep updating; one tabbed artifact
 - Bgee: GTEx inside Bgee (SRP012682) is skipped (same bins as our GTEx source).
 
 ## Next (order and owner: docs/ROADMAP.md)
-1. RM1: the three-seed health-aware fine-tune on the RM12 table, its gap and null; then the ensembles with the new
-   fine-tunes.
-2. RM8: the sweep's best length → full-length seeds, genome arms, rank-MLP ablation, the paired bar; RM9 pretraining
-   after.
-3. Done today: RM4 (Terekhova composition), RM10 (biology: stage effects yes, interventions no; closed by the lead),
+1. RM1 done (00:30): the lead closes it and posts the milestone; which health ensemble stays the reported one is the
+   lead's call (new: same gap, test 9.53 vs 9.21).
+2. RM8/RM9 KronLSTM: blocked on Anton (#rna-age > decisions: one pretraining try, or stop; default stop).
+3. Done 2026-11-11: RM4 (Terekhova composition), RM10 (biology: stage effects yes, interventions no; closed by the lead),
    RM11 (robustness), RM12 (clean table: meningioma and plate single-cell series out).
 4. Blocked on Anton: PRIMO submission (desk); tabular foundation models paused.
