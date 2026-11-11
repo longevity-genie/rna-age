@@ -572,3 +572,8 @@ Within-study case − control age gap, held-out studies (95 % study-bootstrap CI
   MAE nearly unchanged. One seed only (fine-tune seed spread ~1 y on test).
 - Gate: no null check yet on the gap itself (e.g. case labels permuted within study); needed before this is a
   headline. Conclusions and what trains next are the lead's.
+- Null check (lead, 054db35: `health-eval --permutations 200`, case/control labels shuffled within each held-out
+  study): null mean of the gap −0.02 to 0.02 in every category; the health-aware fine-tune's observed gap is above
+  all 200 shuffles (p = 1/201) for aging-linked, all, autoimmune and neurodegenerative. Health-aware MLP (rank 1 +
+  head, s0): p = 1/201 except neurodegenerative (p 0.20). Control-only MLP (rank 0 + head): aging-linked p 0.10,
+  all 0.06, autoimmune 1/201, neurodegenerative 0.55. Summaries `health_*_pred_null.parquet`.
