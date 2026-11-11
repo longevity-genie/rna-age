@@ -357,6 +357,18 @@ def robustness_cmd(
         print(by_group(run_id, flag_ratio=flag_ratio).drop("run_id"))
 
 
+@app.command("biology")
+def biology_cmd(
+    run_ids: str = typer.Argument(..., help="comma-separated run ids"),
+    permutations: int = typer.Option(2000),
+) -> None:
+    """RM10: the pre-registered tests of the disease gap (severity, treatment, a negative control)."""
+    from rna_age.train.biology import run_all
+
+    with __import__("polars").Config(tbl_rows=80, fmt_str_lengths=40, tbl_width_chars=170):
+        print(run_all(run_ids.split(","), permutations))
+
+
 @app.command("kron")
 def kron_cmd(
     encoding: str = typer.Option("rank", help="rank | genome | genome-shuffled"),

@@ -24,7 +24,7 @@ from rna_age.train.features import sample_table
 
 
 @dataclass(frozen=True)
-class Test:
+class GapTest:
     name: str
     study: str
     key: str  # characteristics key, lower-case
@@ -33,43 +33,43 @@ class Test:
     why: str
 
 
-REGISTRY: list[Test] = [
+REGISTRY: list[GapTest] = [
     # --- severity within a disease (expected: worse disease, older gap) ---
-    Test("covid_severity", "GSE169687", "disease severity",
+    GapTest("covid_severity", "GSE169687", "disease severity",
          {"healthy": 0, "mild": 1, "moderate": 2, "severe": 3, "critical": 4}, +1,
          "COVID-19 convalescents, blood: worse acute disease, older"),
-    Test("viral_severity", "GSE99992", "severity", {"non-severe": 0, "severe": 1}, +1,
+    GapTest("viral_severity", "GSE99992", "severity", {"non-severe": 0, "severe": 1}, +1,
          "acute viral infection, blood: severe older than non-severe"),
-    Test("lung_severity", "GSE213001", "severity", {"moderate": 1, "severe": 2, "advanced": 3}, +1,
+    GapTest("lung_severity", "GSE213001", "severity", {"moderate": 1, "severe": 2, "advanced": 3}, +1,
          "chronic lung disease, whole lung: more advanced, older"),
-    Test("liver_fibrosis_a", "GSE162694", "fibrosis stage",
+    GapTest("liver_fibrosis_a", "GSE162694", "fibrosis stage",
          {"normal liver histology": 0, "0": 0, "1": 1, "2": 2, "3": 3, "4": 4}, +1,
          "NAFLD liver: higher fibrosis stage, older"),
-    Test("liver_fibrosis_b", "GSE174478", "fibrosis stage", {"0": 0, "1": 1, "2": 2, "3": 3, "4": 4}, +1,
+    GapTest("liver_fibrosis_b", "GSE174478", "fibrosis stage", {"0": 0, "1": 1, "2": 2, "3": 3, "4": 4}, +1,
          "NAFLD liver, a second cohort: higher fibrosis stage, older"),
-    Test("liver_nas", "GSE174478", "nafld activity score", {str(i): i for i in range(9)}, +1,
+    GapTest("liver_nas", "GSE174478", "nafld activity score", {str(i): i for i in range(9)}, +1,
          "NAFLD activity score: more active disease, older"),
-    Test("braak_ad", "GSE95587", "braak score", {"i": 1, "ii": 2, "iii": 3, "iv": 4, "v": 5, "vi": 6}, +1,
+    GapTest("braak_ad", "GSE95587", "braak score", {"i": 1, "ii": 2, "iii": 3, "iv": 4, "v": 5, "vi": 6}, +1,
          "Alzheimer fusiform gyrus: higher Braak stage, older (age regressed out)"),
-    Test("lewy_stage", "GSE216281", "braak lewy_body_stage", {str(i): i for i in range(7)}, +1,
+    GapTest("lewy_stage", "GSE216281", "braak lewy_body_stage", {str(i): i for i in range(7)}, +1,
          "Parkinson frontal cortex: higher Lewy body stage, older"),
-    Test("mmse", "GSE243743", "mmse", {str(i): i for i in range(31)}, -1,
+    GapTest("mmse", "GSE243743", "mmse", {str(i): i for i in range(31)}, -1,
          "neutrophils: lower MMSE (worse cognition), older"),
-    Test("ra_activity", "GSE117769", "disease activity", {"remission": 0, "low": 1, "moderate": 2, "high": 3}, +1,
+    GapTest("ra_activity", "GSE117769", "disease activity", {"remission": 0, "low": 1, "moderate": 2, "high": 3}, +1,
          "rheumatoid arthritis, blood: higher disease activity, older"),
-    Test("heart_failure_nyha", "GSE53080", "nyha",
+    GapTest("heart_failure_nyha", "GSE53080", "nyha",
          {"ii-iii": 2.5, "iii": 3, "iii-iv": 3.5, "iv": 4, "4": 4}, +1,
          "failing myocardium: higher NYHA class, older"),
-    Test("lvad_unloading", "GSE53080", "lvad status",
+    GapTest("lvad_unloading", "GSE53080", "lvad status",
          {"no lvad": 0, "3 months lvad support": 1, "6 months lvad support": 2, "explantation": 3}, -1,
          "failing myocardium: longer mechanical unloading (reverse remodelling), younger"),
     # --- negative control ---
-    Test("acute_exercise_control", "GSE202295", "timepoint", {"basal": 0, "post": 1, "recovery": 2}, 0,
+    GapTest("acute_exercise_control", "GSE202295", "timepoint", {"basal": 0, "post": 1, "recovery": 2}, 0,
          "skeletal muscle before, just after and 3 h after one 30-min cycling bout: no change in biological age"),
 ]  # fmt: skip
 
 
-def covariates(test: Test) -> pl.DataFrame:
+def covariates(test: GapTest) -> pl.DataFrame:
     """``sample_id``, ``x`` for the test's study: its characteristics value mapped through ``order``."""
     meta = pl.read_parquet(
         INPUT / "archs4" / "metadata_all.parquet", columns=["geo_accession", "characteristics_ch1", "series_id"]
@@ -102,7 +102,7 @@ def gap_residual(pred: np.ndarray, age: np.ndarray) -> np.ndarray:
     return pred - np.polyval(b, age)
 
 
-def run_test(test: Test, pred: pl.DataFrame, n_perm: int = 2000, seed: int = 0) -> dict:
+def run_test(test: GapTest, pred: pl.DataFrame, n_perm: int = 2000, seed: int = 0) -> dict:
     """One registered test on one run's predictions (``sample_id``, ``pred``, ``age_years``)."""
     d = covariates(test).join(pred, on="sample_id", how="inner").drop_nulls(["pred", "age_years"])
     out = {"test": test.name, "study": test.study, "direction": test.direction, "n": d.height,
