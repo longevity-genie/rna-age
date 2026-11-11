@@ -25,31 +25,13 @@ What a positive gap means is open: the ranking loss teaches "cases older" on tra
 shows that disease signal generalises into the age axis, not yet that disease ages the body. Plan line 2 (dose,
 severity, interventions) is the test of that.
 
-## RM8 — KronLSTM expression encoder, from scratch (D2, D3)
+## RM8 — KronLSTM expression encoder (D2, D3, D5)
 
-**State:** building · **Owner:** runner (the runs below; code landed in 52b6f16), then lead (what they mean)
+**State:** waits until 2026-11-12: Anton's answer in chat (one pretraining run, or stop the line; asked 12:42) · **Owner:** lead
 
-Bidirectional KronLSTM (kron-fm's `kron_core`, read from the `../kron-fm` clone) over rank tokens or the HVGs in
-genome order, from scratch. Runs, in order (GPU, one card each):
-
-1. Smoke: `rna-age kron --encoding rank --length 512 --epochs 1 --name kron-smoke`: the Triton kernels under this
-   project's torch were never run; a failure here comes back to the lead.
-2. Context sweep, seed 0, `--epochs 8` for all (a sweep, not full training): `--encoding rank --length 512 | 2048 | 4096`.
-3. The best length (validation), seeds 1 and 2; `--encoding genome` and `--encoding genome-shuffled`, seeds 0-2
-   (20k tokens: lower `--batch` or `--d-model` to fit the card, the same for both).
-4. Ablation: `rna-age kron-rank-mlp --length <best> --seed 0|1|2`. Moved ahead on Anton's word (2026-11-11 11:08, in the runner's session): seed 0 at 512 | 2048 | 4096 now, and very bad, unpromising runs stopped early.
-5. The bar: `rna-age kron-compare <arm's 3 runs> <three seeds of hvg20000-mlp-trainall>`, for each arm and for
-   the rank-MLP; logged with the per-source lines.
-
-## RM9 — Masked-gene pretraining probe for the KronLSTM encoder (D3)
-
-**State:** after RM8 · **Owner:** runner (runs; code landed in 412030a), then lead (what they mean)
-
-Runs once RM8's smoke has passed and its context sweep has named the best length L:
-
-1. `rna-age kron-pretrain --length L` (training-split studies only, ages unused; resumable).
-2. `rna-age kron --init <its run id> --seed 0|1|2`, and `kron-compare` against the from-scratch rank arm and the
-   20k-HVG MLP.
+From scratch, the sweep ended at val 13.95 (2,048 tokens) vs ~8.7 for the 20k-HVG MLP; ablations cancelled on
+Anton's word (D5). RM9's pretraining code (412030a) is ready if he chooses option 1; otherwise both items end
+canceled. Default if unanswered: stop the line.
 
 ## RM12 — Re-train on the clean table (D4)
 

@@ -95,3 +95,12 @@ constant the lead picked, listed for his review):
 - Both take effect at one re-parse of ARCHS4 and a re-merge (RM12). Splits are hashed per study, so no remaining
   study changes side. Every result before RM12 includes these samples; `kron-compare` and `robustness` read only
   currently eligible samples, and the headline is re-scored on the new table before it is quoted again.
+
+## D5 — Ablations dropped; KronLSTM from scratch is behind (2026-11-11)
+
+Anton (#rna-age, 12:41): "do not resume ablation, we have more important stuff to do than numerous ablation
+experiments". The rank-MLP ablation of D3 is cancelled; D3's other ablation (the shuffled genome order) is dropped
+with it. The from-scratch context sweep ended at validation MAE 13.95 y (2,048 tokens; 512: 14.41; 4,096 stopped at
+epoch 3, 14.52) against ~8.7 for the 20k-HVG MLP, so the KronLSTM line is behind by ~5 y without telling encoding
+from model apart. What comes next for it (one pretraining run, or stop) is asked of Anton; until he answers, no new
+KronLSTM run starts.
