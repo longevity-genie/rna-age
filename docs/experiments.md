@@ -547,3 +547,28 @@ its age at that visit; composition analysis with the dataset's own clusters, **5
   (83958f2). Only the donor-grouped numbers above count.
 
 RM1 progress: health-aware fine-tune val 12.59 → 11.72 → 11.04 → 10.65 → 10.82 (epoch 4); last epoch running.
+
+### 2026-11-11 04:05 · RM1: health-aware Atlas fine-tune (within-study ranking loss)
+`rna-age finetune --unfreeze 4 --epochs 6 --max-train 20000 --rank-weight 1` (healthy-or-unknown age loss; ranking
+loss on 64,520 case/control pairs from 80 training studies, aging-linked categories, 2 pairs per step); jobs
+6427392 + 6427754 (resumed at epoch 2 after the 4 h limit); val 12.59 → 11.72 → 11.04 → **10.65** → 10.82 → 10.84,
+best checkpoint epoch 3. Run `20261110-1516-atlas-ft-u4-rank1`.
+
+| model | val MAE | test MAE (r) | pseudobulk transfer MAE (r) |
+|---|---|---|---|
+| Atlas fine-tune, last 4 blocks, plain (all health states) | 9.58 | 10.39 (0.78) | 13.3 (0.69) |
+| **same + ranking loss** | 10.74 | 10.52 (0.77) | 17.7 (0.67) |
+
+Within-study case − control age gap, held-out studies (95 % study-bootstrap CI):
+
+| category (studies) | health-aware fine-tune | health-aware MLP (rank 1 + head, s0) | headline (no health loss) |
+|---|---|---|---|
+| aging-linked (35) | **+2.93 [1.17, 4.67]** | +2.35 [0.64, 4.25] | +0.75 [−0.38, 1.96] |
+| all categorised (44) | +2.92 [1.45, 4.37] | +2.34 [0.82, 3.92] | +0.98 [−0.01, 2.04] |
+| neurodegenerative (9) | **+3.84 [0.66, 7.47]** | +0.99 [−1.39, 3.89] | +1.98 [0.09, 4.04] |
+| autoimmune / inflammatory (18) | +4.39 [1.24, 7.70] | +4.59 [1.83, 7.40] | +1.52 [−0.39, 3.86] |
+- The ranking loss gives the fine-tuned encoder a larger disease gap than the MLP, and the first significant
+  neurodegenerative gap (9 studies: wide CI). Cost: ~1 y validation MAE and pseudobulk transfer (13.3 → 17.7); test
+  MAE nearly unchanged. One seed only (fine-tune seed spread ~1 y on test).
+- Gate: no null check yet on the gap itself (e.g. case labels permuted within study); needed before this is a
+  headline. Conclusions and what trains next are the lead's.

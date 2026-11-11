@@ -68,6 +68,9 @@ stop before Anton is back; 07:00 report, then keep updating; one tabbed artifact
 - **Composition vs within-cell-type (blood pseudobulk, 4 cohorts, 196–981 donors)**: equalising the cell mix
   keeps the clock (r 0.85 → 0.78–0.85), composition alone carries little (0.20–0.43); CD4 T cells alone match
   whole PBMC. The aging signal in blood is within cell types, mostly T cells.
+- **Health-aware Atlas fine-tune (RM1, 04:05)**: ranking loss on the fine-tuned encoder: aging-linked gap
+  +2.93 y [1.17, 4.67] on held-out studies (MLP +2.35), neurodegenerative +3.84 [0.66, 7.47] (first significant);
+  test MAE 10.52 (plain 10.39), validation and pseudobulk transfer worse. One seed; null check pending.
 - **Composition-adjusted disease gaps (blood, 18 held-out studies)**: deconvolving PBMC classes and adjusting
   shrinks the case gap 15–30 % but it survives (health-aware MLP 2.46 → 2.07 y [1.11, 3.32]; headline 1.25 → 0.89
   [0.17, 2.04]); unchanged with a granulocyte reference added (health-aware 2.08 [0.96, 3.08]).
