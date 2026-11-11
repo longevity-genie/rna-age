@@ -58,9 +58,14 @@ Runs once RM8's smoke has passed and its context sweep has named the best length
 First battery done (registry 99f56bc, before results; run a407f4b), re-run on the clean table (D4) for the new
 headline and health ensembles: the stage effects in the diseased tissue replicate for both (liver fibrosis x2,
 Braak, Lewy); the plain headline passes the exercise control; the health ensemble fails it (one exercise bout shifts
-its gap, p 0.034): it reads acute inflammation as "older". Next: paired before/after data of the same people (a
-treatment that reverses tissue damage), registered before it is fetched; and the health models' inflammation
-response, which the plan line-1 claim must state.
+its gap, p 0.034): it reads acute inflammation as "older". Paired tests registered (bba614a) before extraction; runs (runner, in order):
+
+1. `rna-age external GSE65540,GSE274137,GSE192587,GSE66306,GSE137631,GSE107894` (CPU, from the local ARCHS4 file).
+2. On the clean table, with `--external`: `probe --features hvg --model mlp --n-hvg 20000 --train-set all
+   --seed 0|1|2` and `train-health --rank-weight 1 --disease-head --seed 0|1|2`.
+3. `rna-age biology-paired <the three MLP runs> --name plain` and `<the three health runs> --name health`.
+
+The health models' inflammation response (they fail the exercise control) is stated with any health claim.
 
 ## RM12 — Re-train on the clean table (D4)
 
