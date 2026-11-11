@@ -222,6 +222,13 @@ def encode(s: pl.DataFrame, train: np.ndarray, encoding: str, length: int, n_hvg
 # ---------------------------------------------------------------- training
 
 
+def micro_batches(rows: np.ndarray, micro: int) -> list[np.ndarray]:
+    """``rows`` split into consecutive pieces of at most ``micro`` (0 = one piece)."""
+    if micro <= 0 or micro >= len(rows):
+        return [rows]
+    return [rows[a : a + micro] for a in range(0, len(rows), micro)]
+
+
 def _resume_dir(name: str) -> Path | None:
     for cand in sorted((INTERIM / "checkpoints").glob(f"*-{name}"), reverse=True):
         run = INTERIM.parent / "output" / "runs" / cand.name
@@ -241,13 +248,16 @@ def train(
     epochs: int = 30,
     patience: int = 4,
     batch: int = 32,
+    micro: int = 0,
     lr: float = 3e-4,
     seed: int = 0,
     train_set: str = "all",
     run_name: str | None = None,
     init: str | None = None,
 ) -> dict:
-    """``init``: a ``kron-pretrain`` run id whose encoder starts the model (its encoding, length and shape win)."""
+    """``init``: a ``kron-pretrain`` run id whose encoder starts the model (its encoding, length and shape win).
+    ``micro``: rows per forward pass (0 = ``batch``); gradients accumulate to one step per ``batch`` rows, so a
+    long context fits a small card at the same effective batch and schedule."""
     import json
 
     import torch
@@ -304,7 +314,7 @@ def train(
              "train_set": "bulk train, all health states, exact + GTEx midpoints" if train_set == "all"
                           else "bulk train, healthy-or-unknown, exact + GTEx midpoints",
              "encoding": encoding, "length": seq, "d_model": d_model, "n_layers": n_layers, "n_heads": n_heads,
-             "dropout": dropout, "epochs": epochs, "patience": patience, "batch": batch, "lr": lr, "seed": seed,
+             "dropout": dropout, "epochs": epochs, "patience": patience, "batch": batch, "micro": micro or batch, "lr": lr, "seed": seed,
              "n_params": n_params, "n_train": int(len(tr_rows)), "precision": "bf16 autocast", "init": init},
         )  # fmt: skip
         ckpt_dir = INTERIM / "checkpoints" / run_dir.name
@@ -329,12 +339,13 @@ def train(
         te = time.time()
         for a in range(0, len(perm), batch):
             rows = perm[a : a + batch]
-            i, v = batch_tensors(rows)
-            with torch.autocast("cuda", dtype=torch.bfloat16):
-                pred = model(i, v).float()
-            loss = torch.nn.functional.huber_loss(pred, torch.as_tensor(y[rows], device=dev), delta=5.0)
             opt.zero_grad(set_to_none=True)
-            loss.backward()
+            for part in micro_batches(rows, micro):
+                i, v = batch_tensors(part)
+                with torch.autocast("cuda", dtype=torch.bfloat16):
+                    pred = model(i, v).float()
+                loss = torch.nn.functional.huber_loss(pred, torch.as_tensor(y[part], device=dev), delta=5.0)
+                (loss * len(part) / len(rows)).backward()
             torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
             opt.step()
             sched.step()
@@ -396,6 +407,7 @@ def pretrain(
     epochs: int = 20,
     patience: int = 3,
     batch: int = 32,
+    micro: int = 0,
     lr: float = 3e-4,
     monitor_frac: float = 0.05,
     seed: int = 0,
@@ -455,7 +467,7 @@ def pretrain(
     ckpt.mkdir(parents=True, exist_ok=True)
     (run_dir / "config.json").write_text(json.dumps(
         {"run_id": run_id, "length": length, "d_model": d_model, "n_layers": n_layers, "n_heads": n_heads,
-         "dropout": dropout, "mask_frac": mask_frac, "epochs": epochs, "batch": batch, "lr": lr, "seed": seed,
+         "dropout": dropout, "mask_frac": mask_frac, "epochs": epochs, "batch": batch, "micro": micro or batch, "lr": lr, "seed": seed,
          "n_genes": n_genes, "n_fit": int(len(fit_rows)), "n_monitor": int(len(mon_rows)),
          "monitor_studies": len(held), "corpus": "bulk train split, all health states (ages unused)",
          "checkpoint_dir": str(ckpt)}, indent=2))  # fmt: skip
@@ -478,9 +490,11 @@ def pretrain(
         perm = np.random.default_rng(seed * 1000 + epoch).permutation(fit_rows)
         r = np.random.default_rng(seed * 7919 + epoch)
         for a in range(0, len(perm), batch):
-            loss, _, _ = step_loss(perm[a : a + batch], r)
+            rows = perm[a : a + batch]
             opt.zero_grad(set_to_none=True)
-            loss.backward()
+            for part in micro_batches(rows, micro):
+                loss, _, _ = step_loss(part, r)
+                (loss * len(part) / len(rows)).backward()
             torch.nn.utils.clip_grad_norm_(params, 1.0)
             opt.step()
             sched.step()

@@ -5,7 +5,16 @@ import numpy as np
 import polars as pl
 import pytest
 
-from rna_age.train.kron import cpm, mask_id, mask_tokens, nonzero_medians, paired_ci, rank_dense, rank_tokens
+from rna_age.train.kron import (
+    cpm,
+    mask_id,
+    mask_tokens,
+    micro_batches,
+    nonzero_medians,
+    paired_ci,
+    rank_dense,
+    rank_tokens,
+)
 
 
 def test_nonzero_medians_ignore_zeros_and_unseen_genes():
@@ -118,3 +127,26 @@ def test_pretrained_encoder_loads_into_an_age_model(monkeypatch):
     assert torch.equal(age.gene.weight, pre.gene.weight)
     h = age.encode(torch.tensor([[mask_id(20), 3, 0]]))  # the mask token embeds
     assert h.shape == (1, 3, 32)
+
+
+def test_micro_batches_cover_the_batch_in_order():
+    rows = np.arange(10)
+    assert [p.tolist() for p in micro_batches(rows, 4)] == [[0, 1, 2, 3], [4, 5, 6, 7], [8, 9]]
+    assert [p.tolist() for p in micro_batches(rows, 0)] == [rows.tolist()]
+
+
+def test_accumulated_gradient_equals_the_full_batch_gradient():
+    torch = pytest.importorskip("torch")
+    torch.manual_seed(0)
+    net = torch.nn.Linear(5, 1)
+    x, y = torch.randn(10, 5), torch.randn(10)
+    rows = np.arange(10)
+
+    def grad(micro):
+        net.zero_grad()
+        for part in micro_batches(rows, micro):
+            loss = torch.nn.functional.huber_loss(net(x[part]).squeeze(-1), y[part], delta=5.0)
+            (loss * len(part) / len(rows)).backward()
+        return net.weight.grad.clone()
+
+    assert torch.allclose(grad(0), grad(3), atol=1e-6)
