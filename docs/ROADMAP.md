@@ -71,15 +71,16 @@ are the runner's.
 and what it means (first look: NextSeq 500 flagged, blood over-predicted by ~7 y); leave-one-tissue-out runs only
 where a flagged group needs it.
 
-## RM12 — Re-parse ARCHS4 and re-merge: tumours and plate single-cell series out (D4)
+## RM12 — Re-train on the clean table (D4)
 
-**State:** unattended · **Owner:** runner, then lead (the headline re-scored)
+**State:** building · **Owner:** runner (runs), then lead (re-scored headline)
 
-d63c73c (meningioma and other tumours) and 98f1c5e (series with median single-cell probability > 0.4: 169 series,
-5,308 samples, GSE116672 among them) take effect at `rna-age parse archs4` then `rna-age merge` (CPU; splits hashed
-per study, no other study moves). It rewrites `data/input/archs4/counts/`: run it when no rna-age job is loading
-data, before the next new run. Then the headline ensemble and the health ensemble are re-scored on the new table
-(existing predictions, currently eligible samples) before either number is quoted again.
+The re-parse and re-merge ran (6429048, 07:20): eligible 100,312 → 94,526; train 47,493, val 12,793, test 9,097
+(ARCHS4). Runs on the new table, in order: RM1 seed 1 restarted, seed 2 (released), seed 0 again; the 20k-HVG MLP
+(all health states) seeds 0-2; the health-aware MLPs (rank1-head) s0-s2; then the headline and the health ensembles
+rebuilt from them (old fine-tunes inside until the new seeds land, noted). The sweep keeps the old table (it only
+picks a length). The lead then re-scores (accuracy, health-eval with the null, robustness, biology) before any
+number is quoted again.
 
 ## RM5 — PRIMO submission
 
