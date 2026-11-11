@@ -12,7 +12,8 @@ import polars as pl
 TUMOR = (
     r"tumou?r|cancer|carcinoma|melanoma|leuka?emia|lymphoma|sarcoma|gliom|glioblastoma|myeloma|neoplas|"
     r"metasta|adenoma\b|blastoma|\bcarcinoid|mesothelioma|\bhcc\b|\bnsclc\b|\baml\b|\bcll\b|\ball\b(?: patient)|"
-    r"\bmds\b|myelodysplas|malignan"
+    r"\bmds\b|myelodysplas|malignan|meningioma|schwannoma|ependymoma|craniopharyngioma|chordoma|thymoma|"
+    r"pheochromocytoma|paraganglioma|insulinoma"
 )
 TUMOR_NORMAL = r"adjacent|non[- ]?tumou?r|tumou?r[- ]free|normal tissue|matched normal|paired normal|healthy tissue"
 CELL_LINE_NAMES = (

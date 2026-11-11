@@ -539,6 +539,8 @@ def compare(runs_a: list[str], runs_b: list[str], n_boot: int = 2000, seed: int 
 
     base = pl.read_parquet(RUNS / runs_a[0] / "predictions.parquet")
     base = base.filter((pl.col("split") == "val") & (pl.col("age_type") == "exact"))
+    # only samples eligible in the current table, so runs from before a re-merge compare on the same set
+    base = base.join(sample_table().select("sample_id"), on="sample_id", how="semi")
     d = base.select("sample_id", "study_id", "source", "age_years")
     d = d.join(mean_pred(runs_a).rename({"pred": "a"}), on="sample_id").join(
         mean_pred(runs_b).rename({"pred": "b"}), on="sample_id"

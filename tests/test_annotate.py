@@ -55,3 +55,18 @@ def test_health_labels():
     )
     assert df["is_healthy"].to_list() == [True, True, None, True, False]
     assert df["disease"].to_list()[2] is None
+
+
+def test_benign_and_cns_tumours_are_tumours():
+    # real held-out strings: meningioma studies were eligible until RM11 found them
+    df = add_flags(
+        _frame(
+            [
+                ([("tissue", "human meningioma")], "human meningioma"),
+                ([("tissue", "Meningioma"), ("disease", "Meningioma")], "meningioma tissue"),
+                ([("tissue", "vestibular schwannoma")], "schwannoma"),
+                ([("tissue", "meninges")], "normal meninges"),
+            ]
+        )
+    )
+    assert df["is_tumor"].to_list() == [True, True, True, False]

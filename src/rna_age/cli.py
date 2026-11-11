@@ -345,6 +345,18 @@ def main() -> None:
     app()
 
 
+@app.command("robustness")
+def robustness_cmd(
+    run_id: str,
+    flag_ratio: float = typer.Option(1.5, help="flag a group whose MAE exceeds this x the overall test MAE"),
+) -> None:
+    """RM11: a run's test error by tissue class, platform and source; flags unsupported groups."""
+    from rna_age.train.robustness import by_group
+
+    with __import__("polars").Config(tbl_rows=80, fmt_str_lengths=30, tbl_width_chars=160):
+        print(by_group(run_id, flag_ratio=flag_ratio).drop("run_id"))
+
+
 @app.command("kron")
 def kron_cmd(
     encoding: str = typer.Option("rank", help="rank | genome | genome-shuffled"),
