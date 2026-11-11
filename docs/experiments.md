@@ -666,3 +666,30 @@ All scored on the **RM12 sample set** (currently eligible exact-age bulk: val n 
 | new health ensemble | 9.62 (0.803) | 9.21 (6.85, 0.825) |
 - On the RM12 set the headline is test MAE 7.46 (r 0.88); not comparable with the 9.20 of the pre-RM12 set. Three
   clean-table MLPs match seven old ones. New health ensemble's gap eval with the 200-shuffle null: job 6429191.
+
+### 2026-11-11 07:50 · Clean-table (RM12) re-runs: RM10 biology, RM11 robustness, the new health ensemble's gap
+Runs: headline `20261111-0747-ens-mlp3t2-plus-atlasft2`, health ensemble `20261111-0747-ens-health3t2-plus-atlasft-rank1`.
+`biology_tests.parquet` and `robustness_*` are overwritten by these runs (earlier versions: the pre-RM12 runs in
+the 07:00 entry). Lead's run, commits 18497d9, f0a79ec.
+
+**RM10 biology** (age gap vs severity within study, 2,000 permutations; ρ, p):
+
+| test | headline | health ensemble |
+|---|---|---|
+| liver fibrosis A / B | 0.25, 0.003 / 0.25, 0.007 | **0.42, 0.0005** / 0.29, 0.005 |
+| Braak stage (AD) | 0.27, 0.003 | **0.52, 0.0005** |
+| Lewy stage (PD) | 0.18, 0.049 | 0.25, 0.012 |
+| NYHA class (heart failure) | −0.07 (opposite) | 0.19, 0.027 |
+| COVID / viral severity, RA activity, MMSE, LVAD unloading, NAFLD activity | n.s. or opposite | n.s. or opposite |
+| **negative control**: one exercise bout | 0.09, 0.36 (passes) | **0.21, 0.034 (fails)** |
+- Stage effects replicate on the clean table for both ensembles; the health ensemble also fails the negative
+  control, so part of its signal tracks acute physiological state, not only disease stage.
+
+**RM11 robustness** of the headline on the RM12 set (test, 8,843 samples, 212 studies): MAE 7.46 (r 0.88); the
+earlier NextSeq flag and blood bias were the single-cell series and are gone. Best tissues: gut 2.9, skeletal muscle
+5.2, PBMC 6.4, blood 6.5, liver 6.9; worst: bone marrow 13.4, oral 13.0, plasma cfRNA 12.3 (r −0.23, 28 samples);
+flagged unsupported: HiSeq X Ten (66 samples), bone marrow, "other".
+
+**Health ensemble gap** (job 6429191, 200 shuffles, RM12 set): aging-linked +2.81 y [0.80, 4.88] (33 studies), all
++2.55 [0.85, 4.33], autoimmune +4.89 [1.90, 8.11], neurodegenerative +2.33 [−0.89, 5.71] (7 studies); each above all
+200 shuffles.
