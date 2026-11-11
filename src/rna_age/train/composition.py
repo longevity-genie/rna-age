@@ -117,6 +117,10 @@ def analyse(
     if null_seed is not None:  # null check: donors' ages shuffled, so every representation should give r ≈ 0
         age = np.random.default_rng(null_seed).permutation(age)
     groups = np.arange(len(donors))
+    if "cv_group" in g.columns:  # several samples per person (visits): folds by person, never one on both sides
+        per = dict(zip(g["donor"].to_list(), g["cv_group"].to_list(), strict=True))
+        gid = {c: i for i, c in enumerate(sorted(set(per.values())))}
+        groups = np.array([gid[per[d]] for d in donors])
     res = []
 
     def add(rep: str, X: np.ndarray, y: np.ndarray, grp: np.ndarray, note: str = ""):

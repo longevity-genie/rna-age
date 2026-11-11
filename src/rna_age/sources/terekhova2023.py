@@ -289,7 +289,8 @@ def _write_cell_type(meta, keys: list[str], n_cells, sums, genes: list[str]) -> 
         "key"
     )
     g = g.join(per_tube, on="Tube_id", how="left").with_columns(
-        donor_id=pl.col("Tube_id"),  # a tube is one donor visit; composition groups by donor:tissue
+        donor_id=pl.col("Tube_id"),  # a tube is one donor visit (its own age); composition groups by donor:tissue
+        cv_group=pl.col("Donor_id"),  # but cross-validation folds by donor: one donor's visits never on both sides
         tissue=pl.lit("blood"),
         development_stage=pl.col("Age").cast(pl.Int64).cast(pl.String) + "-year-old stage",
         disease=pl.lit("normal"),
