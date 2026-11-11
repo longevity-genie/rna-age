@@ -14,4 +14,7 @@ the kit's role `classes/lead/LEAD.md`.
   the exercise control). Claim "tracks stage", never "responds to intervention".
 - Desk: #9 PRIMO (default no), #18 BulkFormer-only spending (default: only where it earns its place).
 - External samples: `data/input/external/` (six series), scored by MLPs with `--external`; fine-tunes cannot.
+- Reporting (Anton, via the secretary): #rna-age > state is the runner's kept post; #rna-age > milestones is the
+  lead's, one line per landed result with its meaning (first post 12:50; figures from scripts/milestone_figures.py).
+- RM8 waits on Anton: pretrain once or stop KronLSTM (default stop, 2026-11-12).
 - kron-fm read from `../kron-fm`, not a dependency. Kit #411 open.
