@@ -114,6 +114,24 @@ def kron_fm_src() -> Path:
     return src
 
 
+def mask_id(n_genes: int) -> int:
+    """The [MASK] token: one past the last gene (genes are 1..n_genes, 0 pads)."""
+    return n_genes + 1
+
+
+def mask_tokens(ids: np.ndarray, frac: float, rng: np.random.Generator, mask: int) -> tuple[np.ndarray, np.ndarray]:
+    """Masked-gene targets (RM9): ``frac`` of each row's real tokens (at least one) become ``mask``; returns the
+    masked ids and the target ids (0 = no loss at that position). Padding is never masked."""
+    masked, target = ids.copy(), np.zeros_like(ids)
+    real = ids > 0
+    pick = (rng.random(ids.shape) < frac) & real
+    for r in np.flatnonzero(real.any(1) & ~pick.any(1)):  # every row with tokens contributes at least one
+        pick[r, rng.choice(np.flatnonzero(real[r]))] = True
+    target[pick] = ids[pick]
+    masked[pick] = mask
+    return masked, target
+
+
 def build_model(n_genes: int, d_model: int, n_layers: int, n_heads: int, dropout: float, values: bool):
     import torch
 
@@ -124,7 +142,8 @@ def build_model(n_genes: int, d_model: int, n_layers: int, n_heads: int, dropout
     class KronAge(torch.nn.Module):
         def __init__(self) -> None:
             super().__init__()
-            self.gene = torch.nn.Embedding(n_genes + 1, d_model, padding_idx=0)
+            self.n_genes = n_genes
+            self.gene = torch.nn.Embedding(n_genes + 2, d_model, padding_idx=0)  # 0 pad, 1..n genes, n+1 [MASK]
             self.value = torch.nn.Linear(1, d_model) if values else None
             self.blocks = torch.nn.ModuleList(
                 BiKronLSTMBlock(d_model, n_heads, 4 * d_model, dropout, i) for i in range(n_layers)
@@ -134,7 +153,8 @@ def build_model(n_genes: int, d_model: int, n_layers: int, n_heads: int, dropout
                 torch.nn.Linear(d_model, d_model), torch.nn.GELU(), torch.nn.Linear(d_model, 1)
             )
 
-        def forward(self, ids: torch.Tensor, vals: torch.Tensor | None = None) -> torch.Tensor:
+        def encode(self, ids: torch.Tensor, vals: torch.Tensor | None = None) -> torch.Tensor:
+            """``[B, T]`` tokens -> ``[B, T, D]`` states."""
             batch, steps = ids.shape
             h = self.gene(ids)
             if self.value is not None and vals is not None:
@@ -144,6 +164,10 @@ def build_model(n_genes: int, d_model: int, n_layers: int, n_heads: int, dropout
             cu = cu_seqlens_from_doc_ids(torch.where(ids > 0, row, -1 - row))
             for blk in self.blocks:
                 h = blk(h, cu)
+            return h
+
+        def forward(self, ids: torch.Tensor, vals: torch.Tensor | None = None) -> torch.Tensor:
+            h = self.encode(ids, vals)
             real = (ids > 0).unsqueeze(-1).to(h.dtype)
             pooled = (h * real).sum(1) / real.sum(1).clamp(min=1)
             return self.head(self.norm(pooled)).squeeze(-1)
@@ -221,9 +245,17 @@ def train(
     seed: int = 0,
     train_set: str = "all",
     run_name: str | None = None,
+    init: str | None = None,
 ) -> dict:
+    """``init``: a ``kron-pretrain`` run id whose encoder starts the model (its encoding, length and shape win)."""
+    import json
+
     import torch
 
+    if init:
+        pre = json.loads((PRETRAIN_RUNS / init / "config.json").read_text())
+        encoding, length = "rank", pre["length"]
+        d_model, n_layers, n_heads = pre["d_model"], pre["n_layers"], pre["n_heads"]
     if encoding not in ENCODINGS:
         raise ValueError(f"encoding must be one of {ENCODINGS}, got {encoding!r}")
     t0 = time.time()
@@ -237,6 +269,12 @@ def train(
     tr_rows, va_rows = np.flatnonzero(tr_mask), np.flatnonzero(va_mask)
 
     model = build_model(enc["n_genes"], d_model, n_layers, n_heads, dropout, values=vals is not None).to(dev)
+    if init:
+        enc_state = torch.load(INTERIM / "checkpoints" / init / "encoder.pt", map_location=dev)
+        missing, unexpected = model.load_state_dict(enc_state, strict=False)
+        if unexpected or any(not k.startswith(("head.", "norm.")) for k in missing):
+            raise ValueError(f"pretrained encoder does not fit: missing {missing}, unexpected {unexpected}")
+        log.info("encoder from pretraining run %s", init)
     n_params = sum(p.numel() for p in model.parameters())
     opt = torch.optim.AdamW(model.parameters(), lr=lr, weight_decay=1e-2)
     steps_per_epoch = math.ceil(len(tr_rows) / batch)
@@ -246,7 +284,9 @@ def train(
     )
 
     seq = length if encoding == "rank" else enc["n_genes"]
-    name = run_name or f"kron-{encoding}-{seq}-d{d_model}x{n_layers}" + (f"-seed{seed}" if seed else "")
+    name = run_name or (
+        f"kron-{encoding}-{seq}-d{d_model}x{n_layers}" + ("-pre" if init else "") + (f"-seed{seed}" if seed else "")
+    )
     ckpt_dir, run_dir, start, best, bad = _resume_dir(name), None, 0, np.inf, 0
     if ckpt_dir is not None:
         st = torch.load(ckpt_dir / "last.pt", map_location=dev, weights_only=False)
@@ -265,7 +305,7 @@ def train(
                           else "bulk train, healthy-or-unknown, exact + GTEx midpoints",
              "encoding": encoding, "length": seq, "d_model": d_model, "n_layers": n_layers, "n_heads": n_heads,
              "dropout": dropout, "epochs": epochs, "patience": patience, "batch": batch, "lr": lr, "seed": seed,
-             "n_params": n_params, "n_train": int(len(tr_rows)), "precision": "bf16 autocast"},
+             "n_params": n_params, "n_train": int(len(tr_rows)), "precision": "bf16 autocast", "init": init},
         )  # fmt: skip
         ckpt_dir = INTERIM / "checkpoints" / run_dir.name
     ckpt_dir.mkdir(parents=True, exist_ok=True)
@@ -339,6 +379,136 @@ def train_rank_mlp(length: int = 2048, seed: int = 0, train_set: str = "all") ->
          "n_train": int(tr.sum())},
     )  # fmt: skip
     return finish_run(run_dir, out, {"seconds": time.time() - t0})
+
+
+# ---------------------------------------------------------------- masked-gene pretraining (RM9, D3)
+
+PRETRAIN_RUNS = INTERIM.parent / "output" / "pretrain"
+
+
+def pretrain(
+    length: int = 2048,
+    d_model: int = 256,
+    n_layers: int = 4,
+    n_heads: int = 4,
+    dropout: float = 0.1,
+    mask_frac: float = 0.15,
+    epochs: int = 20,
+    patience: int = 3,
+    batch: int = 32,
+    lr: float = 3e-4,
+    monitor_frac: float = 0.05,
+    seed: int = 0,
+    run_name: str | None = None,
+) -> dict:
+    """Masked-gene prediction over rank tokens of training-split samples only (D3: never a validation or test
+    study, ages unused). A share of training *studies* (``monitor_frac``) is held out to stop on; the encoder
+    (everything but the age head) is saved as ``data/interim/checkpoints/<run>/encoder.pt`` for ``kron --init``.
+    The tokenizer statistics are the age runs' own (same training rows), so the vocabulary and order agree."""
+    import json
+    from datetime import datetime
+
+    import torch
+
+    t0 = time.time()
+    torch.manual_seed(seed)
+    dev = "cuda"
+    s, tr_mask, _ = _design("all")
+    enc = encode(s, tr_mask, "rank", length, 0, seed)
+    ids, n_genes = enc["ids"], enc["n_genes"]
+    studies = np.array(sorted(set(s.filter(pl.Series(tr_mask))["study_id"].to_list())))
+    rng = np.random.default_rng(seed)
+    held = set(rng.choice(studies, max(1, int(len(studies) * monitor_frac)), replace=False).tolist())
+    in_held = s["study_id"].is_in(list(held)).to_numpy()
+    fit_rows, mon_rows = np.flatnonzero(tr_mask & ~in_held), np.flatnonzero(tr_mask & in_held)
+    mask = mask_id(n_genes)
+
+    model = build_model(n_genes, d_model, n_layers, n_heads, dropout, values=False).to(dev)
+    lm = torch.nn.Linear(d_model, n_genes + 1).to(dev)  # predicts the gene id (0 unused) at masked positions
+    params = list(model.parameters()) + list(lm.parameters())
+    opt = torch.optim.AdamW(params, lr=lr, weight_decay=1e-2)
+    steps = math.ceil(len(fit_rows) / batch) * epochs
+    warm = min(1000, steps // 10 + 1)
+    sched = torch.optim.lr_scheduler.LambdaLR(
+        opt, lambda st: min(1.0, (st + 1) / warm) * 0.5 * (1 + math.cos(math.pi * min(st, steps) / steps))
+    )
+    name = run_name or f"kron-pre-rank-{length}-d{d_model}x{n_layers}" + (f"-seed{seed}" if seed else "")
+    ckpt = None
+    for cand in sorted((INTERIM / "checkpoints").glob(f"*-{name}"), reverse=True):
+        if (cand / "last.pt").exists() and not (cand / "encoder.pt").exists():
+            ckpt = cand
+            break
+    start, best, bad = 0, np.inf, 0
+    if ckpt is not None:
+        st = torch.load(ckpt / "last.pt", map_location=dev, weights_only=False)
+        model.load_state_dict(st["model"])
+        lm.load_state_dict(st["lm"])
+        opt.load_state_dict(st["opt"])
+        sched.load_state_dict(st["sched"])
+        start, best, bad = st["epoch"] + 1, st["best"], st["bad"]
+        run_id = ckpt.name
+    else:
+        run_id = f"{datetime.now().strftime('%Y%m%d-%H%M')}-{name}"
+        ckpt = INTERIM / "checkpoints" / run_id
+    run_dir = PRETRAIN_RUNS / run_id
+    run_dir.mkdir(parents=True, exist_ok=True)
+    ckpt.mkdir(parents=True, exist_ok=True)
+    (run_dir / "config.json").write_text(json.dumps(
+        {"run_id": run_id, "length": length, "d_model": d_model, "n_layers": n_layers, "n_heads": n_heads,
+         "dropout": dropout, "mask_frac": mask_frac, "epochs": epochs, "batch": batch, "lr": lr, "seed": seed,
+         "n_genes": n_genes, "n_fit": int(len(fit_rows)), "n_monitor": int(len(mon_rows)),
+         "monitor_studies": len(held), "corpus": "bulk train split, all health states (ages unused)",
+         "checkpoint_dir": str(ckpt)}, indent=2))  # fmt: skip
+
+    def step_loss(rows: np.ndarray, r: np.random.Generator) -> tuple[torch.Tensor, int, int]:
+        m, tgt = mask_tokens(ids[rows], mask_frac, r, mask)
+        it = torch.as_tensor(m, device=dev)
+        tt = torch.as_tensor(tgt, device=dev, dtype=torch.long)
+        with torch.autocast("cuda", dtype=torch.bfloat16):
+            h = model.encode(it)
+        sel = tt > 0
+        logits = lm(h[sel].float())
+        loss = torch.nn.functional.cross_entropy(logits, tt[sel])
+        return loss, int((logits.argmax(-1) == tt[sel]).sum()), int(sel.sum())
+
+    hist_file = run_dir / "history.parquet"
+    history = pl.read_parquet(hist_file).to_dicts() if start and hist_file.exists() else []
+    for epoch in range(start, epochs):
+        model.train()
+        perm = np.random.default_rng(seed * 1000 + epoch).permutation(fit_rows)
+        r = np.random.default_rng(seed * 7919 + epoch)
+        for a in range(0, len(perm), batch):
+            loss, _, _ = step_loss(perm[a : a + batch], r)
+            opt.zero_grad(set_to_none=True)
+            loss.backward()
+            torch.nn.utils.clip_grad_norm_(params, 1.0)
+            opt.step()
+            sched.step()
+        model.eval()
+        tot, hit, n = 0.0, 0, 0
+        r = np.random.default_rng(12345)  # the same masks every epoch, so the monitor loss is comparable
+        with torch.no_grad():
+            for a in range(0, len(mon_rows), 64):
+                loss, h_, n_ = step_loss(mon_rows[a : a + 64], r)
+                tot, hit, n = tot + float(loss) * n_, hit + h_, n + n_
+        mon = tot / max(n, 1)
+        history.append({"epoch": epoch, "monitor_loss": mon, "monitor_acc": hit / max(n, 1)})
+        log.info("pretrain epoch %d: monitor loss %.3f, top-1 %.3f", epoch, mon, hit / max(n, 1))
+        if mon < best - 1e-3:
+            best, bad = mon, 0
+            torch.save({k: v for k, v in model.state_dict().items() if not k.startswith(("head.", "norm."))},
+                       ckpt / "best_encoder.pt")  # fmt: skip
+        else:
+            bad += 1
+        torch.save({"model": model.state_dict(), "lm": lm.state_dict(), "opt": opt.state_dict(),
+                    "sched": sched.state_dict(), "epoch": epoch, "best": best, "bad": bad}, ckpt / "last.pt")  # fmt: skip
+        pl.DataFrame(history).write_parquet(hist_file)
+        if bad >= patience:
+            break
+    (ckpt / "best_encoder.pt").rename(ckpt / "encoder.pt")
+    out = {"run_id": run_id, "best_monitor_loss": best, "seconds": time.time() - t0}
+    (run_dir / "result.json").write_text(json.dumps(out, indent=2))
+    return out
 
 
 # ---------------------------------------------------------------- the paired bar (D3)

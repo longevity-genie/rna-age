@@ -5,7 +5,7 @@ import numpy as np
 import polars as pl
 import pytest
 
-from rna_age.train.kron import cpm, nonzero_medians, paired_ci, rank_dense, rank_tokens
+from rna_age.train.kron import cpm, mask_id, mask_tokens, nonzero_medians, paired_ci, rank_dense, rank_tokens
 
 
 def test_nonzero_medians_ignore_zeros_and_unseen_genes():
@@ -78,3 +78,43 @@ def test_rank_tokens_ties_keep_gene_order_on_long_rows():
         for level in (3, 2, 1):
             ids = t[np.isin(t - 1, np.flatnonzero(row == level))]
             assert (np.diff(ids) > 0).all()  # within a level, gene order
+
+
+def test_mask_tokens_masks_only_real_tokens_and_every_row():
+    rng = np.random.default_rng(0)
+    ids = np.array([[5, 3, 9, 0, 0], [7, 0, 0, 0, 0], [0, 0, 0, 0, 0]], dtype=np.int32)
+    m, tgt = mask_tokens(ids, 0.0, rng, mask_id(9))  # frac 0 still masks one token per non-empty row
+    assert (tgt > 0).sum(1).tolist() == [1, 1, 0]
+    assert ((m == 10) == (tgt > 0)).all() and (tgt[tgt > 0] == ids[tgt > 0]).all()
+    big = np.tile(np.arange(1, 1001, dtype=np.int32), (20, 1))
+    _, t2 = mask_tokens(big, 0.15, rng, mask_id(1000))
+    assert 0.12 < (t2 > 0).mean() < 0.18
+
+
+def test_padding_is_never_masked():
+    ids = np.array([[4, 2, 0, 0, 0, 0]], dtype=np.int32)
+    m, tgt = mask_tokens(ids, 1.0, np.random.default_rng(1), mask_id(4))
+    assert tgt.tolist() == [[4, 2, 0, 0, 0, 0]]
+    assert m.tolist() == [[5, 5, 0, 0, 0, 0]]  # padding stays padding
+
+
+def test_pretrained_encoder_loads_into_an_age_model(monkeypatch):
+    torch = pytest.importorskip("torch")
+    from rna_age.train.kron import build_model, kron_fm_src
+
+    try:
+        kron_fm_src()
+    except FileNotFoundError:
+        pytest.skip("no kron-fm clone (RNA_AGE_KRON_FM)")
+    import kron_core.blocks as blocks
+    from kron_core.testing import CausalMixer
+
+    monkeypatch.setattr(blocks, "kronlstm_mixer", CausalMixer)
+    pre = build_model(n_genes=20, d_model=32, n_layers=2, n_heads=2, dropout=0.0, values=False)
+    enc = {k: v for k, v in pre.state_dict().items() if not k.startswith(("head.", "norm."))}
+    age = build_model(n_genes=20, d_model=32, n_layers=2, n_heads=2, dropout=0.0, values=False)
+    missing, unexpected = age.load_state_dict(enc, strict=False)
+    assert not unexpected and all(k.startswith(("head.", "norm.")) for k in missing)
+    assert torch.equal(age.gene.weight, pre.gene.weight)
+    h = age.encode(torch.tensor([[mask_id(20), 3, 0]]))  # the mask token embeds
+    assert h.shape == (1, 3, 32)

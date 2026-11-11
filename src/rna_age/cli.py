@@ -355,13 +355,35 @@ def kron_cmd(
     lr: float = typer.Option(3e-4),
     seed: int = typer.Option(0),
     name: str | None = typer.Option(None, help="run name (resumes an unfinished run of the same name)"),
+    init: str | None = typer.Option(None, help="a kron-pretrain run id: start from its encoder (RM9)"),
 ) -> None:
     """Rung 5 (D2, D3): a bidirectional KronLSTM age model from scratch (GPU job, resumable; needs a kron-fm clone, see train/kron.py)."""
     from rna_age.train.kron import train
 
     row = train(encoding=encoding, length=length, n_hvg=n_hvg, d_model=d_model, n_layers=n_layers, n_heads=n_heads,
-                dropout=dropout, epochs=epochs, patience=patience, batch=batch, lr=lr, seed=seed, run_name=name)  # fmt: skip
+                dropout=dropout, epochs=epochs, patience=patience, batch=batch, lr=lr, seed=seed, run_name=name,
+                init=init)  # fmt: skip
     print({k: v for k, v in row.items() if k.startswith(("val_exact", "test_exact", "transfer_exact"))})
+
+
+@app.command("kron-pretrain")
+def kron_pretrain(
+    length: int = typer.Option(2048),
+    d_model: int = typer.Option(256),
+    n_layers: int = typer.Option(4),
+    n_heads: int = typer.Option(4),
+    mask_frac: float = typer.Option(0.15),
+    epochs: int = typer.Option(20),
+    batch: int = typer.Option(32),
+    lr: float = typer.Option(3e-4),
+    seed: int = typer.Option(0),
+    name: str | None = typer.Option(None, help="run name (resumes an unfinished run of the same name)"),
+) -> None:
+    """RM9 (D3): masked-gene pretraining of the KronLSTM on training-split rank tokens; then `kron --init RUN`."""
+    from rna_age.train.kron import pretrain
+
+    print(pretrain(length=length, d_model=d_model, n_layers=n_layers, n_heads=n_heads, mask_frac=mask_frac,
+                   epochs=epochs, batch=batch, lr=lr, seed=seed, run_name=name))  # fmt: skip
 
 
 @app.command("kron-rank-mlp")
