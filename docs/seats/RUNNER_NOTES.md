@@ -16,8 +16,8 @@ Anton's go (HF login, model name, email).
 ## Share
 
 The rigger's queue map (`~/.config/agent-seat-blueprints/rigger/queue.toml`): rna-age has a soft CPU share of 25
-cores on the account's cap; GPU jobs are outside it. GPU jobs go to the preemptible requeue partition on gpu1-10
-(RTX 2080 Ti 11 GB), excluding the A100 nodes; names only in `slurm/env.local.sh`.
+cores on the account's cap; GPU jobs are outside it. GPU jobs go to the preemptible requeue partition on the RTX 2080 Ti 11 GB
+nodes, excluding the A100 nodes; partition and node names only in `slurm/env.local.sh`.
 
 ## Running (2026-11-11 09:40 CET)
 
@@ -39,15 +39,17 @@ comment (seat / what / eta / cuda).
 | no git on compute nodes | 2026-11-10 21:15 | listed as unchecked |
 | 2080 Ti 11 GB: ~400M-param tabular FMs with 4k-row prompts run out of memory | 2026-11-10 21:15 | no |
 | CPU jobs pend `AssocGrpCpuLimit` at times; GPU-node CPU jobs on the requeue partition as fallback | 2026-11-10 21:15 | yes (cap), fallback not |
-| a fine-tune slowed to 2.3 s/step (from 1.3) alone on gpu1 card 0 after restart | 2026-11-10 21:15 | no; unexplained |
+| a fine-tune slowed to 2.3 s/step (from 1.3) alone on its card after a restart | 2026-11-10 21:15 | no; unexplained |
 | the repository's default job limit (`RNA_AGE_TIME`, 4 h) killed three long jobs: size `TIME=` from the measured rate | not a cluster fact | — |
 | jobs starting together on one node race for card 0 (a job shows on its card only after loading data); fixed with a lock and per-card claims in `slurm/job.sbatch` (937866e) | 2026-11-11 05:40 | was on its unchecked list |
 | `scontrol update JobId= Comment=` works on one's own running job; `sacct` keeps no comment | rule came from the rigger | yes |
 
 ## Open items
 
-- `unattended`: health-aware fine-tune → its health eval vs the health-aware MLP (+2.3 to +2.6 y); resubmit
-  under the same name if it reaches its limit (it resumes).
-- `unattended`: composition outside blood (brain, lung) once the pseudobulk jobs end; log in `docs/experiments.md`.
-- `blocked: Anton`: PRIMO submission (HF login, model name, email); tabular FMs paused.
-- `unattended`: report page and `STATUS.md` republished after each result.
+- `unattended`: RM1 seeds 0-2 on the RM12 table → gap with the 200-shuffle null, then the ensembles with the new
+  fine-tunes.
+- `unattended`: RM8 sweep → best length → full-length seeds, genome arms, ablation, paired bar (ROADMAP order).
+- `blocked: Anton`: PRIMO submission (desk); tabular FMs paused.
+- `unattended`: report page republished after the next headline change.
+- Note: until ef455e2's successor, this file named cluster nodes (removed; history not rewritten, a maintainers'
+  call).
