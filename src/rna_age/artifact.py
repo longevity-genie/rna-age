@@ -160,6 +160,86 @@ far behind the MLP on all genes: the 200-feature input, not the model, is the li
     return "\n".join(parts) or "<p>No results yet.</p>"
 
 
+def _eligible_metrics(run_id: str) -> dict:
+    """MAE / median / r of a run on the currently eligible exact-age bulk samples (the RM12 sample set)."""
+    import numpy as np
+
+    from rna_age.paths import INTERIM
+
+    s = pl.read_parquet(INTERIM / "samples_all.parquet", columns=["sample_id", "split", "eligible", "age_type",
+                                                                   "is_pseudobulk"])  # fmt: skip
+    s = s.filter(pl.col("eligible") & (pl.col("age_type") == "exact") & ~pl.col("is_pseudobulk"))
+    p = pl.read_parquet(OUTPUT / "runs" / run_id / "predictions.parquet").select("sample_id", "age_years", "pred")
+    p = p.join(s.select("sample_id", "split"), on="sample_id")
+    out = {"run": run_id}
+    for sp in ("val", "test"):
+        d = p.filter(pl.col("split") == sp)
+        e = (d["pred"] - d["age_years"]).abs()
+        out[f"{sp} MAE"] = e.mean()
+        out[f"{sp} median AE"] = e.median()
+        out[f"{sp} r"] = float(np.corrcoef(d["pred"], d["age_years"])[0, 1]) if d.height > 2 else None
+        out[f"{sp} n"] = d.height
+    return out
+
+
+def _clean_tab() -> str:
+    """Results on the RM12 (clean) sample set: headline, health, biology, KronLSTM. Every number from parquet."""
+    runs = {
+        "headline (3 MLPs + 2 BulkFormer fine-tunes)": "20261111-0747-ens-mlp3t2-plus-atlasft2",
+        "20k-gene MLP, seed 0": "20261111-0707-hvg20000-mlp-trainall",
+        "health ensemble (3 health MLPs + health fine-tune)": "20261111-0747-ens-health3t2-plus-atlasft-rank1",
+        "headline before cleanup, scored on the clean set": "20261110-1329-ens-mlp7-plus-atlasft2",
+    }
+    rows = []
+    for label, rid in runs.items():
+        if (OUTPUT / "runs" / rid / "predictions.parquet").exists():
+            m = _eligible_metrics(rid)
+            rows.append({"model": label, **{k: v for k, v in m.items() if k != "run"}})
+    acc = pl.DataFrame(rows) if rows else None
+    parts = [
+        """<p>On 2026-11-11 meningioma (a tumour) and 169 single-cell plate series were removed from the sample
+table (D4, RM12): 100,312 → 94,526 eligible samples. Every number on this tab is on that clean set; earlier figures
+(the other tabs, e.g. the 9.20 test MAE headline) are on the harder pre-cleanup set and are not comparable.</p>"""
+    ]
+    if acc is not None:
+        parts.append("<h3>Age prediction on held-out studies</h3>" + table(acc, digits=3))
+    parts.append(fig("headline_pred_vs_age", "Headline: predicted vs true age, held-out studies (clean set)"))
+    h = SUMMARY / "health_20261111-0747-ens-health3t2-plus-atlasft-rank1_pred_null.parquet"
+    if h.exists():
+        hd = pl.read_parquet(h).filter(pl.col("category").is_in(["all_aging_linked", "all", "autoimmune_inflammatory",
+                                                                   "neurodegenerative", "infection"]))  # fmt: skip
+        parts.append("""<h3>Can the clock see disease? (health ensemble)</h3><p>Within each held-out study, mean
+(predicted − true age) of cases minus controls, 95 % study-bootstrap CI; null_p: share of 200 within-study label
+shuffles at least as large.</p>""" + table(hd.select("category", "studies", "cases", "within_study_gap", "ci_low",
+                                                      "ci_high", "null_p"), digits=3))  # fmt: skip
+    b = SUMMARY / "biology_tests.parquet"
+    if b.exists():
+        bt = pl.read_parquet(b).with_columns(pl.col("run_id").str.replace("20261111-0747-", ""))
+        parts.append("""<h3>Does the gap mean biology? Disease stage (registered before the run)</h3><p>Age gap
+(age regressed out within study) against disease stage, Spearman ρ, 2,000 permutations. The health ensemble also
+moves after one exercise bout (the negative control), so it partly reads acute state.</p>"""
+                     + table(bt.select("run_id", "test", "study", "n", "rho", "p", "verdict"), digits=3)
+                     + fig("biology_stage_tests", "Disease-stage tests of both ensembles (clean set)"))  # fmt: skip
+    pp = [SUMMARY / f"biology_paired_{n}.parquet" for n in ("plain", "health")]
+    if all(x.exists() for x in pp):
+        pd_ = pl.concat([pl.read_parquet(x) for x in pp], how="diagonal_relaxed")
+        cols = [c for c in ("model", "test", "study", "n", "delta", "p", "verdict") if c in pd_.columns]
+        parts.append(
+            """<h3>Interventions (before/after, registered before extraction)</h3><p>Change of the age gap
+after the intervention, three seeds averaged, one-sided p for a fall. None of nine passes for either model: the gap
+tracks accumulated damage (stage), not reversal within months.</p>"""
+            + table(pd_.select(cols), digits=3)
+        )
+    exp = pl.read_parquet(SUMMARY / "experiments.parquet")
+    k = exp.filter(pl.col("run_id").str.contains("kron-sweep-rank"))
+    if k.height:
+        parts.append("""<h3>KronLSTM age encoder from scratch (RM8)</h3><p>Rank-token encoding, 8-epoch sweep:
+validation MAE ~14 at every length, about 5 years behind the 20k-gene MLP (~8.7); the 4,096 run was stopped early.
+Next step pending (Anton, the lead).</p>""" + table(k.select("run_id", "val_exact_mae", "test_exact_mae",
+                                                              "test_exact_pearson_r"), digits=3))  # fmt: skip
+    return "\n".join(parts)
+
+
 def build() -> str:
     by_source = pl.read_parquet(SUMMARY / "by_source.parquet")
     splits = pl.read_parquet(SUMMARY / "splits.parquet") if (SUMMARY / "splits.parquet").exists() else None
@@ -218,6 +298,7 @@ def build() -> str:
                    "studies": "studies", "donors": "donors", "pseudobulk": "pseudobulk"}  # fmt: skip
 
     tabs = {}
+    tabs["latest"] = ("Latest (clean table)", _clean_tab())
     tabs["motivation"] = (
         "Motivation",
         """
@@ -403,7 +484,7 @@ and averaged with the MLP ensemble it gives the best model overall: validation M
 features.</li>
 </ol>"""
     tabs["results"] = (
-        "Results",
+        "Results before cleanup",
         f"""
 {headline}
 {findings}
