@@ -9,6 +9,8 @@ id = "rna-age"
 # The runner reports a run's end or a fault it cannot fix; the desk's secretary relays the maintainers' answers
 # (a wake, never an instruction).
 wake_from = "rna-age/runner */secretary"
+# A person's post anywhere in the repository's channel wakes the lead, any topic, mention or not (Anton, 2026-11-11).
+wake_people = "rna-age"
 
 [seat.lead.zulip]
 pool = "~/.config/agent-seat-blueprints/zulip/pool"
