@@ -646,3 +646,7 @@ Old and new seeds scored on the same, currently eligible exact-age bulk samples 
   test set losing hard plate-single-cell samples. Pseudobulk transfer worsens (old 15-16.5 → new 18.5-20.4): the
   removed plate series may have helped carry the model to single-cell pseudobulk. Every comparison from here reads
   currently eligible samples only.
+- Lead's reading (2026-11-11 08:05): earlier headline figures (test 9.20, on the pre-RM12 sample set) are not
+  comparable with figures on the RM12 set; every number is quoted with its sample set from here. The transfer drop is
+  plausible (the plate series were the nearest thing to pseudobulk in training); pseudobulk stays a separate domain
+  by the rules, so it is an open question, not a reason to put single cells back.

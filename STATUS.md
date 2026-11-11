@@ -61,6 +61,10 @@ stop before Anton is back; 07:00 report, then keep updating; one tabbed artifact
   200 PCs of the Atlas CLS; context 10k train samples, ≤ 200 per study (`rna-age tabfm`).
 
 ## Results so far (details: `docs/experiments.md`, `data/output/summary/experiments.parquet`)
+- **Sample sets (2026-11-11, RM12)**: meningioma and 169 plate single-cell series removed; eligible 100,312 →
+  94,526. Figures before 07:20 (the 9.20 headline included) are on the old set and not comparable with figures on
+  the new one; each figure below says which. On the new set, 20k-HVG MLP seeds: val 8.73, test 8.14 (old seeds 9.02 /
+  8.09 on the same samples).
 - **Health-aware clock (afternoon)**: MLP on 20k HVGs with a within-study ranking loss (cases older than their
   study's controls) + disease head makes the case − control age gap on **held-out studies** significant:
   aging-linked diseases +2.35 [0.61, 4.17] y (seed 0), +2.62 [0.64, 4.56] (seed 1), +2.34 [0.49, 4.27] (seed 2),
