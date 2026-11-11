@@ -19,12 +19,18 @@ The rigger's queue map (`~/.config/agent-seat-blueprints/rigger/queue.toml`): rn
 cores on the account's cap; GPU jobs are outside it. GPU jobs go to the preemptible requeue partition on gpu1-10
 (RTX 2080 Ti 11 GB), excluding the A100 nodes; names only in `slurm/env.local.sh`.
 
-## Running (21:15 CET)
+## Running (2026-11-11 09:40 CET)
 
-| job | what | watcher |
-|---|---|---|
-| 6427754 | `atlas-ft-u4-rank1`: health-aware Atlas fine-tune (ranking loss), resumed at epoch 2, 10 h limit; epoch 0 val 12.59, epoch 1 11.72 | background task beapljd68 (runs `rna-age` health eval at the end itself) |
-| 6427856-58 | cell-type pseudobulk: PsychENCODE MSSM brain (1,023 donors), PsychENCODE 5c97eeeb brain, ILD lung | background task baybnzgra, which then runs `rna-age composition ... --mapping cell_type` on each |
+All watched by the seat's jobs watcher (`[seat.runner.watch.jobs]`, kit v0.1.183); every job carries the account's
+comment (seat / what / eta / cuda).
+
+| job | what |
+|---|---|
+| 6429117 | RM1 health-aware fine-tune seed 1, RM12 table (`atlas-ft-u4-rank1-s1-t2`) |
+| 6428869 | RM1 seed 2, RM12 table (`atlas-ft-u4-rank1-s2`) |
+| 6429118 | RM1 seed 0 again, RM12 table (`atlas-ft-u4-rank1-s0-t2`), queued after seed 2 |
+| 6429023 | RM8 sweep, 2,048 tokens, 8 epochs, batch 32 as micro 16 |
+| 6429024 | RM8 sweep, 4,096 tokens, 8 epochs, batch 32 as micro 8 |
 
 ## Cluster facts found by trial
 
@@ -35,6 +41,8 @@ cores on the account's cap; GPU jobs are outside it. GPU jobs go to the preempti
 | CPU jobs pend `AssocGrpCpuLimit` at times; GPU-node CPU jobs on the requeue partition as fallback | 2026-11-10 21:15 | yes (cap), fallback not |
 | a fine-tune slowed to 2.3 s/step (from 1.3) alone on gpu1 card 0 after restart | 2026-11-10 21:15 | no; unexplained |
 | the repository's default job limit (`RNA_AGE_TIME`, 4 h) killed three long jobs: size `TIME=` from the measured rate | not a cluster fact | — |
+| jobs starting together on one node race for card 0 (a job shows on its card only after loading data); fixed with a lock and per-card claims in `slurm/job.sbatch` (937866e) | 2026-11-11 05:40 | was on its unchecked list |
+| `scontrol update JobId= Comment=` works on one's own running job; `sacct` keeps no comment | rule came from the rigger | yes |
 
 ## Open items
 
