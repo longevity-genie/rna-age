@@ -15,19 +15,6 @@ Tahoe-x1 or Geneformer cell embeddings, pooled per donor, into TabICL; against o
 (D7: 5-fold by person). Bar: lower MAE by more than the paired bootstrap's 95 % CI in at least 4 of 7 cohorts. Any
 disease reading follows D9 (within batch).
 
-## RM23 — MaxToki in-silico knockdown screen of CD4 T cells
-
-**State:** building (runner, same word) · **Owner:** runner builds, lead reviews the merge
-
-Bar: its predicted aging effects correlate with the Marson screen's and with our clock's RM17 shifts (Spearman, p <
-0.05 per condition), compared with the same correlation for a random-gene-order placebo. Licence of the weights read
-before any output leaves the repository.
-
-217M done (0c93566/07352db): ρ −0.03 / +0.01 / −0.03 against the screen, inside the shuffle null, but its age
-answer does not track true age (Spearman 0.02-0.10 on 150 validation prompts): the released 217M lacks the regression
-head it answers through. Inconclusive. Next, the 1B (answers through time tokens). Gate fixed before the run: its age
-answer must reach Spearman ≥ 0.5 on the same prompts and beat a constant guess, else stop without reading the screen.
-
 ## RM25 — TabICLv2 as the bulk clock, second try
 
 **State:** unattended (proposed to Anton 2026-11-12 in #rna-age > general chat; default: build) · **Owner:** lead

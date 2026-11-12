@@ -193,3 +193,10 @@ training genes' knockdowns by the paper's own coefficients, so the held-out ρ i
 not an independent check like D8's. Lead's reading: real but small (+0.03 ρ for −0.5 y of accuracy); the multitask
 line is parked, not adopted. The clock stays ridge / TabICLv2; the rank term returns only if a use needs the paper's
 perturbation axis inside the clock.
+
+**RM23 outcome (2026-11-12, runner, 0c93566/07352db/388433b; read by the lead):** canceled: no released MaxToki can
+be tested fairly. The temporal 217M's age answer does not track true age (Spearman 0.02-0.10 on 150 validation
+prompts; the paper's 217M answers through a regression head not released), and its knockdown effects sit inside the
+shuffle null against the screen (ρ −0.03 to +0.01). Neither released 1B has time tokens (a stage-1 model, and a
+training checkpoint with genes and query tokens only), so the age gate cannot be computed; no 1B was downloaded. It
+returns only with the 217M head or a temporal 1B from the authors (an outside contact: Anton's call; default none).
