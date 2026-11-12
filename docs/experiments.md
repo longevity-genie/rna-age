@@ -860,3 +860,16 @@ CV over genes, 11 min). Targets: our clock's per-gene shift and the study's agin
 clock's Stim48hr shift, and tiny: Spearman 0.03 (ridge) and 0.05 (TabICLv2), skill over the mean ≤ 0.005. Not met for
 Rest, Stim8hr, or any study coefficient; label-shuffle nulls |ρ| ≤ 0.04. Twelve tests, no correction: read as no
 usable signal. Not done: Δ-profile principal components (target c). Result: `data/output/summary/unseen_knockdown.parquet`.
+
+### 2026-11-12 18:20 · RM20 result: the multitask network learns no knockdown effects; a rank term gives a hint worth seeds
+Branch `worktree-agent-afeeb4c691cef5fce` (fdf1310 code, 8050fc1 result), awaiting the lead's review. Job 6436115
+(9 min). 981 donors (3faad104 CD4 T, 5-fold CV), 123,896 knockdown units, 2,386 of 11,929 genes and one context
+(one donor's Stim48hr) held out; gene embedding from the target's coexpression with the 2,000-gene panel.
+- Bar 1, Δ on held-out genes: **fail**. DEG recall@50 0.052 vs per-context mean 0.085 and donor+condition ridge
+  0.091; Pearson-Δ ≈ 0 even for the baselines (single knockdown profiles are mostly noise).
+- Bar 2, age MAE within 0.2 y of age-only: pass for age+Δ (10.64 vs 10.67). The rank arm is 8.77, but the placebo is
+  8.68: the gain is regularisation, not aging information; ridge on the same panel 8.17 beats every network.
+- Bar 3, held-out ρ > 0.26: **fail** for the predicted shift (−0.03). On measured profiles the rank arm's clock gives
+  0.30 (0.31 / 0.32 / 0.28) vs 0.25 for the RM17 ridge clock and 0.21 for age-only, on the same genes.
+- Bar 4, placebo fails: mixed. Measured-profile ρ placebo 0.23 vs rank 0.30 (+0.07, one seed, no CI).
+One seed, one split, no CIs. The +0.07 needs repeat seeds before it counts.
