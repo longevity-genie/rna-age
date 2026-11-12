@@ -797,3 +797,11 @@ donor-bootstrap 95 % CI): `data/output/summary/sc_tabular_compare.parquet`; out-
 - Gate notes: one TabICLv2 seed; the per-class rows are many comparisons (read the whole-sample row per cohort as the
   test); the row bootstrap resamples tubes in Terekhova (the by-person CI is given). D7's bar (beats ridge, CI
   excluding 0, ≥ 2 cohorts) is met on the whole sample; what it means is the lead's.
+
+### 2026-11-12 12:10 · RM16: stronger baselines and a 2,000-gene TabICLv2 arm, submitted
+Anton: ridge is a low bar. At 56541c1 (the lead's code, 0969bcf), per RM14 cohort, same `--mapping`: CPU
+`rna-age sc-tabular <c> --models enet,gbm` (3 cores), then GPU `uv run --with tabicl rna-age sc-tabular <c> --models
+tabicl --n-genes 2000` (after its CPU job; model saved as `tabicl-2000g`), new models merged into
+`sc_tabular_<c>.parquet`. Jobs (cpu → gpu): terekhova 6432543 → 6432544, 3faad104 6432545 → 6432546, c838aec3
+6432547 → 6432548, 218acb0f 6432549 → 6432550, 37a17b78 6432551 → 6432552, 5c97eeeb 6432553 → 6432554, 5e57cd50
+6432555 → 6432556; GPU jobs in two chains (blood, brain). Verdict against the best of ridge, enet and gbm per cohort.

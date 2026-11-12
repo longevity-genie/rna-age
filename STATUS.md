@@ -55,7 +55,8 @@ stop before Anton is back; 07:00 report, then keep updating; one tabbed artifact
   single-cell flags), waiting for the download.
 
 ## Running (jobs carry seat / what / eta in their Slurm comment)
-- Nothing. RM14's seven jobs finished 02:29 (results below); both GPUs free.
+- RM16: elastic net + boosted-tree baselines (CPU 6432543-55, odd ids) then TabICLv2 on 2,000 genes (GPU 6432544-56,
+  even ids), seven single-cell cohorts.
 
 ## Results so far (details: `docs/experiments.md`, `data/output/summary/experiments.parquet`)
 - **Sample sets (2026-11-11, RM12)**: meningioma and 169 plate single-cell series removed; eligible 100,312 →
