@@ -441,6 +441,39 @@ def perturb_check_cmd() -> None:
         print(run_check())
 
 
+@app.command("unseen-kd-embed")
+def unseen_kd_embed_cmd(
+    model: str = typer.Option("facebook/esm2_t33_650M_UR50D", help="ESM-2 checkpoint on the Hub"),
+    device: str = typer.Option("cuda"),
+) -> None:
+    """RM21 step 1: UniProt (reviewed human) proteins of the screen's target genes → ESM-2 mean-pooled embeddings
+    (data/interim/gene_esm2.parquet). Run with ``uv run --with transformers``."""
+    from rna_age.train.unseen_kd import fetch_uniprot, run_embed
+
+    fetch_uniprot()
+    out = run_embed(model, device)
+    print(out.drop("emb").head())
+
+
+@app.command("unseen-kd")
+def unseen_kd_cmd(
+    models: str = typer.Option("ridge,tabicl", help="comma-separated: ridge, tabicl, pca_ridge"),
+    folds: int = typer.Option(5),
+    seed: int = typer.Option(0),
+    n_boot: int = typer.Option(1000),
+    n_pcs: int = typer.Option(64, help="PCs of the embedding fed to tabicl / pca_ridge"),
+) -> None:
+    """RM21: predict a knockdown's age effect (clock shift; the study's coefficient) from the target gene's ESM-2
+    embedding, 5-fold CV over genes, against the mean and a shuffled-embedding ridge."""
+    from rna_age.train.unseen_kd import run_cv
+
+    d = run_cv(tuple(models.split(",")), k=folds, seed=seed, n_boot=n_boot, n_pcs=n_pcs)
+    cols = ["target", "culture_condition", "model", "n_genes", "spearman", "spearman_lo", "spearman_hi",
+            "skill_vs_mean", "d_rho_vs_ridge_shuffled_emb", "beats_bar"]  # fmt: skip
+    with __import__("polars").Config(tbl_rows=80, tbl_cols=12, tbl_width_chars=220):
+        print(d.select(cols))
+
+
 @app.command("clock-compare")
 def clock_compare_cmd() -> None:
     """RM18 step 1: bulk and single-cell clocks on the same donors of every single-cell cohort."""
