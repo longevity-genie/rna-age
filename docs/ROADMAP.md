@@ -7,7 +7,7 @@ The lead (`docs/seats/LEAD.md`) keeps it. Seeded at the lead's first seating (20
 
 ## Items
 
-## RM14b — Single-cell tabular clock against stronger baselines (Anton: ridge is a low bar)
+## RM16 — Single-cell tabular clock against stronger baselines (Anton: ridge is a low bar)
 
 **State:** building · **Owner:** runner (runs), then lead (what they mean)
 
