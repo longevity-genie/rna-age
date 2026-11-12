@@ -22,3 +22,8 @@ def test_gap_test_drops_donors_without_a_prediction():
     pred[:5] = np.nan
     r = gap_test(pred, age, np.arange(60) % 2 == 0, n_perm=50)
     assert r["n_patients"] + r["n_controls"] == 55
+
+
+def test_gap_test_is_empty_when_a_group_is_missing():
+    r = gap_test(np.full(20, np.nan), np.linspace(20, 80, 20), np.arange(20) < 10, n_perm=10)
+    assert r["gap_diff"] is None and r["n_patients"] == 0

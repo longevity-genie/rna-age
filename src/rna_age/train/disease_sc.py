@@ -67,6 +67,8 @@ def gap_test(pred: np.ndarray, age: np.ndarray, patient: np.ndarray, n_perm: int
     """Patients' mean age-adjusted gap minus controls', and the label-shuffle two-sided p."""
     ok = ~np.isnan(pred)
     pred, age, patient = pred[ok], age[ok], patient[ok]
+    if min(patient.sum(), (~patient).sum()) < 5:  # the class is absent or too rare in this cohort
+        return {"n_patients": int(patient.sum()), "n_controls": int((~patient).sum()), "gap_diff": None, "p": None}
     d = _diff(pred, age, patient)
     rng = np.random.default_rng(seed)
     null = np.array([_diff(pred, age, rng.permutation(patient)) for _ in range(n_perm)])
