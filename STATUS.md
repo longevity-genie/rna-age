@@ -55,7 +55,7 @@ stop before Anton is back; 07:00 report, then keep updating; one tabbed artifact
   single-cell flags), waiting for the download.
 
 ## Running (jobs carry seat / what / eta in their Slurm comment)
-- Nothing. RM16's 14 jobs finished (results below); both GPUs free.
+- RM20-RM23 (virtual-cell ideas, Anton 2026-11-12): four arms being built in parallel worktrees; jobs follow.
 
 ## Results so far (details: `docs/experiments.md`, `data/output/summary/experiments.parquet`)
 - **Sample sets (2026-11-11, RM12)**: meningioma and 169 plate single-cell series removed; eligible 100,312 →

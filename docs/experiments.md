@@ -844,3 +844,10 @@ and keeps every column constant within a donor and varying between donors, one r
   and their ontology ids. `Processing_Cohort` (4 levels) varies within 57 donors, so it is not in the per-donor table:
   added `<id>.mixed.parquet` (donor × column × value × n_cells for columns of ≤ 20 levels that vary within a donor;
   also lists cell-type columns and `disease_state`), rerun on the login node (seconds).
+
+### 2026-11-12 17:34 · RM20-RM23 started (Anton: "test more ideas"; the lead's numbering and bars, ca7429d)
+Four arms built in parallel, each in its own worktree by an agent of the runner seat, one GPU job each at most, merged
+to main after the lead's review: RM20 multitask (age + knockdown Δ, DEG-weighted, rank term, placebo), RM21 unseen
+knockdowns from ESM-2 gene embeddings (TabICL, ridge, mean, shuffled-embedding ridge), RM22 frozen virtual-cell
+embeddings as clock features (Tahoe-x1 / Geneformer / scGPT, the seven RM14 cohorts, D7 folds), RM23 MaxToki in-silico
+screen of CD4 T cells against the Marson aging effects and our RM17 shifts. Bars as the lead wrote them in the roadmap.
