@@ -55,7 +55,7 @@ stop before Anton is back; 07:00 report, then keep updating; one tabbed artifact
   single-cell flags), waiting for the download.
 
 ## Running (jobs carry seat / what / eta in their Slurm comment)
-- Nothing. Both GPU slots free; nothing queued (the lead, 2026-11-12).
+- RM14 (D7): single-cell tabular-model clocks, 7 cohorts in two GPU chains (blood 6430967-70, brain 6430972-74).
 
 ## Results so far (details: `docs/experiments.md`, `data/output/summary/experiments.parquet`)
 - **Sample sets (2026-11-11, RM12)**: meningioma and 169 plate single-cell series removed; eligible 100,312 →

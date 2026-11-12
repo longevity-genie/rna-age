@@ -766,3 +766,10 @@ Built at 909fbda (plain means, `rna-age ensemble`; null by `health-eval --permut
 - Seeds: test MAE 11.47 / 11.12 / 10.20, aging-linked gap +3.09 / +2.88 / +2.85. The gap is the stable part; the new
   health ensemble keeps it with a 0.3 y worse test MAE than the earlier one. The headline (plain) ensemble is
   unchanged: it uses the plain fine-tunes, not these.
+
+### 2026-11-12 02:10 · RM14 (D7): tabular foundation models as single-cell aging clocks, runs submitted
+`uv run --with tabicl rna-age sc-tabular <cohort>` at 2b73ff0 (the lead's code, d998476): per donor, log-CPM, 5-fold CV
+grouped by person, the fold's 500 most variable genes; ridge vs MLP vs TabICLv2; whole pseudobulk and each cell class
+alone. Two chains, one GPU each: blood (broad classes) terekhova2023 6430967 → 3faad104 6430968 → c838aec3 6430969 →
+218acb0f 6430970; brain (`--mapping cell_type`) 37a17b78 6430972 → 5c97eeeb 6430973 → 5e57cd50 6430974. Bar (D7):
+TabICLv2 beats ridge with a donor-bootstrap CI excluding 0 in at least two cohorts.
