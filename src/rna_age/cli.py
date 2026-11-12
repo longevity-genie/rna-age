@@ -408,6 +408,20 @@ def sc_tabular_cmd(
         print(compare(pred, reference=reference))
 
 
+@app.command("perturb-score")
+def perturb_score_cmd(
+    cohort: str = typer.Option("3faad104-2ab8-4434-816d-474d8d2641db", help="the clock's training cohort"),
+    n_genes: int = typer.Option(2000),
+) -> None:
+    """RM17: score the CD4 T-cell Perturb-seq with the CD4 T clock (age shift vs non-targeting guides, per gene)."""
+    from rna_age.train.perturb import run
+
+    g, info = run(cohort, n_genes=n_genes)
+    print(info)
+    with __import__("polars").Config(tbl_rows=40, tbl_width_chars=160):
+        print(g.head(40))
+
+
 @app.command("kron")
 def kron_cmd(
     encoding: str = typer.Option("rank", help="rank | genome | genome-shuffled"),

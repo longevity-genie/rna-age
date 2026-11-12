@@ -134,3 +134,20 @@ are built for, unlike bulk where they lost (200 PCs of 20k genes, ~47k samples).
 - **The bar:** TabICLv2's MAE minus ridge's on the same donors, 95 % CI from resampling donors, excludes 0 in its
   favour, in at least two cohorts. Reported per cohort and cell class.
 - Rejected: TabPFN (needs a Prior Labs key, D5's context); more genes through PCA (what failed on bulk).
+
+## D8 — Scoring the CD4 T-cell Perturb-seq with the CD4 T clock (2026-11-12)
+
+On Anton's word ("download virtual cell data", 2026-11-12), the lead's design, written before any screen profile is
+scored:
+
+- **Clock:** ridge on the CD4 T-cell pseudobulk of all 981 donors of the largest blood cohort (`3faad104…`), genes
+  shared with the screen's probe panel, the 2,000 most variable. Ridge, not TabICLv2: one model scores ~100k
+  profiles, and RM16 found ridge within ~0.8 y of TabICLv2 in that cohort.
+- **Readout:** relative only. Each profile's shift = its prediction minus the mean of the non-targeting guides of
+  the same donor and condition; per gene and condition the mean shift, with an empirical p against the
+  non-targeting guides' own shifts. Absolute ages in the screen are not read (cultured cells, Flex probes).
+- **The check, before reading any hit:** per condition, the per-gene shifts correlate (Spearman, two-sided p < 0.05)
+  with the paper's own predicted aging effects of the same perturbations
+  (`aging_prediction_condition_comparison_regulator_coefficients.csv`, their CD4 T rows). If they do not, the hit
+  list is reported as not validated. The sign of their coefficients is read from their paper before the comparison.
+- Rejected: the per-cell files (~1.8 TB); absolute predicted ages.
