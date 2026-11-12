@@ -882,3 +882,21 @@ One seed, one split, no CIs. The +0.07 needs repeat seeds before it counts.
   --n-context 4000 --cap-per-study 200` (the lead's 46635e3), job 6436768. Bar: within 1 y of the 20k-HVG MLP (8.1
   test) earns fine-tuning; beating the headline 7.46 beyond the paired CI is a finding.
 - 18:47 · RM24 seed 0 (6436762) failed in 1 s: it started at the moment the shared checkout was mid-rebase, and imported a cli.py with conflict markers (SyntaxError). The cause is gone (markers absent, rebase aborted); rerun as 6436814 at the end of the chain. Jobs import code from the shared working tree at start, so a rebase or merge in progress breaks any job starting then. RM25 started the same second and loaded fine.
+
+### 2026-11-12 19:28 · RM24 result: the rank term passes both parts of the lead's bar, by small margins
+Five seed pairs (jobs 6436763, 6436765, 6436766, 6436767, 6436814; seed 0 reproduces RM20's numbers exactly).
+Measured-profile ρ with the study's aging effects on held-out genes (mean of the three conditions):
+
+| seed | rank arm | placebo | RM17 ridge clock | age MAE rank / placebo / ridge |
+|---|---|---|---|---|
+| 0 | 0.303 | 0.233 | 0.250 | 8.78 / 8.68 / 8.17 |
+| 1 | 0.291 | 0.216 | 0.259 | 8.73 / 8.78 / 8.17 |
+| 2 | 0.266 | 0.216 | 0.265 | 8.66 / 8.63 / 8.17 |
+| 3 | 0.335 | 0.269 | 0.281 | 8.77 / 8.65 / 8.17 |
+| 4 | 0.254 | 0.237 | 0.250 | 8.69 / 8.61 / 8.17 |
+
+- (a) rank − placebo: +0.056, paired bootstrap 95 % CI [0.035, 0.071], positive in 5 of 5: **passes**.
+- (b) rank − RM17 ridge: +0.029, CI [0.009, 0.049], positive in 5 of 5: **passes** (seed 2 by 0.001).
+- Age MAE: the rank arm 8.66-8.78 vs ridge 8.17, so no gain on age itself.
+- Caveat: a bootstrap over 5 values is coarse; the five held-out gene sets overlap and two pairs share a held-out
+  context. Summary: `data/output/summary/rm24_summary.parquet`; per seed `rm24_seed{0..4}.parquet`.
