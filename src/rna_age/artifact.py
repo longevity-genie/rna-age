@@ -268,22 +268,33 @@ tracks accumulated damage (stage), not reversal within months.</p>"""
         )
     sc = SUMMARY / "sc_tabular_compare.parquet"
     if sc.exists():
-        st = (
-            pl.read_parquet(sc)
-            .filter(pl.col("representation") == "natural")
-            .pivot(on="model", index=["cohort", "n"], values="mae")
-            .join(
-                pl.read_parquet(sc)
-                .filter((pl.col("representation") == "natural") & (pl.col("model") == "tabicl"))
-                .select("cohort", pl.col("vs_ref").alias("tabicl_minus_ridge"), "lo", "hi"),
-                on="cohort",
-            )
-            .with_columns(pl.col("cohort").str.slice(0, 13))
+        c = pl.read_parquet(sc).filter(pl.col("representation") == "natural")
+        if "ref" not in c.columns:
+            c = c.with_columns(ref=pl.lit("ridge"))
+        mae = c.filter(pl.col("ref") == "ridge").pivot(on="model", index=["cohort", "n"], values="mae")
+        base = [m for m in ("ridge", "enet", "gbm") if m in mae.columns]
+        best = (
+            c.filter((pl.col("ref") == "ridge") & pl.col("model").is_in(base))
+            .sort("mae")
+            .group_by("cohort")
+            .first()
+            .select("cohort", pl.col("model").alias("best_baseline"))
         )
-        parts.append("""<h3>Tabular foundation models as single-cell clocks (RM14, D7)</h3><p>Per donor pseudobulk,
-5-fold CV by person, MAE in years; TabICLv2 minus ridge with a donor-bootstrap 95 % CI. TabICLv2 beats ridge on the
-whole sample in 4 of 7 cohorts and never loses; on single cell types it gains up to 1.8 y (Terekhova CD4 T cells 6.2 vs
-7.9 y). One TabICLv2 seed. Every class: <code>data/output/summary/sc_tabular_compare.parquet</code>.</p>"""
+        arm = "tabicl-2000g" if "tabicl-2000g" in mae.columns else "tabicl"
+        vs = c.join(best, left_on=["cohort", "ref"], right_on=["cohort", "best_baseline"]).filter(
+            pl.col("model") == arm
+        )
+        st = (
+            mae.join(best, on="cohort")
+            .join(vs.select("cohort", pl.col("vs_ref").alias(f"{arm}_minus_best"), "lo", "hi"), on="cohort")
+            .with_columns(pl.col("cohort").str.slice(0, 13))
+            .drop("mlp", strict=False)
+        )
+        parts.append("""<h3>Tabular foundation models as single-cell clocks (RM14, RM16)</h3><p>Per donor pseudobulk,
+5-fold CV by person, MAE in years. Given 2,000 genes, TabICLv2 beats the best of ridge, elastic net and boosted trees
+in 4 of 7 cohorts by 0.8 to 2.0 y (Terekhova blood 6.9 vs 8.9 y, CI by person −2.9 to −1.1) and is worse in the
+largest brain cohort (+0.8 y); 500 genes wins in 3. One seed per arm. Every class and reference:
+<code>data/output/summary/sc_tabular_compare.parquet</code>.</p>"""
                      + table(st, digits=3))  # fmt: skip
     exp = pl.read_parquet(SUMMARY / "experiments.parquet")
     k = exp.filter(pl.col("run_id").str.contains("kron-sweep-rank"))
