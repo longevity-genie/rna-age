@@ -15,7 +15,9 @@ Survey done (2026-11-12): the genome-scale CD4 T-cell Perturb-seq (Zhu, Dann …
 doi:10.1016/j.cell.2026.08.002; CZI Virtual Cells Platform, MIT licence) ships per guide × donor × condition
 pseudobulk counts. Anton's word (2026-11-12: "download virtual cell data") covers fetching that file only. Then score
 each knockdown with the CD4 T clock (TabICLv2 / ridge, RM14-16) as an age shift against non-targeting guides,
-per condition, after checking that known aging-linked genes move the expected way (written down before the run).
+per condition (D8: ridge on OneK1K-size CD4 T; the check against the paper's own aging coefficients is fixed
+before the run). Fetcher 9a158aa's predecessor and `rna-age perturb-score` (9a158aa) landed; runs (runner): the fetch
+(job 6434376), then `rna-age perturb-score` (CPU, ~60-100 GB RAM for the 44.6 GB file).
 
 ## RM18 — Bulk clock vs single-cell clock, same people: accuracy, unhealthy cohorts, interventions
 
