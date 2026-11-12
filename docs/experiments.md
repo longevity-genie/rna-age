@@ -881,3 +881,4 @@ One seed, one split, no CIs. The +0.07 needs repeat seeds before it counts.
 - RM25: `uv run --with tabicl rna-age tabfm --model tabicl --features hvg --n-genes 2000 --context nearest-study
   --n-context 4000 --cap-per-study 200` (the lead's 46635e3), job 6436768. Bar: within 1 y of the 20k-HVG MLP (8.1
   test) earns fine-tuning; beating the headline 7.46 beyond the paired CI is a finding.
+- 18:47 · RM24 seed 0 (6436762) failed in 1 s: it started at the moment the shared checkout was mid-rebase, and imported a cli.py with conflict markers (SyntaxError). The cause is gone (markers absent, rebase aborted); rerun as 6436814 at the end of the chain. Jobs import code from the shared working tree at start, so a rebase or merge in progress breaks any job starting then. RM25 started the same second and loaded fine.
