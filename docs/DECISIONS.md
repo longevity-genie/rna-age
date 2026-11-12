@@ -157,3 +157,11 @@ shifts against the paper's coefficients (p < 1e-36, ~2,400 regulators each; ρ �
 the same direction (their positive coefficient is a knockdown that looks older: the preprint's Fig. 5B and the authors'
 code), and within each cell-count tertile (ρ 0.23-0.32). No single gene passes FDR 5 % with the empirical null; the
 hit list waits for RM19's fitness correction.
+
+## D9 — Patients-vs-controls tests on single-cell cohorts are read within processing batch (2026-11-12)
+
+RM18's lupus gap (+4.8 y on every clock, p 0.001) vanished within the balanced processing batch: batch 1 held only
+controls and batch 2 mostly patients. From now on, a single-cell disease gap counts as a finding only when it is
+tested within batch (labels shuffled within batch), with the batch read from the dataset's own per-cell metadata
+(`donor_obs/*.mixed.parquet`). Where the release has no batch, the result is reported as unadjusted, never as a
+finding. Sex and ancestry are checked too, but they did not stand in for batch here.
