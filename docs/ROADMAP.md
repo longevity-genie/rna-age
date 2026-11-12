@@ -7,6 +7,10 @@ The lead (`docs/seats/LEAD.md`) keeps it. Seeded at the lead's first seating (20
 
 ## Items
 
+## RM15 — Single-cell clock, next step (after RM14)
+
+**State:** waits until 2026-11-13: Anton's choice in #rna-age > decisions (health per cell type, a usable clock, or stop); default: health per cell type · **Owner:** lead
+
 ## RM13 — A manuscript draft of the results (plan line 5)
 
 **State:** waits until 2026-11-13: Anton's answer, desk #23 and #rna-age > decisions; default: start the draft · **Owner:** lead
