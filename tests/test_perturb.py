@@ -4,7 +4,7 @@ import h5py
 import numpy as np
 import polars as pl
 
-from rna_age.train.perturb import per_gene, read_screen, shifts
+from rna_age.train.perturb import check, per_gene, read_screen, shifts
 
 
 def _write(path, X, csr: bool):
@@ -55,3 +55,22 @@ def test_per_gene_p_from_non_targeting_guides():
     g = per_gene(pl.DataFrame(rows, infer_schema_length=None))
     p = dict(zip(g["perturbed_gene_name"].to_list(), g["p"].to_list(), strict=True))
     assert p["BIG"] < 0.01 and p["NONE"] > 0.5
+
+
+def test_check_reads_agreement_per_condition_and_ignores_k562():
+    rng = np.random.default_rng(1)
+    names = [f"G{i}" for i in range(300)]
+    coef = rng.permutation(np.linspace(-1, 1, 300))  # symmetric, so -|coef| has rho 0 with coef
+    rows_g, rows_c = [], []
+    for cond, sign in (("Rest", 1.0), ("Stim8hr", 0.0)):
+        shift = coef + rng.normal(0, 0.5, 300) if sign else -np.abs(coef)  # Stim8hr: tied to |coef|, not to its sign
+        rows_g += [
+            {"culture_condition": cond, "perturbed_gene_name": n, "shift": float(s)}
+            for n, s in zip(names, shift, strict=True)
+        ]
+        rows_c += [{"celltype": cond, "regulator": n, "coef_mean": float(c)} for n, c in zip(names, coef, strict=True)]
+    rows_c += [{"celltype": "K562", "regulator": n, "coef_mean": 0.0} for n in names]
+    out = {r["culture_condition"]: r for r in check(pl.DataFrame(rows_g), pl.DataFrame(rows_c)).to_dicts()}
+    assert set(out) == {"Rest", "Stim8hr"}
+    assert out["Rest"]["validated"] and out["Rest"]["rho"] > 0.8 and 59 <= out["Rest"]["n_top"] <= 61
+    assert not out["Stim8hr"]["validated"]

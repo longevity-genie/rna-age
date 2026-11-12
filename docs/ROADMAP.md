@@ -9,15 +9,19 @@ The lead (`docs/seats/LEAD.md`) keeps it. Seeded at the lead's first seating (20
 
 ## RM17 — Perturbation screens scored by the single-cell clocks
 
-**State:** unattended · **Owner:** lead (fetcher and scoring code), then runner (fetch, runs)
+**State:** done 2026-11-12 (scoring, D8's check passed); follow-up below · **Owner:** lead
 
 Survey done (2026-11-12): the genome-scale CD4 T-cell Perturb-seq (Zhu, Dann … Marson, Cell 2026,
-doi:10.1016/j.cell.2026.08.002; CZI Virtual Cells Platform, MIT licence) ships per guide × donor × condition
-pseudobulk counts. Anton's word (2026-11-12: "download virtual cell data") covers fetching that file only. Then score
-each knockdown with the CD4 T clock (TabICLv2 / ridge, RM14-16) as an age shift against non-targeting guides,
-per condition (D8: ridge on OneK1K-size CD4 T; the check against the paper's own aging coefficients is fixed
-before the run). Fetcher 9a158aa's predecessor and `rna-age perturb-score` (9a158aa) landed; runs (runner): the fetch
-(job 6434376), then `rna-age perturb-score` (CPU, ~60-100 GB RAM for the 44.6 GB file).
+doi:10.1016/j.cell.2026.08.002; CZI Virtual Cells Platform, MIT licence), per guide × donor × condition pseudobulk.
+Scored by `rna-age perturb-score` (job 6434582, 202,110 profiles, 4 donors, 3 conditions); checked by
+`rna-age perturb-check`. **Result:** the clock's per-gene shifts agree with the paper's own aging coefficients in every
+condition (Spearman ρ 0.26, p < 1e-36, ~2,400 regulators each; ρ ≈ 0.4 on their strongest fifth), in the same
+direction (their positive coefficient = knockdown looks older, read from the preprint and code), and within each
+cell-count tertile (ρ 0.23-0.32, so not a cell-fitness artefact). Single genes: none passes FDR 5 % with the
+empirical null (its floor is p ≈ 0.001 with ~960 non-targeting guides); 39-48 per condition do with a normal null
+fitted to the non-targeting guides. The largest movers are essential genes (chaperonins, splicing, DNA repair), so a
+hit list needs the fitness confound handled first. Like the paper, mTORC1 brakes (TSC1/2, DEPDC5) knocked down read
+slightly younger (not significant one by one); MTOR knocked down reads 15 y younger at 48 h stimulation.
 
 ## RM18 — Bulk clock vs single-cell clock, same people: accuracy, unhealthy cohorts, interventions
 

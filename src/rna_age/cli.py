@@ -395,7 +395,9 @@ def biology_cmd(
 @app.command("sc-tabular")
 def sc_tabular_cmd(
     dataset_id: str,
-    models: str = typer.Option("ridge,mlp,tabicl", help="comma-separated: ridge, enet, gbm, mlp, tabicl (--with tabicl)"),
+    models: str = typer.Option(
+        "ridge,mlp,tabicl", help="comma-separated: ridge, enet, gbm, mlp, tabicl (--with tabicl)"
+    ),
     reference: str = typer.Option("ridge", help="the model every other is compared against"),
     n_genes: int = typer.Option(500),
     mapping: str = typer.Option("broad", help="broad (blood classes) | cell_type (the dataset's own labels)"),
@@ -420,6 +422,15 @@ def perturb_score_cmd(
     print(info)
     with __import__("polars").Config(tbl_rows=40, tbl_width_chars=160):
         print(g.head(40))
+
+
+@app.command("perturb-check")
+def perturb_check_cmd() -> None:
+    """RM17, D8: do the per-gene shifts agree with the paper's own aging coefficients? Run before reading hits."""
+    from rna_age.train.perturb import run_check
+
+    with __import__("polars").Config(tbl_width_chars=160):
+        print(run_check())
 
 
 @app.command("kron")

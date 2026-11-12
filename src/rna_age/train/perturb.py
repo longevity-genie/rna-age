@@ -151,3 +151,34 @@ def run(cohort: str = "3faad104-2ab8-4434-816d-474d8d2641db", n_genes: int = 200
     g.write_parquet(OUTPUT / "summary" / "perturb_cd4_genes.parquet")
     log.info("scored %d profiles; clock %s", s.height, info)
     return g, info
+
+
+COEFFICIENTS = "aging_prediction_condition_comparison_regulator_coefficients.csv"
+
+
+def check(genes: pl.DataFrame, coef: pl.DataFrame, top: float = 0.2) -> pl.DataFrame:
+    """D8's check, before any hit is read: per condition, Spearman of the per-gene shifts against the paper's own
+    aging coefficients (their CD4 T rows of the same condition), over all shared regulators and over the ``top``
+    fraction with the largest |coefficient|. ``validated`` = p < 0.05 over all of them."""
+    from scipy.stats import spearmanr
+
+    coef = coef.filter(pl.col("celltype") != "K562").select(
+        pl.col("celltype").alias("culture_condition"), pl.col("regulator").alias("perturbed_gene_name"), "coef_mean"
+    )
+    j = genes.join(coef, on=["culture_condition", "perturbed_gene_name"])
+    rows = []
+    for (cond,), d in sorted(j.group_by("culture_condition"), key=lambda t: t[0][0]):
+        rho, p = spearmanr(d["shift"], d["coef_mean"])
+        q = d.filter(pl.col("coef_mean").abs() >= pl.col("coef_mean").abs().quantile(1 - top))
+        rho_t, p_t = spearmanr(q["shift"], q["coef_mean"])
+        rows.append({"culture_condition": cond, "n": d.height, "rho": float(rho), "p": float(p),
+                     "n_top": q.height, "rho_top": float(rho_t), "p_top": float(p_t), "validated": bool(p < 0.05)})  # fmt: skip
+    return pl.DataFrame(rows)
+
+
+def run_check() -> pl.DataFrame:
+    g = pl.read_parquet(OUTPUT / "summary" / "perturb_cd4_genes.parquet")
+    c = pl.read_csv(download_dir("cd4_perturbseq") / COEFFICIENTS)
+    out = check(g, c)
+    out.write_parquet(OUTPUT / "summary" / "perturb_cd4_check.parquet")
+    return out
