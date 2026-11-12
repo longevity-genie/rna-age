@@ -49,6 +49,14 @@ def census_pseudobulk(
     pseudobulk(dataset_id, by_cell_type=by_cell_type)
 
 
+@app.command("census-donor-obs")
+def census_donor_obs(dataset_id: str = typer.Argument(..., help="Census dataset_id (h5ad already fetched)")) -> None:
+    """Per-donor obs metadata of one Census dataset (columns constant within a donor) to data/input/.../donor_obs/."""
+    from rna_age.sources.census_pseudobulk import donor_obs
+
+    donor_obs(dataset_id)
+
+
 @app.command()
 def merge() -> None:
     """Merge all sources into data/interim/samples_all.parquet with dedup, cohort labels and splits."""

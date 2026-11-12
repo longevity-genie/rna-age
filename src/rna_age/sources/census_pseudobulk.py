@@ -166,6 +166,37 @@ def _var_ids(f: h5py.File, raw: bool) -> list[str]:
     return [x.decode() if isinstance(x, bytes) else str(x) for x in ids]
 
 
+def donor_columns(obs: pl.DataFrame, donor: str = "donor_id") -> pl.DataFrame:
+    """The obs columns constant within each donor and varying between donors, one row per donor."""
+    keep = [donor]
+    for c in obs.columns:
+        if c == donor:
+            continue
+        per = obs.group_by(donor).agg(pl.col(c).n_unique().alias("k"))
+        if per["k"].max() == 1 and obs[c].n_unique() > 1:
+            keep.append(c)
+    return obs.select(keep).unique(donor).sort(donor)
+
+
+def donor_obs(dataset_id: str) -> Path:
+    """Per-donor metadata of one fetched Census dataset (obs only, no counts): every column constant within a donor."""
+    src = download_dir(NAME) / "h5ads" / f"{dataset_id}.h5ad"
+    with h5py.File(src, "r") as f:
+        obs = f["obs"]
+        index = obs.attrs.get("_index", "_index")
+        names = [k for k in obs.keys() if k != index and k != "__categories"]
+        cols = {}
+        for k in names:
+            v = _obs_column(obs, k)
+            cols[k] = [None if x is None else str(x) for x in v] if v.dtype == object else v
+    out = donor_columns(pl.DataFrame(cols, strict=False))
+    path = input_dir(NAME) / "donor_obs" / f"{dataset_id}.parquet"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    out.write_parquet(path, compression="zstd")
+    log.info("%s: %d donors, columns %s", dataset_id[:8], out.height, out.columns)
+    return path
+
+
 def pseudobulk(dataset_id: str, chunk: int = 200_000, by_cell_type: bool = False) -> Path:
     """Sum raw counts of primary cells per donor × tissue (× cell type) for one dataset (Slurm job).
 

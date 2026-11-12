@@ -834,3 +834,8 @@ bucket plus three small files, S3-ETag verified, into `data/download/cd4_perturb
 - 15:12 · fetch done (8 min 26 s): GWCD4i.pseudobulk_merged.h5ad 44,566,657,140 B (S3 ETag verified) and three small files (md5 verified), sizes match their sidecars. Scoring 6434582 waited on the account's CPU cap (AssocGrpCpuLimit), then ran.
 - 16:07 · perturb-score 6434582 done (4 min 51 s, no errors): perturb_cd4_profiles.parquet (202,110 rows) and perturb_cd4_genes.parquet (35,282 rows). Not opened beyond row counts: D8's check is the lead's first.
 - 16:18 · `rna-age perturb-check` (D8, 807dac6) run on the login node in seconds: `perturb_cd4_check.parquet`; committed with the two scoring outputs.
+
+### 2026-11-12 16:30 · RM18 step 2b: per-donor metadata of the lupus dataset (218acb0f, Perez et al. 2022)
+New `rna-age census-donor-obs <dataset_id>` (`census_pseudobulk.donor_obs`): reads only the obs of the fetched h5ad
+and keeps every column constant within a donor and varying between donors, one row per donor, to
+`data/input/census_pseudobulk/donor_obs/<dataset_id>.parquet`. CPU job 6435226.
