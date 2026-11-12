@@ -951,3 +951,32 @@ allow-list unpickler):
   command.
 - 20:29 · RM25: 6439020 cancelled after 1.5 min. Resubmitted as 6439059 with the lead's `--splits test` (844a953: the bar reads
   test MAE only, 376 query studies instead of 810, about 6.5 h), TIME=08:00:00.
+
+### 2026-11-12 22:30 · RM22 results: frozen Geneformer embeddings as donor-age clock features
+`uv run --with tabicl --with transformers rna-age fm-embed-clock <cohort>` at 705332b, one GPU job at a time: 5e57cd50
+6435664 (rate probe), 5c97eeeb 6436081, 218acb0f 6436082, c838aec3 6436083, terekhova2023 6436084, 3faad104 6436085,
+37a17b78 6436086; all completed. Model: Geneformer V2-104M (Apache 2.0), fp16 autocast on the 11 GB cards. Tahoe-x1-70M
+(first choice) was not used: its config needs FlashAttention and bf16 (Composer/llm-foundry), which these cards lack.
+Per donor ≤ 200 cells, stratified by class, plus ≤ 200 CD4 T cells in blood; seed 0; Geneformer's V2 rank-value input
+(counts / total × 10⁴ / gene median, 4,096 tokens) and its default layer (second to last); `cls` token (primary) and
+gene-mean vectors averaged per donor. Ridge and TabICLv2 on RM14's folds and donors. Rates: brain 35-39 cells/s
+(23-26 % of cells truncated at 4,096 genes), blood 70-221 cells/s. Tables: `fm_embedding_clock.parquet` (vs the
+pseudobulk TabICLv2 2,000 genes and the row's best of ridge/enet/gbm, paired bootstrap over persons),
+`fm_embedding_oof.parquet`. Whole sample, Geneformer `cls` + TabICLv2 against pseudobulk TabICLv2 2,000 genes, MAE:
+
+| cohort | donors | embedding | pseudobulk | difference [95 % CI] |
+|---|---|---|---|---|
+| terekhova2023 (blood) | 317 | 8.73 | 6.92 | +1.82 [1.05, 2.54] |
+| 3faad104 (blood) | 981 | 8.30 | 7.37 | +0.93 [0.62, 1.23] |
+| c838aec3 (blood) | 625 | 6.20 | 5.77 | +0.43 [0.12, 0.72] |
+| 218acb0f (blood; batch confounded with disease, age result only) | 261 | 7.97 | 6.88 | +1.10 [0.51, 1.75] |
+| 37a17b78 (brain) | 783 | 7.49 | 7.40 | +0.09 [−0.18, 0.36] |
+| 5c97eeeb (brain) | 299 | 7.88 | 5.81 | +2.08 [1.46, 2.67] |
+| 5e57cd50 (brain) | 100 | 6.12 | 6.19 | −0.07 [−0.59, 0.45] |
+
+- Bar (beat pseudobulk TabICL beyond the CI in ≥ 4 of 7): not met. 0 of 7; worse in 5, tie in 2. No embedding
+  variant (cls/mean × ridge/TabICLv2) beats the 2,000-gene TabICLv2 in any of 11 cohort × representation rows; CD4 T
+  rows are worse in all four blood cohorts.
+- Against the best classical pseudobulk baseline the embeddings mostly tie; the one win is c838aec3 whole sample
+  (cls + ridge 6.13 vs ridge 6.97, −0.84 [−1.24, −0.44]), where TabICLv2 on genes is still better.
+- Limits: one model, one seed, ≤ 200 cells per donor (pseudobulk uses every cell), no fine-tuning.
