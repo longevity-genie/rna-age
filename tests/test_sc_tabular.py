@@ -35,3 +35,27 @@ def test_compare_reports_the_difference_to_the_reference():
     c = compare(pl.DataFrame(rows), n_boot=200)
     t = c.filter(pl.col("model") == "tabicl").row(0, named=True)
     assert t["vs_ref"] == -3.0 and t["hi"] < 0
+
+
+def test_new_models_add_to_an_earlier_run(tmp_path):
+    from rna_age.train.sc_tabular import merge
+
+    path = tmp_path / "x.parquet"
+    old = pl.DataFrame({"representation": ["natural"] * 2, "model": ["ridge", "tabicl"], "donor": ["a", "a"],
+                        "age": [50.0, 50.0], "pred": [51.0, 52.0]})  # fmt: skip
+    old.write_parquet(path)
+    new = pl.DataFrame({"representation": ["natural"] * 2, "model": ["gbm", "ridge"], "donor": ["a", "a"],
+                        "age": [50.0, 50.0], "pred": [49.0, 50.5]})  # fmt: skip
+    m = merge(new, path).sort("model")
+    assert m["model"].to_list() == ["gbm", "ridge", "tabicl"]
+    assert m.filter(pl.col("model") == "ridge")["pred"].item() == 50.5  # the new run replaces its own models
+
+
+def test_enet_and_gbm_recover_a_signal():
+    rng = np.random.default_rng(2)
+    n = 150
+    age = rng.uniform(20, 80, n)
+    X = rng.normal(size=(n, 30))
+    X[:, 0] += age / 3
+    pred = cross_validate(X, age, np.arange(n), ("enet", "gbm"), n_genes=30)
+    assert np.corrcoef(pred["enet"], age)[0, 1] > 0.8 and np.corrcoef(pred["gbm"], age)[0, 1] > 0.7

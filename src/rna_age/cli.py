@@ -395,7 +395,8 @@ def biology_cmd(
 @app.command("sc-tabular")
 def sc_tabular_cmd(
     dataset_id: str,
-    models: str = typer.Option("ridge,mlp,tabicl", help="comma-separated: ridge, mlp, tabicl (uv run --with tabicl)"),
+    models: str = typer.Option("ridge,mlp,tabicl", help="comma-separated: ridge, enet, gbm, mlp, tabicl (--with tabicl)"),
+    reference: str = typer.Option("ridge", help="the model every other is compared against"),
     n_genes: int = typer.Option(500),
     mapping: str = typer.Option("broad", help="broad (blood classes) | cell_type (the dataset's own labels)"),
 ) -> None:
@@ -404,7 +405,7 @@ def sc_tabular_cmd(
 
     pred = run(dataset_id, tuple(models.split(",")), n_genes=n_genes, mapping=mapping)
     with __import__("polars").Config(tbl_rows=60, tbl_width_chars=160):
-        print(compare(pred))
+        print(compare(pred, reference=reference))
 
 
 @app.command("kron")

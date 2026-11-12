@@ -7,7 +7,7 @@ the donor's age, so a cohort is a small table (a few hundred donors).
 Per cohort and representation (``natural``: the donor's whole pseudobulk; ``class:<c>``: one cell class alone, for
 classes with ≥ ``min_cells`` cells in ≥ 50 donors), donors × log-CPM; 5-fold cross-validation grouped by person.
 Inside each training fold: the ``n_genes`` most variable genes, standardised on the fold. Models: ``ridge`` (RidgeCV),
-``mlp`` (a small network), ``tabicl`` (TabICLv2, in context: ``uv run --with tabicl``). Out-of-fold predictions per
+``enet`` (elastic net, inner CV), ``gbm`` (gradient-boosted trees), ``mlp`` (a small network), ``tabicl`` (TabICLv2, in context: ``uv run --with tabicl``). Out-of-fold predictions per
 donor go to ``data/output/summary/sc_tabular_<cohort>.parquet``; :func:`compare` gives each model's MAE and r, and
 the MAE difference against ridge with a 95 % CI from resampling donors (D7's bar: the CI excludes 0).
 """
@@ -25,7 +25,7 @@ from rna_age.train.composition import _cpm, donor_profiles
 
 log = logging.getLogger(__name__)
 
-MODELS = ("ridge", "mlp", "tabicl")
+MODELS = ("ridge", "enet", "gbm", "mlp", "tabicl")
 
 
 def _fit_predict(model: str, Xtr: np.ndarray, ytr: np.ndarray, Xte: np.ndarray, seed: int) -> np.ndarray:
@@ -33,6 +33,17 @@ def _fit_predict(model: str, Xtr: np.ndarray, ytr: np.ndarray, Xte: np.ndarray, 
         from sklearn.linear_model import RidgeCV
 
         return RidgeCV(alphas=np.logspace(-1, 5, 13)).fit(Xtr, ytr).predict(Xte)
+    if model == "enet":  # elastic net, the form of most published clocks; l1 ratio and alpha by inner CV
+        from sklearn.linear_model import ElasticNetCV
+
+        m = ElasticNetCV(l1_ratio=[0.1, 0.5, 0.9], alphas=30, cv=5, max_iter=5000, random_state=seed, n_jobs=-1)
+        return m.fit(Xtr, ytr).predict(Xte)
+    if model == "gbm":  # gradient-boosted trees, early stopping on an inner split
+        from sklearn.ensemble import HistGradientBoostingRegressor
+
+        m = HistGradientBoostingRegressor(learning_rate=0.05, max_iter=1000, max_leaf_nodes=15, l2_regularization=1.0,
+                                          early_stopping=True, validation_fraction=0.15, random_state=seed)  # fmt: skip
+        return m.fit(Xtr, ytr).predict(Xte)
     if model == "mlp":
         from sklearn.neural_network import MLPRegressor
 
@@ -85,13 +96,23 @@ def run(
         X = np.log1p(_cpm(P[ok].sum(1) if rep == "natural" else P[ok, dp["cix"][rep[6:]]]))
         pred = cross_validate(X, age[ok], groups[ok], models, n_genes, seed)
         for m, p in pred.items():
-            rows += [{"dataset_id": dataset_id, "representation": rep, "model": m, "donor": d, "age": float(a),
+            rows += [{"dataset_id": dataset_id, "representation": rep, "model": m if n_genes == 500 else f"{m}-{n_genes}g", "donor": d, "age": float(a),
                       "pred": float(v)} for d, a, v in zip(np.array(donors)[ok], age[ok], p, strict=True)]  # fmt: skip
         log.info("%s %s: %s", dataset_id[:8], rep,
                  {m: round(float(np.abs(p - age[ok]).mean()), 2) for m, p in pred.items()})  # fmt: skip
-    out = pl.DataFrame(rows)
-    out.write_parquet(OUTPUT / "summary" / f"sc_tabular_{dataset_id[:8]}.parquet")
+    path = OUTPUT / "summary" / f"sc_tabular_{dataset_id[:8]}.parquet"
+    out = merge(pl.DataFrame(rows), path)  # a run of new models adds to the earlier models' predictions
+    out.write_parquet(path)
     return out
+
+
+def merge(new: pl.DataFrame, path) -> pl.DataFrame:
+    """Rows of ``new`` replace the same (representation, model) rows of an earlier run's file; others are kept."""
+    if not path.exists():
+        return new
+    old = pl.read_parquet(path)
+    keep = old.join(new.select("representation", "model").unique(), on=["representation", "model"], how="anti")
+    return pl.concat([keep, new], how="vertical_relaxed")
 
 
 def compare(pred: pl.DataFrame, reference: str = "ridge", n_boot: int = 2000, seed: int = 0) -> pl.DataFrame:
