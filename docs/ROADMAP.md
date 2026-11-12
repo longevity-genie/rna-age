@@ -7,15 +7,6 @@ The lead (`docs/seats/LEAD.md`) keeps it. Seeded at the lead's first seating (20
 
 ## Items
 
-## RM14 — Tabular foundation models as single-cell aging clocks (D7)
-
-**State:** building · **Owner:** runner (runs; code landed in d998476), then lead (what they mean)
-
-Runs, one GPU each: `uv run --with tabicl rna-age sc-tabular <cohort>` for the blood cohorts (`3faad104…`,
-`c838aec3…`, `218acb0f…`, `terekhova2023`) and with `--mapping cell_type` for the brain cohorts (`37a17b78…`,
-`5c97eeeb…`, `5e57cd50…`). Output: `data/output/summary/sc_tabular_<cohort>.parquet` and the compare table in the
-log. The bar (D7): TabICLv2 beats ridge, donor-bootstrap CI excluding 0, in at least two cohorts.
-
 ## RM13 — A manuscript draft of the results (plan line 5)
 
 **State:** waits until 2026-11-13: Anton's answer, desk #23 and #rna-age > decisions; default: start the draft · **Owner:** lead
