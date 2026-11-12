@@ -7,13 +7,15 @@ The lead (`docs/seats/LEAD.md`) keeps it. Seeded at the lead's first seating (20
 
 ## Items
 
-## RM17 — Perturbation screens scored by the single-cell clocks: survey first
+## RM17 — Perturbation screens scored by the single-cell clocks
 
-**State:** building · **Owner:** lead (survey of public perturbation scRNA-seq in primary immune or brain cell types)
+**State:** unattended · **Owner:** lead (fetcher and scoring code), then runner (fetch, runs)
 
-Anton (2026-11-12): push the single-cell clock to predict genetic perturbations ("virtual cell" data). Step 1, the
-survey (no downloads); then, on his word, a head-to-head with published single-cell clocks, and scoring a matching
-screen per cell type as relative age shifts, checked first on known aging-linked genes.
+Survey done (2026-11-12): the genome-scale CD4 T-cell Perturb-seq (Zhu, Dann … Marson, Cell 2026,
+doi:10.1016/j.cell.2026.08.002; CZI Virtual Cells Platform, MIT licence) ships per guide × donor × condition
+pseudobulk counts. Anton's word (2026-11-12: "download virtual cell data") covers fetching that file only. Then score
+each knockdown with the CD4 T clock (TabICLv2 / ridge, RM14-16) as an age shift against non-targeting guides,
+per condition, after checking that known aging-linked genes move the expected way (written down before the run).
 
 ## RM18 — Bulk clock vs single-cell clock, same people: accuracy, unhealthy cohorts, interventions
 
