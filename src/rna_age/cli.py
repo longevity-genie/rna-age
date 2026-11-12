@@ -372,6 +372,16 @@ def summary() -> None:
     write_summary()
 
 
+@app.command()
+def inventory(
+    fetch: bool = typer.Option(True, help="fetch scBaseCount / recount3 / ENA metadata first (resumable)"),
+) -> None:
+    """Age-labelled human transcriptomes beyond ours, from metadata only → data/output/summary/age_inventory.parquet."""
+    from rna_age.sources.inventory import inventory as run
+
+    print(run(fetch=fetch))
+
+
 def main() -> None:
     app()
 

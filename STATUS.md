@@ -53,6 +53,11 @@ stop before Anton is back; 07:00 report, then keep updating; one tabbed artifact
   counts only when the text has donor ages). Waits for ARCHS4 metadata.
 - ARCHS4 parser written (`sources/archs4.py`, `annotate.py`: sex/tissue/disease/tumour/cell line/stem/prenatal/
   single-cell flags), waiting for the download.
+- 2026-11-12 age inventory (metadata only, `rna-age inventory` → `data/output/summary/age_inventory.parquet`):
+  Census LTS all 1,086 human non-spatial datasets (obs via TileDB-SOMA with the S3 proxy set explicitly, 159 M
+  cells in ~2 min), Discover datasets newer than the LTS (upper bounds), scBaseCount 2026-01-12 (35,263 SRX +
+  ENA BioSample attributes), recount3 human SRA (277,781 experiments). New adult donors/samples passing the quality
+  rules: Census 2,356 healthy (3,815 any health), scBaseCount 492 (1,656), recount3 bulk 4,430 (6,380).
 
 ## Running (jobs carry seat / what / eta in their Slurm comment)
 - RM20-RM23 (virtual-cell ideas, Anton 2026-11-12): four arms being built in parallel worktrees; jobs follow.
