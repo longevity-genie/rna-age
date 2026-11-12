@@ -74,3 +74,25 @@ def test_check_reads_agreement_per_condition_and_ignores_k562():
     assert set(out) == {"Rest", "Stim8hr"}
     assert out["Rest"]["validated"] and out["Rest"]["rho"] > 0.8 and 59 <= out["Rest"]["n_top"] <= 61
     assert not out["Stim8hr"]["validated"]
+
+
+def test_hits_removes_the_cell_loss_trend_and_keeps_a_real_shift():
+    from rna_age.train.perturb import hits
+
+    rng = np.random.default_rng(2)
+    rows = []
+    for cond in ("Rest", "Stim8hr"):
+        for d in ("a", "b", "c"):
+            rows += [{"donor_id": d, "culture_condition": cond, "guide_id": f"n{i}", "perturbed_gene_name": None,
+                      "guide_type": "non-targeting", "n_cells": 100, "shift": float(rng.normal(0, 1))} for i in range(300)]  # fmt: skip
+            for gi in range(400):  # essential-like genes: fewer cells, a shift that follows cell loss
+                cells = int(rng.integers(10, 100))
+                trend = 3 * np.log(100 / cells)
+                extra = 4.0 if gi == 0 else 0.0  # REAL: shifted beyond its cell loss
+                for k in range(2):
+                    rows.append({"donor_id": d, "culture_condition": cond, "guide_id": f"g{gi}_{k}", "perturbed_gene_name": f"G{gi}",
+                                 "guide_type": "targeting", "n_cells": cells, "shift": float(trend + extra + rng.normal(0, 1))})  # fmt: skip
+    g = hits(pl.DataFrame(rows, infer_schema_length=None))
+    rep = set(g.filter(pl.col("replicated"))["perturbed_gene_name"].to_list())
+    assert "G0" in rep
+    assert len(rep) <= 3  # the cell-loss trend alone does not make hits

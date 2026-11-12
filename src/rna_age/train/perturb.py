@@ -182,3 +182,62 @@ def run_check() -> pl.DataFrame:
     out = check(g, c)
     out.write_parquet(OUTPUT / "summary" / "perturb_cd4_check.parquet")
     return out
+
+
+def _fitness_trend(x: np.ndarray, y: np.ndarray, bins: int = 20):
+    """Median of ``y`` in quantile bins of ``x``, linearly interpolated: the shift a knockdown gets from its cell loss
+    alone."""
+    edges = np.unique(np.quantile(x, np.linspace(0, 1, bins + 1)))
+    mid, med = [], []
+    for lo, hi in zip(edges[:-1], edges[1:], strict=True):
+        m = (x >= lo) & (x <= hi)
+        if m.sum() >= 5:
+            mid.append(np.median(x[m]))
+            med.append(np.median(y[m]))
+    return lambda v: np.interp(v, mid, med)
+
+
+def hits(s: pl.DataFrame, fdr: float = 0.05) -> pl.DataFrame:
+    """RM19: per perturbed gene and condition, the age shift left after the cell-loss trend, tested against the
+    non-targeting guides. Fitness = log of a profile's cells over the median cells of its donor × condition's
+    non-targeting profiles; the trend (shift on fitness) is fitted on the targeting genes; a gene's residual is
+    z-scored by the non-targeting guides' residual spread over sqrt(its guides); BH within condition."""
+    from scipy.stats import norm
+
+    is_ntc = pl.col("guide_type").str.contains("(?i)non")
+    base = s.filter(is_ntc).group_by("donor_id", "culture_condition").agg(pl.col("n_cells").median().alias("ntc_cells"))
+    s = s.join(base, on=["donor_id", "culture_condition"]).with_columns(
+        fit=(pl.col("n_cells") / pl.col("ntc_cells")).log()
+    )
+    out = []
+    for (cond,), d in s.group_by("culture_condition"):
+        tg = (
+            d.filter(~is_ntc)
+            .group_by("perturbed_gene_name")
+            .agg(pl.col("shift").mean(), pl.col("fit").mean(), pl.col("guide_id").n_unique().alias("guides"))
+        )
+        nt = d.filter(is_ntc).group_by("guide_id").agg(pl.col("shift").mean(), pl.col("fit").mean())
+        f = _fitness_trend(tg["fit"].to_numpy(), tg["shift"].to_numpy())
+        sd = float(np.std(nt["shift"].to_numpy() - f(nt["fit"].to_numpy()), ddof=1))
+        r = tg["shift"].to_numpy() - f(tg["fit"].to_numpy())
+        z = r / (sd / np.sqrt(tg["guides"].to_numpy()))
+        p = 2 * norm.sf(np.abs(z))
+        o = np.argsort(p)
+        q = np.empty_like(p)
+        q[o] = np.minimum.accumulate((p[o] * len(p) / np.arange(1, len(p) + 1))[::-1])[::-1]
+        out.append(tg.with_columns(culture_condition=pl.lit(cond), residual=pl.Series(r), z=pl.Series(z),
+                                   p=pl.Series(p), q=pl.Series(np.minimum(q, 1))))  # fmt: skip
+    g = pl.concat(out)
+    sig = g.filter(pl.col("q") < fdr)
+    agree = (
+        sig.group_by("perturbed_gene_name")
+        .agg(pl.len().alias("conditions"), pl.col("residual").sign().n_unique().alias("signs"))
+        .filter((pl.col("conditions") >= 2) & (pl.col("signs") == 1))
+    )
+    return g.with_columns(replicated=pl.col("perturbed_gene_name").is_in(agree["perturbed_gene_name"].implode()))
+
+
+def run_hits() -> pl.DataFrame:
+    g = hits(pl.read_parquet(OUTPUT / "summary" / "perturb_cd4_profiles.parquet"))
+    g.write_parquet(OUTPUT / "summary" / "perturb_cd4_hits.parquet")
+    return g

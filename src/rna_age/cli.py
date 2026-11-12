@@ -459,6 +459,18 @@ def clock_disease_cmd(n_perm: int = typer.Option(1000)) -> None:
         print(run(n_perm=n_perm))
 
 
+@app.command("perturb-hits")
+def perturb_hits_cmd() -> None:
+    """RM19: knockdowns that shift the clock beyond their cell loss, FDR 5 % in two or more conditions, same sign."""
+    import polars as pl
+
+    from rna_age.train.perturb import run_hits
+
+    g = run_hits().filter(pl.col("replicated")).sort("perturbed_gene_name", "culture_condition")
+    with pl.Config(tbl_rows=120, tbl_width_chars=160):
+        print(g.select("perturbed_gene_name", "culture_condition", "shift", "residual", "fit", "q"))
+
+
 @app.command("kron")
 def kron_cmd(
     encoding: str = typer.Option("rank", help="rank | genome | genome-shuffled"),
