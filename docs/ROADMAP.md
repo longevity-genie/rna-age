@@ -28,7 +28,14 @@ Step 1 landed (`rna-age clock-compare`, 2026-11-12): 7 cohorts, 3,300 donors. Bl
 never trained on these people, ranks age as well as the single-cell clock or better (r 0.80-0.92 vs 0.77-0.85), MAE
 equal in 3 of 4 (OneK1K: 2.9 y worse, a -7.6 y offset). Brain (3 single-nucleus cortex cohorts): the bulk clock reads
 10-39 y young (a level offset; r 0.70-0.89 vs 0.76-0.91). The two clocks agree only partly on who is old for their
-age (Spearman of the age-adjusted gaps 0.35-0.64; -0.13 in the cohort of narrow ages). Step 2 next.
+age (Spearman of the age-adjusted gaps 0.35-0.64; -0.13 in the cohort of narrow ages).
+
+Step 2 landed (`rna-age clock-disease`; single-cell clocks trained on 3faad104's 981 healthy donors, all clocks
+outside the cohort; label-shuffle null, 1,000 shuffles). Lupus (162 vs 99): every clock reads patients older, bulk
++4.8 y, health clock +4.6, single-cell whole sample +5.2, CD4 T +5.1, CD8 T +3.9, NK/B +3.5, monocytes +1.5 (all p
+0.001, the null's floor). COVID-19 (156 vs 25 controls): no clock separates (single-cell whole sample +4.8, p 0.055;
+the rest p > 0.15). Open before it is a finding: lupus patients are mostly women and were processed apart from some
+controls, so a sex-matched and batch-matched rerun comes first (step 2b).
 
 ## RM13 — A manuscript draft of the results (plan line 5)
 
