@@ -7,6 +7,14 @@ The lead (`docs/seats/LEAD.md`) keeps it. Seeded at the lead's first seating (20
 
 ## Items
 
+## RM17 — Perturbation screens scored by the single-cell clocks: survey first
+
+**State:** building · **Owner:** lead (survey of public perturbation scRNA-seq in primary immune or brain cell types)
+
+Anton (2026-11-12): push the single-cell clock to predict genetic perturbations ("virtual cell" data). Step 1, the
+survey (no downloads); then, on his word, a head-to-head with published single-cell clocks, and scoring a matching
+screen per cell type as relative age shifts, checked first on known aging-linked genes.
+
 ## RM15 — Single-cell clock, next step (after RM14)
 
 **State:** waits until 2026-11-13: Anton's choice in #rna-age > decisions (health per cell type, a usable clock, or stop); default: health per cell type · **Owner:** lead
