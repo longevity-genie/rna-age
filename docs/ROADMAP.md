@@ -15,6 +15,39 @@ RM17's largest age shifts are essential genes. Model each knockdown's shift with
 knockdown's overall transcriptional effect size) as covariates, test the residual against the non-targeting guides,
 and report genes passing FDR 5 % in at least two conditions.
 
+## RM20 — Multitask: one network on age plus Marson knockdown effects
+
+**State:** building (runner, Anton's word 2026-11-12: "test more ideas ... virtual cell models learned many tricks
+transferable to aging") · **Owner:** runner builds, lead reviews the merge
+
+Shared encoder, an age head and a knockdown-Δ head (DEG-weighted loss), genes held out. Bar fixed before the run: the Δ
+head beats the training-mean Δ and ridge on held-out genes (DEG recall, not only Δ correlation); age MAE no worse than
+the clock without the head by more than 0.2 y; held-out knockdowns' age shifts correlate with the paper's aging effects
+above RM17's ρ 0.26; a placebo with Δ shuffled across genes fails all three.
+
+## RM21 — Unseen-knockdown prediction from gene embeddings
+
+**State:** building (runner, same word) · **Owner:** runner builds, lead reviews the merge
+
+The age shift and Δ of knockdowns never seen, from ESM-2 embeddings of the knocked-down gene, with TabICL and ridge.
+Bar: beats the training-mean and a ridge on random embeddings (shuffled gene ↔ embedding) on held-out genes.
+
+## RM22 — Frozen virtual-cell embeddings as clock features
+
+**State:** building (runner, same word) · **Owner:** runner builds, lead reviews the merge
+
+Tahoe-x1 or Geneformer cell embeddings, pooled per donor, into TabICL; against our pseudobulk TabICL on the same folds
+(D7: 5-fold by person). Bar: lower MAE by more than the paired bootstrap's 95 % CI in at least 4 of 7 cohorts. Any
+disease reading follows D9 (within batch).
+
+## RM23 — MaxToki in-silico knockdown screen of CD4 T cells
+
+**State:** building (runner, same word) · **Owner:** runner builds, lead reviews the merge
+
+Bar: its predicted aging effects correlate with the Marson screen's and with our clock's RM17 shifts (Spearman, p <
+0.05 per condition), compared with the same correlation for a random-gene-order placebo. Licence of the weights read
+before any output leaves the repository.
+
 ## RM18 — Bulk clock vs single-cell clock, same people: accuracy, unhealthy cohorts, interventions
 
 **State:** building · **Owner:** lead (comparison code), then runner (pseudobulk passes and GPU runs)
