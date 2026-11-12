@@ -37,8 +37,12 @@ outside the cohort; label-shuffle null, 1,000 shuffles). Lupus (162 vs 99): ever
 the rest p > 0.15). Step 2b: sex is no confound (controls 97 % women, patients 91 %; women only: whole sample
 +4.8, CD4 T +4.7, CD8 T +3.5, monocytes +1.4, all p ≤ 0.002). Ancestry is no confound either (the dataset's donor metadata, 4bf6298):
 European American, 75 vs 74, whole sample +4.2, CD4 T +4.3 (p 0.001), monocytes +0.6 (p 0.08); Asian, 83 vs 24, whole
-sample +6.9, CD4 T +4.4 (p 0.03), monocytes +3.6 (p 0.001). Processing batch is not in the released metadata and stays
-untested.
+sample +6.9, CD4 T +4.4 (p 0.03), monocytes +3.6 (p 0.001). **Batch confounds it** (Processing_Cohort, runner's 4bf6298
+`.mixed.parquet`): batch 1 is controls only, batch 2 is 103 patients vs 16 controls (15 of them spanning batches).
+Stratified by batch (labels shuffled within batch) the gap shrinks to +1.3 to +3.6 y (p 0.001-0.04); in the one
+balanced batch, single-batch donors only (25 vs 41), it is gone for the T cells (CD4 +0.1, CD8 +0.4, p > 0.8) and not
+significant for the whole sample (+2.2, p 0.17) or the bulk clock (+2.4, p 0.06); monocytes +1.7 (p 0.013, one of six
+tests). Verdict: no clock shows a lupus gap that survives batch; step 2's lupus line is withdrawn as a finding.
 
 ## RM13 — A manuscript draft of the results (plan line 5)
 
