@@ -35,9 +35,10 @@ outside the cohort; label-shuffle null, 1,000 shuffles). Lupus (162 vs 99): ever
 +4.8 y, health clock +4.6, single-cell whole sample +5.2, CD4 T +5.1, CD8 T +3.9, NK/B +3.5, monocytes +1.5 (all p
 0.001, the null's floor). COVID-19 (156 vs 25 controls): no clock separates (single-cell whole sample +4.8, p 0.055;
 the rest p > 0.15). Step 2b: sex is no confound (controls 97 % women, patients 91 %; women only: whole sample
-+4.8, CD4 T +4.7, CD8 T +3.5, monocytes +1.4, all p ≤ 0.002). Still open: processing batch and ancestry, which the
-cohort's census pseudobulk lacks; the original dataset's per-donor metadata (processing cohort, ancestry) is fetched
-by the runner, then the gap is tested within batch and ancestry.
++4.8, CD4 T +4.7, CD8 T +3.5, monocytes +1.4, all p ≤ 0.002). Ancestry is no confound either (the dataset's donor metadata, 4bf6298):
+European American, 75 vs 74, whole sample +4.2, CD4 T +4.3 (p 0.001), monocytes +0.6 (p 0.08); Asian, 83 vs 24, whole
+sample +6.9, CD4 T +4.4 (p 0.03), monocytes +3.6 (p 0.001). Processing batch is not in the released metadata and stays
+untested.
 
 ## RM13 — A manuscript draft of the results (plan line 5)
 
