@@ -827,3 +827,7 @@ comparison against each of ridge, enet and gbm (column `ref`). Whole-sample pseu
 - Per row (whole sample and each class), against that row's best baseline: 500 genes wins 34, loses 3 of 68;
   2,000 genes wins 26, loses 1.
 - One TabICLv2 seed per arm; two arms tried, so the per-cohort best of the two is optimistic. What it means: the lead.
+
+### 2026-11-12 14:56 · RM17: CD4 T-cell Perturb-seq pseudobulk fetch submitted
+`rna-age fetch cd4_perturbseq --connections 8` (the lead's fetcher, f617256): 44.6 GB pseudobulk from a public S3
+bucket plus three small files, S3-ETag verified, into `data/download/cd4_perturbseq/`. CPU job 6434376, 2 cores.
