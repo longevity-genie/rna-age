@@ -266,12 +266,31 @@ after the intervention, three seeds averaged, one-sided p for a fall. None of ni
 tracks accumulated damage (stage), not reversal within months.</p>"""
             + table(pd_.select(cols), digits=3)
         )
+    sc = SUMMARY / "sc_tabular_compare.parquet"
+    if sc.exists():
+        st = (
+            pl.read_parquet(sc)
+            .filter(pl.col("representation") == "natural")
+            .pivot(on="model", index=["cohort", "n"], values="mae")
+            .join(
+                pl.read_parquet(sc)
+                .filter((pl.col("representation") == "natural") & (pl.col("model") == "tabicl"))
+                .select("cohort", pl.col("vs_ref").alias("tabicl_minus_ridge"), "lo", "hi"),
+                on="cohort",
+            )
+            .with_columns(pl.col("cohort").str.slice(0, 13))
+        )
+        parts.append("""<h3>Tabular foundation models as single-cell clocks (RM14, D7)</h3><p>Per donor pseudobulk,
+5-fold CV by person, MAE in years; TabICLv2 minus ridge with a donor-bootstrap 95 % CI. TabICLv2 beats ridge on the
+whole sample in 4 of 7 cohorts and never loses; on single cell types it gains up to 1.8 y (Terekhova CD4 T cells 6.2 vs
+7.9 y). One TabICLv2 seed. Every class: <code>data/output/summary/sc_tabular_compare.parquet</code>.</p>"""
+                     + table(st, digits=3))  # fmt: skip
     exp = pl.read_parquet(SUMMARY / "experiments.parquet")
     k = exp.filter(pl.col("run_id").str.contains("kron-sweep-rank"))
     if k.height:
         parts.append("""<h3>KronLSTM age encoder from scratch (RM8)</h3><p>Rank-token encoding, 8-epoch sweep:
 validation MAE ~14 at every length, about 5 years behind the 20k-gene MLP (~8.7); the 4,096 run was stopped early.
-Next step pending (Anton, the lead).</p>""" + table(k.select("run_id", "val_exact_mae", "test_exact_mae",
+Stopped (D6).</p>""" + table(k.select("run_id", "val_exact_mae", "test_exact_mae",
                                                               "test_exact_pearson_r"), digits=3))  # fmt: skip
     return "\n".join(parts)
 
