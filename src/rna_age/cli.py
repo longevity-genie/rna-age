@@ -442,6 +442,15 @@ def clock_compare_cmd() -> None:
         print(same_donors())
 
 
+@app.command("clock-disease")
+def clock_disease_cmd(n_perm: int = typer.Option(1000)) -> None:
+    """RM18 step 2: lupus and COVID-19 patients vs controls, gap per clock (bulk; single-cell per cell class)."""
+    from rna_age.train.disease_sc import run
+
+    with __import__("polars").Config(tbl_rows=40, tbl_width_chars=200):
+        print(run(n_perm=n_perm))
+
+
 @app.command("kron")
 def kron_cmd(
     encoding: str = typer.Option("rank", help="rank | genome | genome-shuffled"),
