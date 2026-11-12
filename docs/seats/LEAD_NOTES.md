@@ -3,6 +3,18 @@
 The state the lead's last holder left. State, not rules: the rules are the priming, `LEAD.md` beside this file, and
 the kit's role `classes/lead/LEAD.md`.
 
+## 2026-11-12 16:40
+
+- Plan: RM18 bulk vs single-cell clocks (building: step 1 done, step 2 `rna-age clock-disease` running, step 3
+  interventions open), RM19 fitness-corrected Perturb-seq hit list (after RM18 step 2), RM13 manuscript (waits until
+  2026-11-13, desk #23), RM5 (desk #9), RM7 (waits until 2026-11-17). RM14-17 done.
+- Single-cell (D7): TabICLv2 2,000 genes beats ridge/enet/GBM in 4 of 7 cohorts. RM17 (D8 outcome): the CD4 T clock's
+  Perturb-seq shifts agree with the paper's aging coefficients (rho 0.26 each condition; their + = knockdown looks
+  older), no single-gene hit yet.
+- RM18 step 1 (`clock_compare_same_donors.parquet`): bulk clock ranks blood ages as well as single-cell, reads
+  single-nucleus cortex 10-39 y young; gap agreement 0.35-0.64. Step 2 trains every single-cell clock on 3faad104
+  (COVID cohort 9dbab10c has only 25 controls) and tests patients vs controls with a label shuffle.
+
 ## 2026-11-12 01:00
 
 - Plan: RM13 manuscript draft (waits until 2026-11-13, desk #23, default: start), RM5 PRIMO (desk #9), RM7 NCBI
