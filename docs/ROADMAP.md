@@ -17,13 +17,6 @@ head beats the training-mean Δ and ridge on held-out genes (DEG recall, not onl
 the clock without the head by more than 0.2 y; held-out knockdowns' age shifts correlate with the paper's aging effects
 above RM17's ρ 0.26; a placebo with Δ shuffled across genes fails all three.
 
-## RM21 — Unseen-knockdown prediction from gene embeddings
-
-**State:** building (runner, same word) · **Owner:** runner builds, lead reviews the merge
-
-The age shift and Δ of knockdowns never seen, from ESM-2 embeddings of the knocked-down gene, with TabICL and ridge.
-Bar: beats the training-mean and a ridge on random embeddings (shuffled gene ↔ embedding) on held-out genes.
-
 ## RM22 — Frozen virtual-cell embeddings as clock features
 
 **State:** building (runner, same word) · **Owner:** runner builds, lead reviews the merge

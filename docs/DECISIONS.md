@@ -172,3 +172,10 @@ more conditions with one sign. Older: CCT3, HSPE1, UQCRC1, NSMCE3, GSPT1, METAP2
 TCR genes CD3D and ZAP70 (when stimulated). Younger: SOD1, LSM8, FBXO5, KIF18B, RBSN. Of the 20 hit × condition pairs
 the paper also scores, 19 agree with its sign. Most are essential genes, and cell count is a weak fitness proxy; read
 them as candidates, not as findings.
+
+**RM21 outcome (2026-11-12, runner, 3487491/ea8cdd9; reviewed by the lead):** an ESM-2 (650M) embedding of the
+knocked-down gene's protein does not predict a knockdown's age effect. The bar (beat the training mean and a ridge on
+shuffled embeddings, both CIs above 0) is met in 2 of 12 tests, both trivially (ρ 0.03-0.05 for our clock's Stim48hr
+shifts, skill ≤ 0.005), and in none for the study's coefficients; label-shuffle |ρ| ≤ 0.04. Failed: what the protein
+is says almost nothing about what its knockdown does to age here, and per-gene shifts resting on one guide cap any
+predictor. RM20 should not lean on gene embeddings for its held-out genes.
