@@ -185,3 +185,11 @@ knockdown Δ, DEG-weighted) fails its bar. Δ on held-out genes: DEG recall@50 0
 ridge's 0.091. Age MAE: 10.64, level with the network without the Δ head, while a ridge gets 8.17. Predicted shifts
 against the paper's coefficients: ρ −0.03. One lead remains, RM24: the rank arm's clock on measured profiles, ρ 0.30
 vs placebo 0.23 vs RM17's ridge 0.25, on one seed.
+
+**RM24 outcome (2026-11-12, runner, aad5a37; read by the lead):** RM20's rank term passes both bars fixed before the
+run, over 5 seed pairs: rank minus placebo ρ +0.056 [0.035, 0.071], rank minus RM17's ridge +0.029 [0.009, 0.049]
+(seed 2 by 0.001), at age MAE 8.66-8.78 against ridge's 8.17. Read with what the term trains on: it ranks the
+training genes' knockdowns by the paper's own coefficients, so the held-out ρ is that axis generalising to new genes,
+not an independent check like D8's. Lead's reading: real but small (+0.03 ρ for −0.5 y of accuracy); the multitask
+line is parked, not adopted. The clock stays ridge / TabICLv2; the rank term returns only if a use needs the paper's
+perturbation axis inside the clock.

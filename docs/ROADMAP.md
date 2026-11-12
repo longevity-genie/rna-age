@@ -7,16 +7,6 @@ The lead (`docs/seats/LEAD.md`) keeps it. Seeded at the lead's first seating (20
 
 ## Items
 
-## RM24 — RM20's rank term over seeds
-
-**State:** building (runner) · **Owner:** runner runs, lead reads
-
-RM20 failed as specified (Δ on held-out genes below the mean and ridge; predicted shifts ρ −0.03), but its rank arm's
-clock reads measured Perturb-seq profiles at ρ 0.30 against the paper's coefficients, versus 0.23 for its placebo and
-0.25 for RM17's ridge (one seed). Five seeds each, same seeds, splits and panel. Fixed before the run: it counts if (a)
-rank minus placebo ρ > 0 with a paired bootstrap 95 % CI over the seed pairs, and (b) the rank arm beats 0.25 by the
-same test. Age MAE reported beside (ridge 8.17). If (a) fails, the multitask line stops.
-
 ## RM22 — Frozen virtual-cell embeddings as clock features
 
 **State:** building (runner, same word) · **Owner:** runner builds, lead reviews the merge
