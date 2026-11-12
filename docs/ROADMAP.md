@@ -33,15 +33,17 @@ Bar: its predicted aging effects correlate with the Marson screen's and with our
 0.05 per condition), compared with the same correlation for a random-gene-order placebo. Licence of the weights read
 before any output leaves the repository.
 
-## RM25 — TabICLv2 as the bulk clock
+## RM25 — TabICLv2 as the bulk clock, second try
 
 **State:** unattended (proposed to Anton 2026-11-12 in #rna-age > general chat; default: build) · **Owner:** lead
 (code), runner (GPU run)
 
-TabICLv2 in context, no weight updates, on the clean bulk table (D4), same split and features as the headline MLP
-(20k HVGs, or the top PCs if the context needs it); the training set as context, subsampled per study if it does not
-fit. Bar: test MAE below the headline's 7.46 by more than the paired bootstrap CI. Fine-tuning TabICL on bulk +
-pseudobulk follows only if this is competitive.
+The first try (2026-11-10, `rna-age tabfm`: 200 PCs, a 10k-sample prompt) got test MAE 15.7 against the MLP's 10.4 on
+the old table. This one gives it what held it back: 2,000 HVGs (as on single cells), and a context of the training
+samples from the most similar studies (nearest by mean profile) rather than a random 10k. Same clean split as the
+headline. Bar: test MAE within 1 y of the 20k-HVG MLP (8.1 on the clean table) earns step 2, fine-tuning TabICLv2 on
+bulk + pseudobulk; beating the headline 7.46 beyond the paired CI would be a finding. Continued pretraining of an
+expression encoder waits on RM22 (frozen single-cell model embeddings must beat genes first).
 
 ## RM18 — Bulk clock vs single-cell clock, same people: accuracy, unhealthy cohorts, interventions
 
