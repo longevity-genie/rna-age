@@ -55,14 +55,16 @@ stop before Anton is back; 07:00 report, then keep updating; one tabbed artifact
   single-cell flags), waiting for the download.
 
 ## Running (jobs carry seat / what / eta in their Slurm comment)
-- RM16: elastic net + boosted-tree baselines (CPU 6432543-55, odd ids) then TabICLv2 on 2,000 genes (GPU 6432544-56,
-  even ids), seven single-cell cohorts.
+- Nothing. RM16's 14 jobs finished (results below); both GPUs free.
 
 ## Results so far (details: `docs/experiments.md`, `data/output/summary/experiments.parquet`)
 - **Sample sets (2026-11-11, RM12)**: meningioma and 169 plate single-cell series removed; eligible 100,312 →
   94,526. Figures before 06:58 (the 9.20 headline included) are on the old set and not comparable with figures on
   the new one; each figure below says which. On the new set, 20k-HVG MLP seeds: val 8.73, test 8.14 (old seeds 9.02 /
   8.09 on the same samples).
+- **RM16 (2026-11-12 14:20)**: against the best of ridge, elastic net and boosted trees, TabICLv2 on 2,000 genes wins
+  in 4 of 7 single-cell cohorts on the whole sample (0.8-2.0 y, CI below 0), loses in the largest brain cohort (+0.8 y);
+  Terekhova whole blood 6.9 y vs 8.9 (elastic net).
 - **RM14 (2026-11-12 02:40)**: TabICLv2 as a single-cell (per-donor pseudobulk) clock beats ridge in 4 of 7 cohorts on
   the whole sample (0.3-0.8 y, CI below 0), loses in none; best single classes gain up to 1.8 y (Terekhova CD4 T 6.2 y).
   D7's bar is met; the lead reads it.

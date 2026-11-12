@@ -805,3 +805,25 @@ tabicl --n-genes 2000` (after its CPU job; model saved as `tabicl-2000g`), new m
 `sc_tabular_<c>.parquet`. Jobs (cpu → gpu): terekhova 6432543 → 6432544, 3faad104 6432545 → 6432546, c838aec3
 6432547 → 6432548, 218acb0f 6432549 → 6432550, 37a17b78 6432551 → 6432552, 5c97eeeb 6432553 → 6432554, 5e57cd50
 6432555 → 6432556; GPU jobs in two chains (blood, brain). Verdict against the best of ridge, enet and gbm per cohort.
+
+### 2026-11-12 14:15 · RM16 results: TabICLv2 against the best of ridge, elastic net and boosted trees
+All 14 jobs completed (CPU baselines 2-54 min, GPU 2,000-gene arm). `sc_tabular_compare.parquet` now holds every
+comparison against each of ridge, enet and gbm (column `ref`). Whole-sample pseudobulk, MAE in years:
+
+| cohort | ridge | enet | gbm | TabICLv2 500 genes | TabICLv2 2,000 genes | 2,000 genes − best baseline [95 % CI] |
+|---|---|---|---|---|---|---|
+| 3faad104 (blood, 981) | 8.23 | 8.16 | 8.41 | 7.91 | 7.37 | −0.78 [−1.11, −0.46] vs enet |
+| c838aec3 (blood, 625) | 6.97 | 7.04 | 7.51 | 6.45 | 5.77 | −1.21 [−1.55, −0.87] vs ridge |
+| 218acb0f (blood, 261) | 8.01 | 7.44 | 8.83 | 7.55 | 6.88 | −0.56 [−1.14, 0.04] vs enet, n.s. |
+| terekhova2023 (blood, 166 people) | 9.25 | 8.92 | 8.95 | 8.63 | 6.92 | −2.00 [−2.88, −1.09] vs enet, by person |
+| 37a17b78 (brain, 783) | 6.60 | 6.70 | 7.88 | 6.65 | 7.40 | +0.79 [0.42, 1.16] vs ridge: worse |
+| 5c97eeeb (brain, 299) | 7.16 | 7.12 | 8.23 | 6.35 | 5.81 | −1.31 [−1.87, −0.76] vs enet |
+| 5e57cd50 (brain, 100) | 6.16 | 6.17 | 6.12 | 6.00 | 6.19 | +0.07 [−0.48, 0.59] vs gbm, n.s. |
+
+- Against the best baseline per cohort, the 2,000-gene TabICLv2 wins in 4 of 7 cohorts (3 blood, 1 brain) by 0.8-2.0 y
+  and loses in 1 (37a17b78, the largest brain cohort, where 500 genes ties ridge). The 500-gene arm wins in 3 of 7
+  (3faad104 −0.25, c838aec3 −0.53, 5c97eeeb −0.77). Elastic net and boosted trees rarely beat ridge (best baseline:
+  ridge in 35 of 68 rows, enet 24, gbm 9).
+- Per row (whole sample and each class), against that row's best baseline: 500 genes wins 34, loses 3 of 68;
+  2,000 genes wins 26, loses 1.
+- One TabICLv2 seed per arm; two arms tried, so the per-cohort best of the two is optimistic. What it means: the lead.
