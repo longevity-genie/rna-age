@@ -72,17 +72,9 @@ def _cv_clock(X: np.ndarray, y: np.ndarray, groups: np.ndarray, n_hvg: int = 300
     return {"n": len(y), "mae": float(np.abs(pred - y).mean()), "pearson_r": float(np.corrcoef(pred, y)[0, 1])}
 
 
-def analyse(
-    dataset_id: str,
-    min_cells: int = 20,
-    major: tuple[str, ...] = ("CD4 T", "CD8 T", "NK", "B", "monocyte"),
-    mapping: str = "broad",
-    n_classes: int = 12,
-    n_major: int = 5,
-    null_seed: int | None = None,
-):
-    """``mapping="broad"``: blood classes (``BROAD``); ``"cell_type"``: the dataset's own labels (tissues), the
-    ``n_classes`` most abundant kept (the rest pooled as "other"), the ``n_major`` most abundant as ``major``."""
+def donor_profiles(dataset_id: str, mapping: str = "broad", n_classes: int = 12) -> dict:
+    """Per donor (× tissue) and cell class: summed counts ``P`` (donors × classes × genes), cells ``N`` (donors ×
+    classes), age, CV groups (by person when a cohort has several samples per person), class and gene names."""
     d = INPUT / "census_pseudobulk" / "by_dataset_celltype" / dataset_id
     if not d.exists():  # other sources' cell-type pseudobulk in the same layout (terekhova2023)
         d = INPUT / dataset_id / "by_dataset_celltype" / dataset_id
@@ -100,7 +92,6 @@ def analyse(
     if mapping == "cell_type":
         top = g.group_by("cls").agg(pl.col("n_cells").sum()).sort("n_cells", descending=True)["cls"].to_list()
         g = g.with_columns(cls=pl.when(pl.col("cls").is_in(top[:n_classes])).then("cls").otherwise(pl.lit("other")))
-        major = tuple(top[:n_major])
     M = counts.select(g["sample_id"].to_list()).to_numpy().T.astype(np.float64)  # groups × genes
     donors = sorted(g["donor"].unique().to_list())
     dix = {x: i for i, x in enumerate(donors)}
@@ -114,13 +105,44 @@ def analyse(
         P[dix[don], cix[cl]] += M[row]
         N[dix[don], cix[cl]] += nc
     age = g.group_by("donor").agg(pl.col("age").first()).sort("donor")["age"].to_numpy()
-    if null_seed is not None:  # null check: donors' ages shuffled, so every representation should give r ≈ 0
-        age = np.random.default_rng(null_seed).permutation(age)
     groups = np.arange(len(donors))
     if "cv_group" in g.columns:  # several samples per person (visits): folds by person, never one on both sides
         per = dict(zip(g["donor"].to_list(), g["cv_group"].to_list(), strict=True))
         gid = {c: i for i, c in enumerate(sorted(set(per.values())))}
         groups = np.array([gid[per[d]] for d in donors])
+    return {
+        "donors": donors,
+        "classes": classes,
+        "cix": cix,
+        "P": P,
+        "N": N,
+        "age": age,
+        "groups": groups,
+        "genes": genes,
+        "g": g,
+    }
+
+
+def analyse(
+    dataset_id: str,
+    min_cells: int = 20,
+    major: tuple[str, ...] = ("CD4 T", "CD8 T", "NK", "B", "monocyte"),
+    mapping: str = "broad",
+    n_classes: int = 12,
+    n_major: int = 5,
+    null_seed: int | None = None,
+):
+    """``mapping="broad"``: blood classes (``BROAD``); ``"cell_type"``: the dataset's own labels (tissues), the
+    ``n_classes`` most abundant kept (the rest pooled as "other"), the ``n_major`` most abundant as ``major``."""
+    dp = donor_profiles(dataset_id, mapping, n_classes)
+    donors, classes, cix, P, N, age, groups, g = (
+        dp[k] for k in ("donors", "classes", "cix", "P", "N", "age", "groups", "g")
+    )
+    if mapping == "cell_type":
+        top = g.group_by("cls").agg(pl.col("n_cells").sum()).sort("n_cells", descending=True)["cls"].to_list()
+        major = tuple(c for c in top if c != "other")[:n_major]
+    if null_seed is not None:  # null check: donors' ages shuffled, so every representation should give r ≈ 0
+        age = np.random.default_rng(null_seed).permutation(age)
     res = []
 
     def add(rep: str, X: np.ndarray, y: np.ndarray, grp: np.ndarray, note: str = ""):

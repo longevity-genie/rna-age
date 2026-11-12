@@ -392,6 +392,21 @@ def biology_cmd(
         print(run_all(run_ids.split(","), permutations))
 
 
+@app.command("sc-tabular")
+def sc_tabular_cmd(
+    dataset_id: str,
+    models: str = typer.Option("ridge,mlp,tabicl", help="comma-separated: ridge, mlp, tabicl (uv run --with tabicl)"),
+    n_genes: int = typer.Option(500),
+    mapping: str = typer.Option("broad", help="broad (blood classes) | cell_type (the dataset's own labels)"),
+) -> None:
+    """RM14 (D7): tabular foundation model vs ridge and an MLP as single-cell aging clocks (per donor, CV by person)."""
+    from rna_age.train.sc_tabular import compare, run
+
+    pred = run(dataset_id, tuple(models.split(",")), n_genes=n_genes, mapping=mapping)
+    with __import__("polars").Config(tbl_rows=60, tbl_width_chars=160):
+        print(compare(pred))
+
+
 @app.command("kron")
 def kron_cmd(
     encoding: str = typer.Option("rank", help="rank | genome | genome-shuffled"),

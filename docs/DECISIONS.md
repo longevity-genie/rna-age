@@ -118,3 +118,19 @@ The lead's calls (Anton away; each reversible, listed for his review):
 - **KronLSTM for rna-age is stopped** (RM8, RM9 canceled): the question to Anton (#rna-age > decisions, asked
   2026-11-11 12:42) went unanswered to its date, and its default was to stop. From scratch it trailed the plain MLP
   by ~5 y on validation; the pretraining code (412030a) stays in the tree for a later try.
+
+## D7 — Tabular foundation models as single-cell aging clocks (2026-11-12)
+
+Anton (#rna-age, 2026-11-12 ~01:10): "let's make some tests and see", to the lead's proposal: single-cell cohorts are
+small tables (the label is the donor's age, a cohort has a few hundred donors), the regime in-context tabular models
+are built for, unlike bulk where they lost (200 PCs of 20k genes, ~47k samples).
+
+- **Data:** the seven cohorts with per-donor cell-type pseudobulk on disk (blood: 981, 625, 261 donors and Terekhova's
+  166 people; brain: 1,042, 300, 152 donors). Per representation: the donor's whole pseudobulk and each cell class
+  alone (≥ 20 cells in ≥ 50 donors).
+- **Protocol:** 5-fold cross-validation grouped by person; inside each training fold the 500 most variable genes,
+  standardised on the fold (500 fits TabICLv2's feature budget); models TabICLv2 (no licence key needed), ridge and a
+  small network (128-32).
+- **The bar:** TabICLv2's MAE minus ridge's on the same donors, 95 % CI from resampling donors, excludes 0 in its
+  favour, in at least two cohorts. Reported per cohort and cell class.
+- Rejected: TabPFN (needs a Prior Labs key, D5's context); more genes through PCA (what failed on bulk).
