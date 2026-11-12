@@ -33,6 +33,16 @@ Bar: its predicted aging effects correlate with the Marson screen's and with our
 0.05 per condition), compared with the same correlation for a random-gene-order placebo. Licence of the weights read
 before any output leaves the repository.
 
+## RM25 — TabICLv2 as the bulk clock
+
+**State:** unattended (proposed to Anton 2026-11-12 in #rna-age > general chat; default: build) · **Owner:** lead
+(code), runner (GPU run)
+
+TabICLv2 in context, no weight updates, on the clean bulk table (D4), same split and features as the headline MLP
+(20k HVGs, or the top PCs if the context needs it); the training set as context, subsampled per study if it does not
+fit. Bar: test MAE below the headline's 7.46 by more than the paired bootstrap CI. Fine-tuning TabICL on bulk +
+pseudobulk follows only if this is competitive.
+
 ## RM18 — Bulk clock vs single-cell clock, same people: accuracy, unhealthy cohorts, interventions
 
 **State:** building · **Owner:** lead (comparison code), then runner (pseudobulk passes and GPU runs)
