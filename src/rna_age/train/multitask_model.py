@@ -39,12 +39,19 @@ class Net(nn.Module):
     def __init__(self, n_genes: int, n_feat: int, cfg: Config):
         super().__init__()
         h = cfg.hidden
-        self.trunk = nn.Sequential(nn.Linear(n_genes, h), nn.GELU(), nn.Dropout(cfg.dropout), nn.Linear(h, h), nn.GELU())
+        self.trunk = nn.Sequential(
+            nn.Linear(n_genes, h), nn.GELU(), nn.Dropout(cfg.dropout), nn.Linear(h, h), nn.GELU()
+        )
         self.age_lin = nn.Linear(n_genes, 1)
         self.age_mlp = nn.Linear(h, 1)
         self.embed = nn.Sequential(nn.Linear(n_feat, 2 * cfg.emb), nn.GELU(), nn.Linear(2 * cfg.emb, cfg.emb))
         self.delta_head = nn.Sequential(
-            nn.Linear(h + cfg.emb, h), nn.GELU(), nn.Dropout(cfg.dropout), nn.Linear(h, h), nn.GELU(), nn.Linear(h, n_genes)
+            nn.Linear(h + cfg.emb, h),
+            nn.GELU(),
+            nn.Dropout(cfg.dropout),
+            nn.Linear(h, h),
+            nn.GELU(),
+            nn.Linear(h, n_genes),
         )
 
     def age(self, x: torch.Tensor) -> torch.Tensor:

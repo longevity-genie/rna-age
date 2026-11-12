@@ -258,6 +258,7 @@ def tabfm_cmd(
     features: str = typer.Option("hvg-pca", help="hvg-pca | hvg | logcpm | atlas"),
     n_genes: int = typer.Option(20000, help="HVGs (RM25: 2000 with --features hvg)"),
     context: str = typer.Option("random", help="random | nearest-study (RM25: one prompt per query study)"),
+    splits: str = typer.Option("val,test,transfer", help="splits to score, comma separated (never train)"),
     n_components: int = typer.Option(200),
     n_context: int = typer.Option(10000, help="prompt rows"),
     cap_per_study: int = typer.Option(200),
@@ -269,7 +270,8 @@ def tabfm_cmd(
     from rna_age.train.tabfm import run_tabfm
 
     row = run_tabfm(model, features, n_genes=n_genes, n_components=n_components, n_context=n_context,
-                    cap_per_study=cap_per_study, chunk=chunk, seed=seed, name=name, context=context)  # fmt: skip
+                    cap_per_study=cap_per_study, chunk=chunk, seed=seed, name=name, context=context,
+                    splits=tuple(x for x in splits.split(",") if x != "train"))  # fmt: skip
     print({k: v for k, v in row.items() if k.startswith(("val_exact", "test_exact", "transfer_exact"))})
 
 

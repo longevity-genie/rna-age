@@ -115,7 +115,9 @@ def cohort_panel(screen_genes: list[str], cohort: str, n_genes: int = 2000, min_
             "groups": dp["groups"][ok]}  # fmt: skip
 
 
-def gene_features(L: np.ndarray, shared: list[str], panel: np.ndarray, targets: dict[str, str]) -> dict[str, np.ndarray]:
+def gene_features(
+    L: np.ndarray, shared: list[str], panel: np.ndarray, targets: dict[str, str]
+) -> dict[str, np.ndarray]:
     """Per target (name → Ensembl id): [corr with each panel gene over donors, one-hot of its own panel slot]."""
     Z = (L - L.mean(0)) / (L.std(0) + 1e-6)
     Zp = Z[:, panel]

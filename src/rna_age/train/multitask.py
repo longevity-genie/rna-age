@@ -72,7 +72,9 @@ def run(
     from sklearn.linear_model import RidgeCV
     from sklearn.model_selection import GroupKFold
 
-    dev = torch.device("cuda" if device == "auto" and torch.cuda.is_available() else ("cpu" if device == "auto" else device))
+    dev = torch.device(
+        "cuda" if device == "auto" and torch.cuda.is_available() else ("cpu" if device == "auto" else device)
+    )
     sp = split(data, test_frac, holdout_context, seed)
     u = data.units
     tr, ev = sp["train"], sp["eval"]

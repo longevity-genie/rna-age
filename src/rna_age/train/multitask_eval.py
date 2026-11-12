@@ -30,8 +30,9 @@ def delta_metrics(pred: np.ndarray, true: np.ndarray, ref: np.ndarray, k: int = 
         "deg_recall50": float(deg_recall(pred, true, k).mean()),
         "pearson_delta_pert": float(_rowcorr(pred - ref, true - ref).mean()),
         "deg_recall50_pert": float(deg_recall(pred - ref, true - ref, k).mean()),
-        "mse_weighted_pert": float((np.abs(true - ref) / (np.abs(true - ref).mean(1, keepdims=True) + 1e-8)
-                                    * (pred - true) ** 2).mean()),  # fmt: skip
+        "mse_weighted_pert": float(
+            (np.abs(true - ref) / (np.abs(true - ref).mean(1, keepdims=True) + 1e-8) * (pred - true) ** 2).mean()
+        ),  # fmt: skip
     }
 
 

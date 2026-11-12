@@ -195,6 +195,7 @@ def run_tabfm(
     seed: int = 0,
     name: str | None = None,
     context: str = "random",
+    splits: tuple[str, ...] = ("val", "test", "transfer"),
 ) -> dict:
     t0 = time.time()
     allx, X, is_train, _, genes, n_hv = hvg_design(n_genes)
@@ -204,7 +205,7 @@ def run_tabfm(
     ctx = context_rows(allx, is_train & have & ~np.isnan(y), cap_per_study, n_context, seed)
     n_studies = len(np.unique(allx["study_id"].to_numpy()[ctx].astype(str)))
     log.info("%s on %s: context %d rows from %d studies", model, features, len(ctx), n_studies)
-    keep = have & (allx["split"].to_numpy() != "train")  # score val/test/transfer only
+    keep = have & np.isin(allx["split"].to_numpy(), list(splits))  # scored splits (never train)
     out = np.full(allx.height, np.nan)
     rows = np.flatnonzero(keep)
     if context == "nearest-study":  # one prompt per query study, from the training studies most like it
@@ -243,7 +244,7 @@ def run_tabfm(
          if features == "hvg-pca" else f"logCPM HVG {n_genes}" if features in ("logcpm", "hvg") else f"{features} ({n_components} PCs)",
          "n_context": int(len(ctx)), "n_context_studies": n_studies, "cap_per_study": cap_per_study, "seed": seed, "hvg_sample": n_hv,
          "n_shared_genes": len(genes), "context_set": "train, healthy-or-unknown, exact + GTEx midpoints",
-         "context": context,
+         "context": context, "splits": list(splits),
          "tuning": "none (zero-shot in-context)"},
     )  # fmt: skip
     row = finish_run(run_dir, pred, {"seconds": time.time() - t0})
