@@ -165,3 +165,10 @@ controls and batch 2 mostly patients. From now on, a single-cell disease gap cou
 tested within batch (labels shuffled within batch), with the batch read from the dataset's own per-cell metadata
 (`donor_obs/*.mixed.parquet`). Where the release has no batch, the result is reported as unadjusted, never as a
 finding. Sex and ancestry are checked too, but they did not stand in for batch here.
+
+**D8, RM19 outcome (2026-11-12, `rna-age perturb-hits`, 1efb19b):** after removing each knockdown's cell-loss trend
+(shift on log cells over the non-targeting median; the trend turned out nearly flat), 16 genes pass FDR 5 % in two or
+more conditions with one sign. Older: CCT3, HSPE1, UQCRC1, NSMCE3, GSPT1, METAP2, MTHFD1, TSG101, PRCC, EFR3A, and the
+TCR genes CD3D and ZAP70 (when stimulated). Younger: SOD1, LSM8, FBXO5, KIF18B, RBSN. Of the 20 hit × condition pairs
+the paper also scores, 19 agree with its sign. Most are essential genes, and cell count is a weak fitness proxy; read
+them as candidates, not as findings.

@@ -7,14 +7,6 @@ The lead (`docs/seats/LEAD.md`) keeps it. Seeded at the lead's first seating (20
 
 ## Items
 
-## RM19 — A fitness-corrected hit list from the Perturb-seq scores
-
-**State:** unattended, after RM18 step 2 · **Owner:** lead
-
-RM17's largest age shifts are essential genes. Model each knockdown's shift with the cells it left (and the
-knockdown's overall transcriptional effect size) as covariates, test the residual against the non-targeting guides,
-and report genes passing FDR 5 % in at least two conditions.
-
 ## RM20 — Multitask: one network on age plus Marson knockdown effects
 
 **State:** building (runner, Anton's word 2026-11-12: "test more ideas ... virtual cell models learned many tricks
