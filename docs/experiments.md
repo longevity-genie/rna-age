@@ -851,3 +851,12 @@ to main after the lead's review: RM20 multitask (age + knockdown Δ, DEG-weighte
 knockdowns from ESM-2 gene embeddings (TabICL, ridge, mean, shuffled-embedding ridge), RM22 frozen virtual-cell
 embeddings as clock features (Tahoe-x1 / Geneformer / scGPT, the seven RM14 cohorts, D7 folds), RM23 MaxToki in-silico
 screen of CD4 T cells against the Marson aging effects and our RM17 shifts. Bars as the lead wrote them in the roadmap.
+
+### 2026-11-12 18:05 · RM21 result: a knockdown's age effect is barely predictable from the gene's protein embedding
+Branch `worktree-agent-a06ba6dbd4c0fcc51` (3487491 build, ea8cdd9 result; tests pass), awaiting the lead's review.
+Jobs 6435514 (ESM-2 650M embeddings of 11,993 target genes with a reviewed UniProt protein, 9 min) and 6435705 (5-fold
+CV over genes, 11 min). Targets: our clock's per-gene shift and the study's aging coefficients, per condition. Bar
+(beat the mean and a shuffled-embedding ridge, lower CIs above 0) met in 2 of 12 model × set tests, both for our
+clock's Stim48hr shift, and tiny: Spearman 0.03 (ridge) and 0.05 (TabICLv2), skill over the mean ≤ 0.005. Not met for
+Rest, Stim8hr, or any study coefficient; label-shuffle nulls |ρ| ≤ 0.04. Twelve tests, no correction: read as no
+usable signal. Not done: Δ-profile principal components (target c). Result: `data/output/summary/unseen_knockdown.parquet`.
