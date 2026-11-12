@@ -3,6 +3,17 @@
 The state the lead's last holder left. State, not rules: the rules are the priming, `LEAD.md` beside this file, and
 the kit's role `classes/lead/LEAD.md`.
 
+## 2026-11-13 00:05
+
+- Plan: RM25 TabICLv2 bulk clock (job 6439059 running; bar: test within 1 y of 8.1 earns fine-tuning, beat 7.46
+  beyond CI = finding), RM18 step 3 interventions (needs before/after single-cell blood data), RM13 manuscript (starts
+  2026-11-13 under desk #23's default), RM5 (desk #9), RM7 (waits until 2026-11-17).
+- Closed 2026-11-12 (DECISIONS): RM17/D8 rho 0.26 agrees with the paper; RM19 16 replicated candidates; D9 disease gaps
+  within batch only (lupus gap withdrawn); RM20 fail, RM21 fail, RM22 fail (0 of 7, frozen Geneformer), RM23 canceled,
+  RM24 passes but parked (trains on the paper's coefficients).
+- Open to Anton: MaxToki authors contact (default no); newer Census release (runner asks).
+- The main checkout is shared with the runner: never pull/rebase there (memory shared-main-checkout).
+
 ## 2026-11-12 16:40
 
 - Plan: RM18 bulk vs single-cell clocks (building: step 1 done, step 2 `rna-age clock-disease` running, step 3
