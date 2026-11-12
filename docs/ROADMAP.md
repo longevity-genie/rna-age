@@ -7,6 +7,14 @@ The lead (`docs/seats/LEAD.md`) keeps it. Seeded at the lead's first seating (20
 
 ## Items
 
+## RM14b — Single-cell tabular clock against stronger baselines (Anton: ridge is a low bar)
+
+**State:** building · **Owner:** runner (runs), then lead (what they mean)
+
+For each of RM14's seven cohorts (same `--mapping` as before): `rna-age sc-tabular <cohort> --models enet,gbm`
+(CPU), then `uv run --with tabicl rna-age sc-tabular <cohort> --models tabicl --n-genes 2000` (GPU). TabICLv2 counts
+as better only against the best of ridge, elastic net and boosted trees per cohort (`--reference`), CI excluding 0.
+
 ## RM15 — Single-cell clock, next step (after RM14)
 
 **State:** waits until 2026-11-13: Anton's choice in #rna-age > decisions (health per cell type, a usable clock, or stop); default: health per cell type · **Owner:** lead
