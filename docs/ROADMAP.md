@@ -50,7 +50,7 @@ tests). Verdict: no clock shows a lupus gap that survives batch; step 2's lupus 
 
 ## RM13 — A manuscript draft of the results (plan line 5)
 
-**State:** waits until 2026-11-13: Anton's answer, desk #23 and #rna-age > decisions; default: start the draft · **Owner:** lead
+**State:** building (default of desk #23 applied 2026-11-13; draft v0.1 kept outside git, the repository being public; where it goes: desk #23) · **Owner:** lead
 
 Outline, methods and figures regenerated from the recorded runs (D4 clean table, D6 health clock, RM10 tests),
 kept private in the repository until Anton decides where it goes.
