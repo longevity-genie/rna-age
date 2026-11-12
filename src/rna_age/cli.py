@@ -433,6 +433,15 @@ def perturb_check_cmd() -> None:
         print(run_check())
 
 
+@app.command("clock-compare")
+def clock_compare_cmd() -> None:
+    """RM18 step 1: bulk and single-cell clocks on the same donors of every single-cell cohort."""
+    from rna_age.train.clock_compare import same_donors
+
+    with __import__("polars").Config(tbl_rows=40, tbl_cols=20, tbl_width_chars=220):
+        print(same_donors())
+
+
 @app.command("kron")
 def kron_cmd(
     encoding: str = typer.Option("rank", help="rank | genome | genome-shuffled"),
