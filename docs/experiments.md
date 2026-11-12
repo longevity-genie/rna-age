@@ -873,3 +873,11 @@ Branch `worktree-agent-afeeb4c691cef5fce` (fdf1310 code, 8050fc1 result), awaiti
   0.30 (0.31 / 0.32 / 0.28) vs 0.25 for the RM17 ridge clock and 0.21 for age-only, on the same genes.
 - Bar 4, placebo fails: mixed. Measured-profile ρ placebo 0.23 vs rank 0.30 (+0.07, one seed, no CI).
 One seed, one split, no CIs. The +0.07 needs repeat seeds before it counts.
+
+### 2026-11-12 18:43 · RM20 merged (1ee5197, cli.py conflict with RM21 resolved by keeping both); RM24 and RM25 submitted
+- RM24 (the lead's bar, fixed before the run): 5 seeds of RM20's rank arm and its placebo, same seed → same split and
+  panel within a pair. Jobs 6436762, 6436763, 6436765, 6436766, 6436767 chained on one GPU,
+  `rna-age rm20-multitask --arms age_delta_rank,placebo --seed S --out data/output/summary/rm24_seedS.parquet`.
+- RM25: `uv run --with tabicl rna-age tabfm --model tabicl --features hvg --n-genes 2000 --context nearest-study
+  --n-context 4000 --cap-per-study 200` (the lead's 46635e3), job 6436768. Bar: within 1 y of the 20k-HVG MLP (8.1
+  test) earns fine-tuning; beating the headline 7.46 beyond the paired CI is a finding.
