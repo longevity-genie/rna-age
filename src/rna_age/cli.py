@@ -441,6 +441,48 @@ def perturb_check_cmd() -> None:
         print(run_check())
 
 
+@app.command("rm20-multitask")
+def rm20_multitask_cmd(
+    cohort: str = typer.Option("3faad104-2ab8-4434-816d-474d8d2641db", help="the age task's cohort"),
+    n_genes: int = typer.Option(2000),
+    arms: str = typer.Option("age,age_delta,age_delta_rank,placebo"),
+    steps: int = typer.Option(3000),
+    batch: int = typer.Option(512),
+    hidden: int = typer.Option(512),
+    lr: float = typer.Option(1e-3),
+    w_rank: float = typer.Option(0.5, help="weight of the age-shift ranking term (rank and placebo arms)"),
+    holdout_context: str | None = typer.Option(None, help="donor|condition held out of Δ training (default: by seed)"),
+    subset_genes: int | None = typer.Option(None, help="smoke run: only this many target genes"),
+    ntc_per_context: int | None = typer.Option(None, help="smoke run: at most this many control profiles per context"),
+    seed: int = typer.Option(0),
+    device: str = typer.Option("auto"),
+    out: str | None = typer.Option(None, help="output parquet (default data/output/summary/rm20_multitask_cd4.parquet)"),
+) -> None:
+    """RM20: one network, donor age + knockdown Δ (+ age-shift ranking), on the CD4 T Perturb-seq panel."""
+    from pathlib import Path
+
+    import polars as pl
+
+    from rna_age.paths import OUTPUT, download_dir
+    from rna_age.train import multitask, multitask_data
+    from rna_age.train.multitask_model import Config
+    from rna_age.train.perturb import COEFFICIENTS, SCREEN
+
+    d = download_dir("cd4_perturbseq")
+    data = multitask_data.load(d / SCREEN, cohort, n_genes, subset_genes=subset_genes, ntc_per_context=ntc_per_context,
+                               seed=seed)  # fmt: skip
+    rc_path = OUTPUT / "summary" / "perturb_cd4_genes.parquet"
+    df = multitask.run(
+        data, pl.read_csv(d / COEFFICIENTS), Config(steps=steps, batch=batch, hidden=hidden, lr=lr, seed=seed),
+        arms=tuple(arms.split(",")), w_rank=w_rank, holdout_context=holdout_context, seed=seed, device=device,
+        ridge_clock_genes=pl.read_parquet(rc_path) if rc_path.exists() else None,
+    )  # fmt: skip
+    path = multitask.write(df, Path(out) if out else OUTPUT / "summary" / "rm20_multitask_cd4.parquet")
+    with pl.Config(tbl_rows=200, tbl_width_chars=200):
+        print(df)
+    print(path)
+
+
 @app.command("clock-compare")
 def clock_compare_cmd() -> None:
     """RM18 step 1: bulk and single-cell clocks on the same donors of every single-cell cohort."""
