@@ -10,10 +10,12 @@ from types import ModuleType
 SOURCES = ("gtex", "archs4", "ncbi_geo", "bgee", "geo_cohorts", "census_pseudobulk", "terekhova2023")
 # published-clock controls (no samples.parquet; read by merge / evaluation)
 CONTROLS = ("longevitybench", "clockbase", "primo")
+# perturbation screens scored by the clocks (RM17; no samples in the age table)
+PERTURBATIONS = ("cd4_perturbseq",)
 
 
 def get(name: str) -> ModuleType:
     name = name.replace("-", "_")
-    if name not in SOURCES + CONTROLS:
-        raise KeyError(f"unknown source {name!r}; known: {', '.join(SOURCES + CONTROLS)}")
+    if name not in SOURCES + CONTROLS + PERTURBATIONS:
+        raise KeyError(f"unknown source {name!r}; known: {', '.join(SOURCES + CONTROLS + PERTURBATIONS)}")
     return importlib.import_module(f"rna_age.sources.{name}")
