@@ -9,7 +9,7 @@ The lead (`docs/seats/LEAD.md`) keeps it. Seeded at the lead's first seating (20
 
 ## RM17 — Perturbation screens scored by the single-cell clocks
 
-**State:** done 2026-11-12 (scoring, D8's check passed); follow-up below · **Owner:** lead
+**State:** done 2026-11-12 (scoring, D8's check passed); the hit list is RM19 · **Owner:** lead
 
 Survey done (2026-11-12): the genome-scale CD4 T-cell Perturb-seq (Zhu, Dann … Marson, Cell 2026,
 doi:10.1016/j.cell.2026.08.002; CZI Virtual Cells Platform, MIT licence), per guide × donor × condition pseudobulk.
@@ -22,6 +22,14 @@ empirical null (its floor is p ≈ 0.001 with ~960 non-targeting guides); 39-48 
 fitted to the non-targeting guides. The largest movers are essential genes (chaperonins, splicing, DNA repair), so a
 hit list needs the fitness confound handled first. Like the paper, mTORC1 brakes (TSC1/2, DEPDC5) knocked down read
 slightly younger (not significant one by one); MTOR knocked down reads 15 y younger at 48 h stimulation.
+
+## RM19 — A fitness-corrected hit list from the Perturb-seq scores
+
+**State:** unattended, after RM18 step 1 · **Owner:** lead
+
+RM17's largest age shifts are essential genes. Model each knockdown's shift with the cells it left (and the
+knockdown's overall transcriptional effect size) as covariates, test the residual against the non-targeting guides,
+and report genes passing FDR 5 % in at least two conditions.
 
 ## RM18 — Bulk clock vs single-cell clock, same people: accuracy, unhealthy cohorts, interventions
 
