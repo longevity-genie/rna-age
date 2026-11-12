@@ -418,6 +418,26 @@ def sc_tabular_cmd(
         print(compare(pred, reference=reference))
 
 
+@app.command("fm-embed-clock")
+def fm_embed_clock_cmd(
+    dataset_id: str,
+    stage: str = typer.Option("all", help="embed | clock | summary | all (embed+clock+summary)"),
+    cap: int = typer.Option(200, help="cells per donor (class-stratified), and CD4 T cells per donor in blood"),
+    budget: int = typer.Option(32768, help="tokens per GPU batch"),
+) -> None:
+    """RM22: Geneformer V2 cell embeddings averaged per donor → ridge/TabICLv2 age clocks on RM14's folds
+    (`uv run --with tabicl --with transformers`)."""
+    from rna_age.train import fm_embed
+
+    if stage in ("embed", "all"):
+        fm_embed.run_embed(dataset_id, cap=cap, cd4_cap=cap, budget=budget)
+    if stage in ("clock", "all"):
+        fm_embed.run_clock(dataset_id)
+    if stage in ("summary", "clock", "all"):
+        with __import__("polars").Config(tbl_rows=80, tbl_width_chars=200):
+            print(fm_embed.write_summary())
+
+
 @app.command("perturb-score")
 def perturb_score_cmd(
     cohort: str = typer.Option("3faad104-2ab8-4434-816d-474d8d2641db", help="the clock's training cohort"),
