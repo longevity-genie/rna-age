@@ -931,3 +931,17 @@ prompts, 2 h 20 min, ~13 s per prompt, ~310 deletions each).
   Spearman there −0.08 to −0.10. Bar (ρ ≈ 0.26, p < 0.05 above the placebo): not met in any condition. The two
   small negative clock rows are tiny and opposite in sign to agreement; with a time read-out that does not track age
   they are not read as biology.
+
+### 2026-11-12 20:25 · RM23 1B: stopped before download, no released 1B checkpoint has time tokens
+Lead approved one 1B download and one GPU job, behind a gate (Spearman ≥ 0.5 with the true timelapse and MAE below
+the constant guess on the same 150 validation prompts). Licence first: `theodoris-lab/MaxToki` @581b94c, one model card
+for the whole repository, **Apache-2.0** (no separate 1B card or licence file); research use permitted. Then the
+checkpoints' own metadata, read without fetching weights (configs, `context/io.json`, DCP `.metadata` via the
+allow-list unpickler):
+- `MaxToki-1B-HF`: `LlamaForCausalLM`, vocabulary 20,275 (genes + 4 specials), embedding [20275, 2304]: stage 1 only.
+- `MaxToki-1B-bionemo`: tokenizer 20,277 entries = genes + specials + `<boq>`/`<eoq>`, no numeric time tokens; embedding
+  and output layer [20352, 2304] bf16 (padded to a multiple of 128); 68 weight files, 14.7 GB with optimizer state
+  (lr 1.6e-4 in its config: a training checkpoint, not an import).
+- With no time tokens the headless time answer (expected value over the time tokens at `<eoq>`) does not exist, so the
+  gate cannot be computed and the screen cannot be run. Nothing downloaded beyond metadata; no GPU job. The temporal
+  217M (vocabulary 23,277) is the only released checkpoint with time tokens, and its answer failed (RM23 above).
