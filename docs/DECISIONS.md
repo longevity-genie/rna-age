@@ -200,3 +200,11 @@ prompts; the paper's 217M answers through a regression head not released), and i
 shuffle null against the screen (ρ −0.03 to +0.01). Neither released 1B has time tokens (a stage-1 model, and a
 training checkpoint with genes and query tokens only), so the age gate cannot be computed; no 1B was downloaded. It
 returns only with the 217M head or a temporal 1B from the authors (an outside contact: Anton's call; default none).
+
+**RM22 outcome (2026-11-12, runner, 705332b/8c9766c; reviewed by the lead):** fails its bar, 0 of 7 cohorts. Frozen
+Geneformer V2-104M start-token embeddings (at most 200 cells per donor, averaged per donor) into TabICLv2, against the
+2,000-gene pseudobulk TabICLv2 on the D7 folds: MAE worse in 5 cohorts (+0.43 to +2.08 y, CIs above 0) and tied in 2
+(+0.09, −0.07); the CD4 T rows are worse in all 4 blood cohorts. Limits: one model and seed, no fine-tuning, a
+200-cell cap against all cells for pseudobulk; Tahoe-x1 was not run (it needs bf16 and FlashAttention). Reading: on
+these cohorts a frozen single-cell model's embedding carries less age than the genes it reads; the expression clocks
+stay on genes, and continued pretraining of an expression encoder is not planned on this evidence.

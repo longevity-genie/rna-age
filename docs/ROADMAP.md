@@ -7,14 +7,6 @@ The lead (`docs/seats/LEAD.md`) keeps it. Seeded at the lead's first seating (20
 
 ## Items
 
-## RM22 — Frozen virtual-cell embeddings as clock features
-
-**State:** building (runner, same word) · **Owner:** runner builds, lead reviews the merge
-
-Tahoe-x1 or Geneformer cell embeddings, pooled per donor, into TabICL; against our pseudobulk TabICL on the same folds
-(D7: 5-fold by person). Bar: lower MAE by more than the paired bootstrap's 95 % CI in at least 4 of 7 cohorts. Any
-disease reading follows D9 (within batch).
-
 ## RM25 — TabICLv2 as the bulk clock, second try
 
 **State:** unattended (proposed to Anton 2026-11-12 in #rna-age > general chat; default: build) · **Owner:** lead
@@ -25,7 +17,7 @@ the old table. This one gives it what held it back: 2,000 HVGs (as on single cel
 samples from the most similar studies (nearest by mean profile) rather than a random 10k. Same clean split as the
 headline. Bar: test MAE within 1 y of the 20k-HVG MLP (8.1 on the clean table) earns step 2, fine-tuning TabICLv2 on
 bulk + pseudobulk; beating the headline 7.46 beyond the paired CI would be a finding. Continued pretraining of an
-expression encoder waits on RM22 (frozen single-cell model embeddings must beat genes first).
+expression encoder is not planned: RM22's frozen Geneformer embeddings lost to genes in 5 of 7 cohorts.
 
 ## RM18 — Bulk clock vs single-cell clock, same people: accuracy, unhealthy cohorts, interventions
 
