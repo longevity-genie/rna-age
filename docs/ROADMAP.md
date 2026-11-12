@@ -15,6 +15,15 @@ Anton (2026-11-12): push the single-cell clock to predict genetic perturbations 
 survey (no downloads); then, on his word, a head-to-head with published single-cell clocks, and scoring a matching
 screen per cell type as relative age shifts, checked first on known aging-linked genes.
 
+## RM18 — Bulk clock vs single-cell clock, same people: accuracy, unhealthy cohorts, interventions
+
+**State:** building · **Owner:** lead (comparison code), then runner (pseudobulk passes and GPU runs)
+
+Anton (2026-11-12): compare the bulk and single-cell clocks on accuracy and on their response to unhealthy cohorts
+and interventions. (1) Each single-cell cohort scored by both clocks on the same donors; (2) patients vs controls in
+the lupus and COVID blood single-cell cohorts we hold, gap per clock and per cell type, with the label-shuffle null;
+(3) interventions once RM17's survey finds single-cell before/after blood data. One side-by-side table at the end.
+
 ## RM15 — Single-cell clock, next step (after RM14)
 
 **State:** waits until 2026-11-13: Anton's choice in #rna-age > decisions (health per cell type, a usable clock, or stop); default: health per cell type · **Owner:** lead
