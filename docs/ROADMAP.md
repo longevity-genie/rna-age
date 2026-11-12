@@ -7,15 +7,15 @@ The lead (`docs/seats/LEAD.md`) keeps it. Seeded at the lead's first seating (20
 
 ## Items
 
-## RM20 — Multitask: one network on age plus Marson knockdown effects
+## RM24 — RM20's rank term over seeds
 
-**State:** building (runner, Anton's word 2026-11-12: "test more ideas ... virtual cell models learned many tricks
-transferable to aging") · **Owner:** runner builds, lead reviews the merge
+**State:** building (runner) · **Owner:** runner runs, lead reads
 
-Shared encoder, an age head and a knockdown-Δ head (DEG-weighted loss), genes held out. Bar fixed before the run: the Δ
-head beats the training-mean Δ and ridge on held-out genes (DEG recall, not only Δ correlation); age MAE no worse than
-the clock without the head by more than 0.2 y; held-out knockdowns' age shifts correlate with the paper's aging effects
-above RM17's ρ 0.26; a placebo with Δ shuffled across genes fails all three.
+RM20 failed as specified (Δ on held-out genes below the mean and ridge; predicted shifts ρ −0.03), but its rank arm's
+clock reads measured Perturb-seq profiles at ρ 0.30 against the paper's coefficients, versus 0.23 for its placebo and
+0.25 for RM17's ridge (one seed). Five seeds each, same seeds, splits and panel. Fixed before the run: it counts if (a)
+rank minus placebo ρ > 0 with a paired bootstrap 95 % CI over the seed pairs, and (b) the rank arm beats 0.25 by the
+same test. Age MAE reported beside (ridge 8.17). If (a) fails, the multitask line stops.
 
 ## RM22 — Frozen virtual-cell embeddings as clock features
 

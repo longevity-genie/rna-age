@@ -179,3 +179,9 @@ shuffled embeddings, both CIs above 0) is met in 2 of 12 tests, both trivially (
 shifts, skill ≤ 0.005), and in none for the study's coefficients; label-shuffle |ρ| ≤ 0.04. Failed: what the protein
 is says almost nothing about what its knockdown does to age here, and per-gene shifts resting on one guide cap any
 predictor. RM20 should not lean on gene embeddings for its held-out genes.
+
+**RM20 outcome (2026-11-12, runner, fdf1310/8050fc1; reviewed by the lead):** the multitask network (age + Marson
+knockdown Δ, DEG-weighted) fails its bar. Δ on held-out genes: DEG recall@50 0.052, below the training mean's 0.085 and
+ridge's 0.091. Age MAE: 10.64, level with the network without the Δ head, while a ridge gets 8.17. Predicted shifts
+against the paper's coefficients: ρ −0.03. One lead remains, RM24: the rank arm's clock on measured profiles, ρ 0.30
+vs placebo 0.23 vs RM17's ridge 0.25, on one seed.
