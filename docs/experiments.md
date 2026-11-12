@@ -831,3 +831,4 @@ comparison against each of ridge, enet and gbm (column `ref`). Whole-sample pseu
 ### 2026-11-12 14:56 · RM17: CD4 T-cell Perturb-seq pseudobulk fetch submitted
 `rna-age fetch cd4_perturbseq --connections 8` (the lead's fetcher, f617256): 44.6 GB pseudobulk from a public S3
 bucket plus three small files, S3-ETag verified, into `data/download/cd4_perturbseq/`. CPU job 6434376, 2 cores. Scoring queued after it: `rna-age perturb-score` (9a158aa, ridge CD4 T clock from 3faad104, 2,000 genes), CPU job 6434582, 4 cores, 100 GB; the hit list is not read before the lead's D8 check.
+- 15:12 · fetch done (8 min 26 s): GWCD4i.pseudobulk_merged.h5ad 44,566,657,140 B (S3 ETag verified) and three small files (md5 verified), sizes match their sidecars. Scoring 6434582 waits on the account's CPU cap (AssocGrpCpuLimit).
