@@ -773,3 +773,27 @@ grouped by person, the fold's 500 most variable genes; ridge vs MLP vs TabICLv2;
 alone. Two chains, one GPU each: blood (broad classes) terekhova2023 6430967 → 3faad104 6430968 → c838aec3 6430969 →
 218acb0f 6430970; brain (`--mapping cell_type`) 37a17b78 6430972 → 5c97eeeb 6430973 → 5e57cd50 6430974. Bar (D7):
 TabICLv2 beats ridge with a donor-bootstrap CI excluding 0 in at least two cohorts.
+
+### 2026-11-12 02:30 · RM14 results: TabICLv2 vs ridge vs MLP, seven single-cell cohorts
+All seven jobs completed (3-7 min each). Per-row tables (every representation × model, MAE, r, MAE minus ridge with a
+donor-bootstrap 95 % CI): `data/output/summary/sc_tabular_compare.parquet`; out-of-fold predictions
+`sc_tabular_<cohort>.parquet`. Whole-sample (natural) pseudobulk, MAE in years:
+
+| cohort | donors | ridge | MLP | TabICLv2 | TabICLv2 − ridge [95 % CI] |
+|---|---|---|---|---|---|
+| 3faad104 (blood) | 981 | 8.23 | 11.18 | 7.91 | −0.32 [−0.56, −0.07] |
+| c838aec3 (blood) | 625 | 6.97 | 8.40 | 6.45 | −0.53 [−0.84, −0.21] |
+| 218acb0f (blood) | 261 | 8.01 | 12.05 | 7.55 | −0.46 [−0.91, −0.01] |
+| terekhova2023 (blood, tubes) | 317 (166 people) | 9.25 | 11.24 | 8.63 | −0.62 [−1.23, 0.02]; by person [−1.35, 0.09] |
+| 37a17b78 (brain) | 783 | 6.60 | 9.53 | 6.65 | +0.05 [−0.24, 0.33] |
+| 5c97eeeb (brain) | 299 | 7.16 | 9.64 | 6.35 | −0.81 [−1.36, −0.27] |
+| 5e57cd50 (brain) | 100 | 6.16 | 24.58 | 6.00 | −0.16 [−0.69, 0.35] |
+
+- Whole sample: TabICLv2 beats ridge with the CI below 0 in 4 of 7 cohorts, never loses. Per cell class: it wins
+  38 of 68 class/whole rows and loses 3, all in the smallest cohort (5e57cd50, 100 donors: VIP, lamp5 interneurons,
+  oligodendrocytes, +0.7 y). Gains are 0.3-0.8 y on the whole sample, up to 1.7-1.8 y on single classes (Terekhova
+  CD4 T 6.23 vs 7.93, by-person CI [−2.39, −1.02]; 5c97eeeb L2/3-6 IT neurons 5.36 vs 7.02, endothelial −1.82).
+- The small MLP is worse than ridge everywhere (24.6 on 100 donors): it is no bar to beat.
+- Gate notes: one TabICLv2 seed; the per-class rows are many comparisons (read the whole-sample row per cohort as the
+  test); the row bootstrap resamples tubes in Terekhova (the by-person CI is given). D7's bar (beats ridge, CI
+  excluding 0, ≥ 2 cohorts) is met on the whole sample; what it means is the lead's.

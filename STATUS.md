@@ -55,13 +55,16 @@ stop before Anton is back; 07:00 report, then keep updating; one tabbed artifact
   single-cell flags), waiting for the download.
 
 ## Running (jobs carry seat / what / eta in their Slurm comment)
-- RM14 (D7): single-cell tabular-model clocks, 7 cohorts in two GPU chains (blood 6430967-70, brain 6430972-74).
+- Nothing. RM14's seven jobs finished 02:29 (results below); both GPUs free.
 
 ## Results so far (details: `docs/experiments.md`, `data/output/summary/experiments.parquet`)
 - **Sample sets (2026-11-11, RM12)**: meningioma and 169 plate single-cell series removed; eligible 100,312 →
   94,526. Figures before 06:58 (the 9.20 headline included) are on the old set and not comparable with figures on
   the new one; each figure below says which. On the new set, 20k-HVG MLP seeds: val 8.73, test 8.14 (old seeds 9.02 /
   8.09 on the same samples).
+- **RM14 (2026-11-12 02:40)**: TabICLv2 as a single-cell (per-donor pseudobulk) clock beats ridge in 4 of 7 cohorts on
+  the whole sample (0.3-0.8 y, CI below 0), loses in none; best single classes gain up to 1.8 y (Terekhova CD4 T 6.2 y).
+  D7's bar is met; the lead reads it.
 - **RM1 done (2026-11-12 00:30, RM12 set)**: health-aware Atlas fine-tune, three seeds on the clean table. Test MAE
   11.47 / 11.12 / 10.20 (seeds 0 / 1 / 2); aging-linked case − control gap +3.09 / +2.88 / +2.85 y, each CI above 0.
   Mean of the three (`20261112-0022-ens-atlasft-rank1-3s`): test 10.62 (r 0.78), aging-linked **+2.94 y [1.24, 4.74]**
