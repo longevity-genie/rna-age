@@ -945,3 +945,7 @@ allow-list unpickler):
 - With no time tokens the headless time answer (expected value over the time tokens at `<eoq>`) does not exist, so the
   gate cannot be computed and the screen cannot be run. Nothing downloaded beyond metadata; no GPU job. The temporal
   217M (vocabulary 23,277) is the only released checkpoint with time tokens, and its answer failed (RM23 above).
+- 20:28 · RM25: 6436768 cancelled at 1 h 44 min. At the measured rate (about 1 query study a minute, 81 of 810 studies
+  in 80 min) it needs about 13.5 h, while the repository's default limit is 4 h and `scontrol` may not raise it, so it
+  would have been killed with nothing written. It is not resumable. Resubmitted as 6439020 with TIME=16:00:00, same
+  command.
