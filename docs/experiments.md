@@ -949,3 +949,5 @@ allow-list unpickler):
   in 80 min) it needs about 13.5 h, while the repository's default limit is 4 h and `scontrol` may not raise it, so it
   would have been killed with nothing written. It is not resumable. Resubmitted as 6439020 with TIME=16:00:00, same
   command.
+- 20:29 · RM25: 6439020 cancelled after 1.5 min. Resubmitted as 6439059 with the lead's `--splits test` (844a953: the bar reads
+  test MAE only, 376 query studies instead of 810, about 6.5 h), TIME=08:00:00.
