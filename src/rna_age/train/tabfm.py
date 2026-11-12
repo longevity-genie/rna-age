@@ -125,6 +125,37 @@ def context_rows(allx: pl.DataFrame, is_train: np.ndarray, cap_per_study: int, n
     return np.sort(rows)
 
 
+def study_centroids(Z: np.ndarray, study: np.ndarray, rows: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+    """(study ids, mean of ``Z`` per study) over ``rows``."""
+    ids, inv = np.unique(study[rows].astype(str), return_inverse=True)
+    C = np.zeros((len(ids), Z.shape[1]))
+    np.add.at(C, inv, Z[rows])
+    return ids, C / np.bincount(inv)[:, None]
+
+
+def nearest_study_context(
+    Z: np.ndarray, study: np.ndarray, pool: np.ndarray, query: np.ndarray, n_context: int, cap_per_study: int, seed: int
+) -> np.ndarray:
+    """RM25: the prompt for one query study: training studies in order of distance between their mean profile and the
+    query's (in ``Z``), at most ``cap_per_study`` samples each, until ``n_context`` rows."""
+    ids, C = study_centroids(Z, study, pool)
+    q = Z[query].mean(0)
+    order = np.argsort(((C - q) ** 2).sum(1))
+    rng = np.random.default_rng(seed)
+    pool_study = study[pool].astype(str)
+    rows: list[np.ndarray] = []
+    n = 0
+    for k in order:
+        r = pool[pool_study == ids[k]]
+        if len(r) > cap_per_study:
+            r = rng.choice(r, cap_per_study, replace=False)
+        rows.append(r)
+        n += len(r)
+        if n >= n_context:
+            break
+    return np.sort(np.concatenate(rows)[:n_context])  # nearest first, so the cut drops the farthest study's tail
+
+
 def _features(kind: str, allx: pl.DataFrame, X: np.ndarray, is_train: np.ndarray, k: int, seed: int):
     from sklearn.decomposition import PCA
     from sklearn.preprocessing import StandardScaler
@@ -138,6 +169,10 @@ def _features(kind: str, allx: pl.DataFrame, X: np.ndarray, is_train: np.ndarray
         X = joined.select(cols).to_numpy().astype(np.float32)
     elif kind == "logcpm":  # raw log1p-CPM of the HVGs, no scaling or PCA (GeneICL reduces itself)
         return X, np.ones(len(X), dtype=bool)
+    elif kind == "hvg":  # the HVGs themselves, standardised on train (RM25: as TabICLv2 reads single-cell donors)
+        have = ~np.isnan(X).any(axis=1)
+        mu, sd = X[is_train & have].mean(0), X[is_train & have].std(0) + 1e-6
+        return ((np.where(have[:, None], X, 0) - mu) / sd).astype(np.float32), have
     elif kind != "hvg-pca":
         raise ValueError(f"unknown features {kind!r}")
     have = ~np.isnan(X).any(axis=1)
@@ -159,6 +194,7 @@ def run_tabfm(
     chunk: int = 2048,
     seed: int = 0,
     name: str | None = None,
+    context: str = "random",
 ) -> dict:
     t0 = time.time()
     allx, X, is_train, _, genes, n_hv = hvg_design(n_genes)
@@ -168,27 +204,46 @@ def run_tabfm(
     ctx = context_rows(allx, is_train & have & ~np.isnan(y), cap_per_study, n_context, seed)
     n_studies = len(np.unique(allx["study_id"].to_numpy()[ctx].astype(str)))
     log.info("%s on %s: context %d rows from %d studies", model, features, len(ctx), n_studies)
-    est = _estimator(model, seed).fit(Z[ctx], y[ctx])
     keep = have & (allx["split"].to_numpy() != "train")  # score val/test/transfer only
     out = np.full(allx.height, np.nan)
     rows = np.flatnonzero(keep)
-    if model == "mitra2":
-        chunk = len(rows)  # one predict = one bagged fine-tune
-    for i in range(0, len(rows), chunk):
-        part = rows[i : i + chunk]
-        out[part] = est.predict(Z[part])
-        log.info("predicted %d / %d", min(i + chunk, len(rows)), len(rows))
+    if context == "nearest-study":  # one prompt per query study, from the training studies most like it
+        from sklearn.decomposition import PCA
+
+        pool = np.flatnonzero(is_train & have & ~np.isnan(y))
+        Zc = PCA(50, svd_solver="randomized", random_state=seed).fit(Z[pool]).transform(Z)
+        study = allx["study_id"].to_numpy().astype(str)
+        groups = {s: rows[study[rows] == s] for s in np.unique(study[rows])}
+        for j, (s, q) in enumerate(groups.items()):
+            c = nearest_study_context(Zc, study, pool, q, n_context, cap_per_study, seed)
+            est = _estimator(model, seed).fit(Z[c], y[c])
+            for i in range(0, len(q), chunk):
+                out[q[i : i + chunk]] = est.predict(Z[q[i : i + chunk]])
+            if j % 20 == 0:
+                log.info("study %d / %d (%s, %d queries, context %d)", j + 1, len(groups), s, len(q), len(c))
+    else:
+        if context != "random":
+            raise ValueError(f"unknown context {context!r}")
+        est = _estimator(model, seed).fit(Z[ctx], y[ctx])
+        if model == "mitra2":
+            chunk = len(rows)  # one predict = one bagged fine-tune
+        for i in range(0, len(rows), chunk):
+            part = rows[i : i + chunk]
+            out[part] = est.predict(Z[part])
+            log.info("predicted %d / %d", min(i + chunk, len(rows)), len(rows))
     pred = (
         allx.select([c for c in PRED_COLS if c in allx.columns])
         .with_columns(pred=pl.Series(out))
         .filter(pl.Series(keep))
     )
     run_dir = new_run(
-        name or f"tfm-{model}-{features}{'' if features == 'logcpm' else n_components}-ctx{n_context // 1000}k",
+        name or f"tfm-{model}-{features}{'' if features in ('logcpm', 'hvg') else n_components}-ctx{n_context // 1000}k"
+        f"{'-near' if context == 'nearest-study' else ''}",
         {"model": model, "features": f"{features} ({n_components} PCs of logCPM HVG {n_genes})"
-         if features == "hvg-pca" else f"logCPM HVG {n_genes}" if features == "logcpm" else f"{features} ({n_components} PCs)",
+         if features == "hvg-pca" else f"logCPM HVG {n_genes}" if features in ("logcpm", "hvg") else f"{features} ({n_components} PCs)",
          "n_context": int(len(ctx)), "n_context_studies": n_studies, "cap_per_study": cap_per_study, "seed": seed, "hvg_sample": n_hv,
          "n_shared_genes": len(genes), "context_set": "train, healthy-or-unknown, exact + GTEx midpoints",
+         "context": context,
          "tuning": "none (zero-shot in-context)"},
     )  # fmt: skip
     row = finish_run(run_dir, pred, {"seconds": time.time() - t0})
