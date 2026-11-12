@@ -24,10 +24,6 @@ and interventions. (1) Each single-cell cohort scored by both clocks on the same
 the lupus and COVID blood single-cell cohorts we hold, gap per clock and per cell type, with the label-shuffle null;
 (3) interventions once RM17's survey finds single-cell before/after blood data. One side-by-side table at the end.
 
-## RM15 — Single-cell clock, next step (after RM14)
-
-**State:** waits until 2026-11-13: Anton's choice in #rna-age > decisions (health per cell type, a usable clock, or stop); default: health per cell type · **Owner:** lead
-
 ## RM13 — A manuscript draft of the results (plan line 5)
 
 **State:** waits until 2026-11-13: Anton's answer, desk #23 and #rna-age > decisions; default: start the draft · **Owner:** lead
