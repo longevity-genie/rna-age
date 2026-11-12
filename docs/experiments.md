@@ -839,3 +839,8 @@ bucket plus three small files, S3-ETag verified, into `data/download/cd4_perturb
 New `rna-age census-donor-obs <dataset_id>` (`census_pseudobulk.donor_obs`): reads only the obs of the fetched h5ad
 and keeps every column constant within a donor and varying between donors, one row per donor, to
 `data/input/census_pseudobulk/donor_obs/<dataset_id>.parquet`. CPU job 6435226.
+- 16:38 · job 6435226 done (17 s): 261 donors. Constant per donor: `donor_id`, `disease` (162 SLE, 99 normal), `ind_cov`,
+  `self_reported_ethnicity` (149 European American, 107 Asian, 3 African American, 2 Hispanic), `sex` (244 female),
+  and their ontology ids. `Processing_Cohort` (4 levels) varies within 57 donors, so it is not in the per-donor table:
+  added `<id>.mixed.parquet` (donor × column × value × n_cells for columns of ≤ 20 levels that vary within a donor;
+  also lists cell-type columns and `disease_state`), rerun on the login node (seconds).

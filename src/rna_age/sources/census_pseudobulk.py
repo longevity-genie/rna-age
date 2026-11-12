@@ -178,6 +178,21 @@ def donor_columns(obs: pl.DataFrame, donor: str = "donor_id") -> pl.DataFrame:
     return obs.select(keep).unique(donor).sort(donor)
 
 
+def donor_mixed(obs: pl.DataFrame, donor: str = "donor_id", max_levels: int = 20) -> pl.DataFrame:
+    """Low-cardinality columns that vary within some donor (a processing batch a donor was sampled in more than once):
+    long table donor × column × value with its cell count."""
+    parts = []
+    for c in obs.columns:
+        if c == donor or obs[c].n_unique() > max_levels:
+            continue
+        if obs.group_by(donor).agg(pl.col(c).n_unique().alias("k"))["k"].max() > 1:
+            parts.append(
+                obs.group_by(donor, c).len("n_cells").select(donor, pl.lit(c).alias("column"),
+                                                           pl.col(c).cast(pl.String).alias("value"), "n_cells")
+            )  # fmt: skip
+    return pl.concat(parts).sort(donor, "column", "value") if parts else pl.DataFrame()
+
+
 def donor_obs(dataset_id: str) -> Path:
     """Per-donor metadata of one fetched Census dataset (obs only, no counts): every column constant within a donor."""
     src = download_dir(NAME) / "h5ads" / f"{dataset_id}.h5ad"
@@ -189,10 +204,14 @@ def donor_obs(dataset_id: str) -> Path:
         for k in names:
             v = _obs_column(obs, k)
             cols[k] = [None if x is None else str(x) for x in v] if v.dtype == object else v
-    out = donor_columns(pl.DataFrame(cols, strict=False))
+    obs_df = pl.DataFrame(cols, strict=False)
+    out = donor_columns(obs_df)
     path = input_dir(NAME) / "donor_obs" / f"{dataset_id}.parquet"
     path.parent.mkdir(parents=True, exist_ok=True)
     out.write_parquet(path, compression="zstd")
+    mixed = donor_mixed(obs_df)
+    if mixed.height:
+        mixed.write_parquet(path.with_name(f"{dataset_id}.mixed.parquet"), compression="zstd")
     log.info("%s: %d donors, columns %s", dataset_id[:8], out.height, out.columns)
     return path
 
