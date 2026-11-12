@@ -151,3 +151,9 @@ scored:
   (`aging_prediction_condition_comparison_regulator_coefficients.csv`, their CD4 T rows). If they do not, the hit
   list is reported as not validated. The sign of their coefficients is read from their paper before the comparison.
 - Rejected: the per-cell files (~1.8 TB); absolute predicted ages.
+
+**D8 outcome (2026-11-12, RM17 done, 5ecdf24):** the check passed in every condition: Spearman ρ 0.26 of the per-gene
+shifts against the paper's coefficients (p < 1e-36, ~2,400 regulators each; ρ ≈ 0.4 on their strongest fifth), in
+the same direction (their positive coefficient is a knockdown that looks older: the preprint's Fig. 5B and the authors'
+code), and within each cell-count tertile (ρ 0.23-0.32). No single gene passes FDR 5 % with the empirical null; the
+hit list waits for RM19's fitness correction.
