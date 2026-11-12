@@ -124,6 +124,10 @@ stop before Anton is back; 07:00 report, then keep updating; one tabbed artifact
 - Frozen Atlas CLS adds nothing on top of HVGs; gradient boosting ≈ ridge.
 - Disease age gap (age-adjusted): +0.49 y overall; within-study +0.40 ± 0.61 y (69 studies), not significant.
 - Terekhova PBMC transfers well from bulk-only models (ridge MAE 8.1, r 0.88); Census datasets do not.
+- RM23 (2026-11-12): MaxToki-217M's in-silico knockdown in blood CD4 T cells does not agree with the CD4 CRISPRi
+  screen (Spearman −0.03 / −0.03 / +0.01 Rest / Stim48hr / Stim8hr, all inside the shuffled-gene null; our clock
+  0.25 on the same genes). Gated: the released 217M's time answer does not track true timelapses (Spearman −0.02 on
+  600 prompts); its paper used a regression head that is not released. `maxtoki_cd4.parquet`.
 
 ## Decisions
 - Through the proxy one connection gets ~2–4 MB/s; parallel ranges stack (12 → ~16 MB/s).

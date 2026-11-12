@@ -900,3 +900,34 @@ Measured-profile ρ with the study's aging effects on held-out genes (mean of th
 - Age MAE: the rank arm 8.66-8.78 vs ridge 8.17, so no gain on age itself.
 - Caveat: a bootstrap over 5 values is coarse; the five held-out gene sets overlap and two pairs share a held-out
   context. Summary: `data/output/summary/rm24_summary.parquet`; per seed `rm24_seed{0..4}.parquet`.
+
+### 2026-11-12 17:30 · RM23: MaxToki-217M in-silico knockdown of blood CD4 T cells vs the CD4 CRISPRi screen and our clock
+`uv run --with transformers rna-age maxtoki-cd4 --n-prompts 600 --batch 8` (0c93566's code; the jobs ran at ca7429d's
+script with the module from the worktree). Weights: `theodoris-lab/MaxToki` @581b94c, **licence Apache-2.0** (model
+card and Hub tag; research use permitted). The released temporal 217M is the BioNeMo checkpoint (vocabulary 23,277:
+genes + time tokens −1500…1499 months + `<boq>`/`<eoq>`); the `-HF` 217M folder is stage 1 only (no time tokens).
+Read without NeMo/Megatron (allow-list unpickler for the DCP metadata, `torch.load(weights_only=True)` per chunk),
+mapped to `LlamaForCausalLM`. Cells: 992 naive + central-memory CD4 T cells of 3faad104 (one per donor, ≤ 40 donors
+per type × sex × decade), MaxToki rank encoding (its medians), ≤ 1,300 genes. Prompts: the paper's task 1 within type
+and sex, `[cell a1] [Δ months] [cell a2] <boq> [query a3] <eoq>`, answer = expected time token at `<eoq>`. Screen: each of
+the screen's regulators expressed in the query removed from it (paper's in-silico inhibition), effect = Δ predicted
+time (> 0 = older). GPU jobs 6435661 (validation, then OOM at batch 16 after 5 prompts) and 6435721 (resumed, 600
+prompts, 2 h 20 min, ~13 s per prompt, ~310 deletions each).
+- Gate failed. Validation (150 prompts): cell next-gene cross-entropy 3.24-3.30 (uniform ≈ 9.9: weights map right), but
+  the timelapse answer does not follow truth: Spearman 0.02 / 0.02 / 0.10 at RoPE factor 1 / 4 / 8, MAE 276-286 months
+  vs 234 for a constant, slope ≤ 0.005, only 0.1-7.6 % of probability on time tokens. On the 600 screen prompts (factor
+  8): Spearman −0.024. The paper (Methods) trained the 217M's timelapse task with a separate MSE regression head; that
+  head is not in the release, so the 217M's time answer cannot be read as published. The 1B is the headless one.
+- Screen anyway, as specified: 3,556 genes scored, 3,063 with ≥ 5 expressing query cells (median 22); median |effect|
+  0.21 months; effect vs the deleted gene's mean rank Spearman −0.03.
+
+| condition | vs screen ρ [95 % CI] | null q97.5 | p_perm | clock ρ same genes | vs clock ρ [95 % CI] | p_perm |
+|---|---|---|---|---|---|---|
+| Rest | −0.032 [−0.077, 0.012] | 0.044 | 0.15 | 0.246 | −0.002 [−0.039, 0.035] | 0.91 |
+| Stim8hr | 0.012 [−0.029, 0.054] | 0.045 | 0.58 | 0.238 | −0.044 [−0.079, −0.009] | 0.014 |
+| Stim48hr | −0.030 [−0.072, 0.014] | 0.043 | 0.18 | 0.256 | −0.045 [−0.082, −0.009] | 0.014 |
+
+- Top fifth of the screen by |coef| (397-432 genes): sign agreement 0.45-0.46 vs 0.50-0.51 under the shuffle (p ≥ 0.96);
+  Spearman there −0.08 to −0.10. Bar (ρ ≈ 0.26, p < 0.05 above the placebo): not met in any condition. The two
+  small negative clock rows are tiny and opposite in sign to agreement; with a time read-out that does not track age
+  they are not read as biology.

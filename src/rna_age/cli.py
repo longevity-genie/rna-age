@@ -530,6 +530,32 @@ def rm20_multitask_cmd(
     print(path)
 
 
+@app.command("maxtoki-cd4")
+def maxtoki_cd4_cmd(
+    n_prompts: int = typer.Option(300, help="screen prompts (one query cell each)"),
+    n_validate: int = typer.Option(150, help="prompts for the unperturbed timelapse check"),
+    per_bin: int = typer.Option(40, help="donors per CD4 type × sex × decade"),
+    max_screen_genes: int = typer.Option(0, help="0 = every screened gene; else top half by |coef| + random rest"),
+    batch: int = typer.Option(16),
+    factors: str = typer.Option("1,4,8", help="RoPE factors to validate; the best runs the screen"),
+    min_prompts: int = typer.Option(5, help="a gene needs this many expressing query cells"),
+    time_budget_h: float = typer.Option(0.0, help="stop after this many hours (0 = none); rerun resumes"),
+    summarise_only: bool = typer.Option(False),
+) -> None:
+    """RM23: MaxToki-217M in-silico knockdown in blood CD4 T cells vs the CD4 CRISPRi screen and our clock (needs
+    `uv run --with transformers`)."""
+    from rna_age.train import maxtoki_cd4 as m
+
+    if summarise_only:
+        parts = sorted(m.WORK.glob("effects_rope*"))[-1]
+        res = m.summarise(parts, min_prompts)
+    else:
+        res = m.run(n_prompts, n_validate, per_bin, max_screen_genes=max_screen_genes or None, batch=batch,
+                    factors=factors, min_prompts=min_prompts, time_budget_h=time_budget_h or None)  # fmt: skip
+    with __import__("polars").Config(tbl_rows=20, tbl_width_chars=220, tbl_cols=30):
+        print(res)
+
+
 @app.command("clock-compare")
 def clock_compare_cmd() -> None:
     """RM18 step 1: bulk and single-cell clocks on the same donors of every single-cell cohort."""
