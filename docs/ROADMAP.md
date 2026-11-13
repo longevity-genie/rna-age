@@ -97,34 +97,6 @@ bootstrap CI, in both cohorts. (2) CMV serostatus in Terekhova 2023, if its dono
 gap is higher in CMV+ beyond the CI and the monocyte gap is not. (3) GTEx per-donor tissue gaps from the bulk clock,
 descriptive (how much organ ages agree within a person). CPU only.
 
-## RM30 — An in-context tabular model pretrained on expression tables: age, health, perturbation
-
-**State:** building (job 6479218 training, 10,000 steps, due ~02:45 on 2026-11-14) · **Owner:** lead
-(design, code), runner (GPU runs)
-
-TabICLv2 (BSD-3, architecture and pretraining code public) is pretrained on synthetic tables; on donor tables it is our
-best single-cell clock, on bulk it collapses to the context mean (RM25). Here the same architecture is trained on
-real expression episodes. An episode is a table drawn from our corpus (a study, a cohort, a tissue, a Perturb-seq
-condition): rows are samples or donors, columns a random subset of the shared gene panel, and the target one of:
-age (regression), case vs control (classification), a held-out gene's expression (masked expression in tabular form),
-or a knockdown's change on a gene given the perturbed gene's features (perturbation). Context rows carry labels, query
-rows are predicted; episodes from the evaluation cohorts, the bulk val/test studies and held-out knockdowns never
-enter training. Corpus: bulk (≈94k samples), recount3, single-cell donor pseudobulk of the pretraining pool, Census
-donors, Marson CD4 pseudobulk, the Virtual Cell Challenge H1 training split. One arm: a new model initialised from the
-released TabICLv2 weights, at its own size, trained on these episodes (Anton, 2026-11-13: "by from scratch I still
-meant reusing tabicl2 weights, not using random, I meant that we do not fine tune old stuff"), not a fine-tune of
-our earlier clocks; no random-init arm.
-Bars, fixed now: (1) single-cell age on the 7 cohorts beats pretrained TabICLv2 beyond the paired CI in at least 4;
-(2) bulk test MAE within 1 y of the 20k-HVG MLP (RM25's bar, 9.1); (3) within-study health gap at least D6's +2.9 y on
-the same unseen studies; (4) perturbation scored as RM29. Code reviewed and on main 2026-11-13 (8232415, 81190c0):
-1,000-gene panel of 16,585 measured everywhere; training groups age 352, health 64, masked gene 410, perturbation 12
-donor × condition tables (2,370 of 11,929 knocked-down genes held out). First-run limits: a held-out knocked-down
-gene is described only by its own baseline expression and a hashed id (no gene embedding), and recount3 and the
-Virtual Cell Challenge data are not yet in the corpus. Deviation (2026-11-13): the model does not fit an 11 GB card at the specified
-episode size even one episode per step, so the first run trains on smaller episodes (64-256 rows, 100-300 columns);
-evaluation is unchanged. Gradient checkpointing and a rerun at full size follow only if this run shows a gain. Reported per head; "universal" needs (1) or (2) and no head
-failing its reference by more than its CI.
-
 ## RM13 — A manuscript draft of the results (plan line 5)
 
 **State:** building (default of desk #23 applied 2026-11-13; draft v0.1 kept outside git, the repository being public; where it goes: desk #23) · **Owner:** lead

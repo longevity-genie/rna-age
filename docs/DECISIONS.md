@@ -307,3 +307,20 @@ held-out knockdowns (12 donor × condition contexts, 100 read-out genes; runner'
 baseline: r 0.0488 vs 0.0502 (−0.0014 [−0.0021, −0.0006]), MAE 0.4931 vs 0.4939. Neither RM28's perturbation head
 (Δr 0.045) nor RM30 learned a knockdown-specific response, so there is nothing of ours to score; the VCC leaders'
 released code (PRiMeFlow, State) stays the reference if the challenge is taken up again.
+
+**RM30 outcome (2026-11-14, lead's code 8232415 and fixes, runner's jobs 6479218 training and 6479915-6480061
+read-outs, logged ca26aa9; read by the lead):** fails all four bars. One model initialised from the TabICLv2 regressor
+(29M parameters) and trained 10,000 steps on expression episodes (age, health, masked gene, perturbation) on an 11 GB
+card in fp16 with gradient checkpointing; held-out quick evals flat from step 4-6k.
+
+| bar | result |
+|---|---|
+| single cell: beat TabICLv2 in ≥ 4 of 7 cohorts | 0 of 7, worse beyond the CI in 5 (+0.6 to +1.7 y in blood) |
+| bulk test MAE ≤ 10.1 | 13.99 (r 0.59, n 8,843); RM25's TabICLv2 15.3, the MLP 8.1 |
+| health gap ≥ +2.9 y | −0.05 [−1.38, 1.27], 33 studies, null p 0.55 |
+| perturbation vs mean-change baseline | ties (r 0.049 vs 0.050) |
+
+Reading: continued training of the in-context regressor on our expression episodes moved it a little toward bulk age
+but away from what made it the best single-cell clock, and taught it no disease or knockdown signal. With RM28 (own
+encoder) and RM22 (Geneformer), the third pretraining route that loses to TabICLv2 read-out of summed expression; the
+single-cell clock stays D7's, and pretraining is not pursued further without a new idea. Run cost: ~6 h on one 2080 Ti.
