@@ -60,7 +60,7 @@ stop before Anton is back; 07:00 report, then keep updating; one tabbed artifact
   rules: Census 2,356 healthy (3,815 any health), scBaseCount 492 (1,656), recount3 bulk 4,430 (6,380).
 
 ## Running (jobs carry seat / what / eta in their Slurm comment)
-- Nothing (2026-11-13 02:45). RM20-RM25 all finished; next work waits on Anton (recount3, Census pin) or the lead.
+- RM26 (recount3 retrain, 2026-11-13 17:11): control 6470325, recount3 arm 6470326 (chained), 3 MLP seeds each, ~25 min per job.
 
 ## Results so far (details: `docs/experiments.md`, `data/output/summary/experiments.parquet`)
 - **RM25 (2026-11-13 02:39)**: TabICLv2 as a bulk clock fails the lead's bar by far: test MAE 15.3 y, r 0.51

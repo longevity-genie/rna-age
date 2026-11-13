@@ -1030,3 +1030,12 @@ and `splits_recount3.parquet` (`rna-age merge --suffix _recount3`; the shared `s
   2,322 train, 457 val, and 510 samples of 36 studies in `test_new`, scored apart; `test` stays the old 12,144.
 - Limits: GENCODE v26 lacks 1,600 of the 46,028 shared bulk genes (zeros for recount3 samples); `BULK_SOURCES` left
   unchanged so the headline's gene axis does not move. SRP223445 (240 plasma cell-free RNA samples) is eligible.
+
+### 2026-11-13 17:11 · RM26 merged (7afe44c source, c624a5c plumbing; both reviewed by the lead); arms submitted
+- Control: job 6470325, `rna-age probe --features hvg --model mlp --n-hvg 20000 --train-set all --genes-with recount3
+  --seed S` for S in 0-2 (old table, gene axis 44,428 = shared bulk ∩ GENCODE v26).
+- recount3 arm: job 6470326 (after 6470325), same plus `--samples-suffix _recount3 --exclude-train-studies SRP223445`
+  (train rows 62,350 vs 60,304; recount3 val samples kept in early stopping, the lead's call).
+- Bar (the lead, fixed before the run): `rna-age rm26-compare` arm − control on the old test (8,843 exact), 3-seed
+  mean per arm, CI over test studies; pass if hi < 0. Noise floor of two identical 3-seed means: +0.11 [−0.09, 0.32].
+  test_new and the ensemble vs 7.46 are secondary read-outs. Fine-tunes retrained only on a pass.
