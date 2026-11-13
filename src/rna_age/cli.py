@@ -986,6 +986,27 @@ def sc_multitype_cmd(
         print(out.select("dataset_id", "model", "arm", "n", "mae", "ref_mae", "diff", "lo", "hi", "beats_ref"))
 
 
+@app.command("sys-gap")
+def sys_gap_cmd(
+    cohorts: str = typer.Option("", help="comma-separated cohorts (default: the 7 of D7)"),
+    n_genes: int = typer.Option(2000, help="most variable genes per type, picked on the training fold"),
+    min_cells: int = typer.Option(20, help="cells a donor needs in a type"),
+    min_controls: int = typer.Option(20, help="control donors a type needs for its clock"),
+    seed: int = typer.Option(0),
+) -> None:
+    """RM33 stage 0: per-type ridge clocks on controls, gaps, split-half reliability, shared vs specific, AD contrast."""
+    import polars as pl
+
+    from rna_age.train.sys_gap import COHORTS, run
+
+    out = run(_csv(cohorts) or COHORTS, n_genes=n_genes, min_cells=min_cells, min_controls=min_controls, seed=seed)
+    with pl.Config(tbl_rows=-1, tbl_cols=-1, tbl_width_chars=220):
+        print(out["type"].select("cohort", "type", "n_controls", "slope", "sensitivity", "reliability",
+                                 "shared_share", "status"))  # fmt: skip
+        if "contrast" in out:
+            print(out["contrast"].select("cohort", "kind", "type", "delta_years", "lo", "hi", "n_case", "n_control"))
+
+
 @app.command("positive-controls-fetch")
 def positive_controls_fetch(
     dataset_ids: list[str] = typer.Argument(..., help="CELLxGENE dataset ids (from positive_controls_usability)"),  # noqa: B008
