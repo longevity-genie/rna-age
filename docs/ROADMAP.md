@@ -23,6 +23,12 @@ from the Census release or, if newer, the Discover API; GEO bulk from ARCHS4 whe
 and per-type pseudobulk with the existing `census-donor-obs` / `census-pseudobulk --by-cell-type`.
 Bar: step 1 scores every candidate; a dataset counts as usable with ≥ 10 donors per arm after age matching, exact or
 ≤ 5-year ages, and the condition not confounded with batch.
+Step 1 built (`rna-age positive-controls-scan`, 2026-11-14): every condition in the metadata, not a fixed list, from
+CELLxGENE (148 human datasets with primary cells, a non-cancer disease and normal donors; obs over HTTP range
+requests), ARCHS4 bulk series, and scBaseCount studies, scored per dataset × condition × tissue in
+`positive_controls_usability.parquet`, rolled up per normalised condition (ontology id where present) in
+`positive_controls_conditions.parquet` with `seed` marking the conditions RM33's hand search had. D9 is applied
+strictly to single cell: a set without a two-level processing-batch column is at best "caveat".
 
 ## RM33 — System-level age gaps: which cell types or tissues make a person look older
 

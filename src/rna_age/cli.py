@@ -983,3 +983,29 @@ def sc_multitype_cmd(
     out = run(tuple(cohorts.split(",")), tuple(models.split(",")), k=k)
     with pl.Config(tbl_rows=-1, tbl_cols=-1, tbl_width_chars=200):
         print(out.select("dataset_id", "model", "arm", "n", "mae", "ref_mae", "diff", "lo", "hi", "beats_ref"))
+
+
+@app.command("positive-controls-scan")
+def positive_controls_scan(
+    seed: str = typer.Option(
+        "data/output/summary/positive_controls_seed.parquet", help="RM33's hand-searched seed list (check only)"
+    ),
+    workers: int = typer.Option(4, help="parallel h5ad obs readers (HTTP range requests)"),
+    fetch: bool = typer.Option(True, help="read uncached CELLxGENE obs over HTTP (--no-fetch: cached only)"),
+    max_mb: int = typer.Option(200, help="skip a dataset whose obs read exceeds this many MB"),
+) -> None:
+    """RM34 step 1: score every human study with a non-cancer condition and same-tissue healthy controls
+    (CELLxGENE, ARCHS4 bulk, scBaseCount) for usability as a positive control of system ageing (metadata only)."""
+    from pathlib import Path
+
+    import polars as pl
+
+    from rna_age.paths import REPO_ROOT
+    from rna_age.positive_controls import run
+
+    path = Path(seed) if Path(seed).is_absolute() else REPO_ROOT / seed
+    out = run(path, workers=workers, fetch=fetch, max_mb=max_mb)
+    with pl.Config(tbl_rows=40, tbl_cols=-1, tbl_width_chars=220, fmt_str_lengths=40):
+        print(out.group_by("source", "verdict").len().sort("source", "verdict"))
+        print(out.filter(pl.col("verdict") == "usable").select(
+            "source", "dataset_id", "condition", "tissue", "n_case", "n_control", "n_pairs_matched", "batch_status"))
