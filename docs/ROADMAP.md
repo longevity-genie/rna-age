@@ -90,9 +90,11 @@ the cells, on RM28's encoder) follows. Ridge check on the lupus cohort: `concat`
 
 Every cell gets an age from a head on RM28's cell encoder; the donor's age is a pooled sum of its cells' ages (equal
 weights, or gated attention that learns which cells matter); loss = the donor's error + λ × each cell's error
-against the donor's age. Arms on the best RM28 encoder: mean λ=0 (RM28's read-out, the reference), mean λ>0, attention
-λ=0, attention λ>0; λ chosen from a short list on the inner validation donors. A literature check of per-cell aging
-clocks and of instance + bag losses in multiple-instance learning runs alongside and may change λ or the pooling.
+against the donor's age. Arms on the best RM28 encoder: mean λ=0 (RM28's read-out, the reference), attention λ=0, and mean
+and attention with λ ∈ {0.1, 0.5} on 15-cell pseudocells (`--pseudocell 15`). The literature check (posted in the
+topic, 2026-11-13) found no single-cell age model trained on per-cell and donor losses together; the per-cell loss
+equals the donor loss plus a penalty on within-donor spread (Javanmard et al. 2024), so each arm also reports the
+slope of predicted vs true age, the warning sign for shrinkage.
 Bar: an arm beats the whole-sample TabICLv2 beyond the paired CI in at least 4 of 7 cohorts; per-cell ages are kept
 for the cells-that-look-old analysis only if it passes.
 
