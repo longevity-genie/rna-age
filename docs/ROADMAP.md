@@ -27,8 +27,10 @@ sub-states apart.
 Annotation bias (Anton: "is it not biased on cell type detection and attribution of cell types to subsystems?"):
 coarse classes first; a second, uniform annotation of every cohort by reference mapping (e.g. CellTypist, one
 reference) beside the authors' labels, a system gap reported only where the two agree (r ≥ 0.7 across donors); each
-type's share and the unassigned share against age, a type that drifts with age flagged; and a label-free arm, K
-learned soft groups of cells each with its own age, named afterwards by marker genes. Then the known-cause tests
+type's share and the unassigned share against age, a type that drifts with age flagged; and label-free arms (Anton: "approaches that do not depend on how authors labeled cells"):
+clusters of all cohorts' cells on RM28's cell embedding as systems, named afterwards by marker genes; covarying
+neighbourhood analysis (CNA, Reshef 2022) for where in cell space age sits; gene programs (cNMF) as functional
+systems if the clusters hold; learned soft groups last. Then the known-cause tests
 below, on its system gaps.
 
 RM31's per-cell-type clocks (out of fold, TabICLv2) give each donor an age per cell type; their age-adjusted gaps
