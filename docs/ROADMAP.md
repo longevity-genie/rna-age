@@ -29,11 +29,16 @@ requests), ARCHS4 bulk series, and scBaseCount studies, scored per dataset × co
 `positive_controls_usability.parquet`, rolled up per normalised condition (ontology id where present) in
 `positive_controls_conditions.parquet` with `seed` marking the conditions RM33's hand search had. D9 is applied
 strictly to single cell: a set without a two-level processing-batch column is at best "caveat".
+Step 2 (Anton, 2026-11-14: downloads in parallel with RM33): `rna-age positive-controls-fetch` (23c0779) for the usable
+and caveat single-cell sets, small ones first, Allen and ALTRA once the obs job shows their CMV column, SEA-AD deferred;
+after each, per-donor obs, per-type pseudobulk and the verdict rerun on the full file. Bulk seeds the scan could not
+use: curated case/control labels from GEO characteristics for series in ARCHS4 without them (GSE113957, GSE111016,
+GSE167186, GSE114007) and NCBI-generated counts for those missing from ARCHS4 (GSE190125, GSE135251, GSE47460).
 
 ## RM33 — System-level age gaps: which cell types or tissues make a person look older
 
-**State:** unattended (design A by default, staged; Anton's pick of A/B/C asked in #rna-age > per-cell clock,
-2026-11-13) · **Owner:** lead
+**State:** building (design A, stage 0; Anton, 2026-11-14, #rna-age > per-cell clock: "put download in parallel with
+executing plan A") · **Owner:** lead
 
 Review (2026-11-13; a design agent wrote three designs, two separate reviewers judged them on our data and cluster):
 A labelled cell types 6/10 validity, 8/10 feasibility; B label-free groups on our encoder 4/4 (encoder never saw brain,
