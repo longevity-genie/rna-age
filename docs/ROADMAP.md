@@ -50,8 +50,7 @@ GSE114007 (OA: 5 pairs, controls young), GSE135251 (MASLD: no ages in GEO, NCBI 
 
 ## RM33 — System-level age gaps: which cell types or tissues make a person look older
 
-**State:** building (design A, stage 0; Anton, 2026-11-14, #rna-age > per-cell clock: "put download in parallel with
-executing plan A") · **Owner:** lead
+**State:** building (design A; stage 0 run, a601870; its two guards next, then AD replication and CMV) · **Owner:** lead
 
 Review (2026-11-13; a design agent wrote three designs, two separate reviewers judged them on our data and cluster):
 A labelled cell types 6/10 validity, 8/10 feasibility; B label-free groups on our encoder 4/4 (encoder never saw brain,
@@ -63,6 +62,12 @@ disjoint gene halves; QC and ambient covariates, test-retest reliability where r
 not tied to age range. Stages: 0 data on disk, ridge, shared vs specific gaps and AD in PsychAD (go/no-go: microglia
 and astrocytes older than oligodendrocytes); 1 HLCA smoking within study, ILD; 2 Allen CMV after its obs column is
 confirmed; 3 pseudocells and fine types only for passing systems. Datasets come from RM34.
+Stage 0 (2026-11-14, a601870, `rna-age sys-gap`): reliability 0.75-0.98 for most types; shared person factor 26-62 %
+of a type's gap in healthy cohorts; PsychAD AD − control: astrocytes +9.3 y, microglia +7.7, oligodendrocytes +5.7,
+OPC +5.4, excitatory neurons +3.0; bar passes through astrocytes only (− oligodendrocytes 3.6 y [0.7, 6.6], − OPC 3.9
+[0.6, 7.3]); microglia not beyond the CI. Provisional: every type is older in AD, and the leave-DE-genes-out and
+gene-half clocks are not in yet; RADC unmeasurable (18 controls with exact ages). Next: those two guards, AD
+replication on cff99df2 and the microglia atlas, then CMV on Allen.
 
 Design (Anton, same topic: "we have to modify design to allow idea of seeing age difference per system"): his
 individual + group loss with the system (cell type; tissue in bulk) as the unit. (0) One clock per system on
