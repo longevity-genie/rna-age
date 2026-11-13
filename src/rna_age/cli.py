@@ -12,8 +12,12 @@ from rna_age import sources
 app = typer.Typer(no_args_is_help=True, add_completion=False)
 
 # RM26's switches, shared by `baseline` and `probe` (defaults keep today's table, gene axis and training set)
-SAMPLES_SUFFIX = typer.Option("", "--samples-suffix", help="read data/interim/samples_all<S>.parquet (rna-age merge --suffix S)")
-GENES_WITH = typer.Option("", "--genes-with", help="comma-separated extra sources: gene axis = shared bulk genes ∩ theirs")
+SAMPLES_SUFFIX = typer.Option(
+    "", "--samples-suffix", help="read data/interim/samples_all<S>.parquet (rna-age merge --suffix S)"
+)
+GENES_WITH = typer.Option(
+    "", "--genes-with", help="comma-separated extra sources: gene axis = shared bulk genes ∩ theirs"
+)
 EXCLUDE_TRAIN = typer.Option("", "--exclude-train-studies", help="comma-separated study_ids dropped from training only")
 
 
@@ -344,7 +348,9 @@ def train_health_cmd(
     all_diseases: bool = typer.Option(False, help="use every categorised disease, not only aging-linked ones"),
     seed: int = typer.Option(0),
     external: bool = typer.Option(False, help="also score data/input/external (rna-age external)"),
-    age_pair_weight: float = typer.Option(0.0, help="RM27 age-order loss weight on same study x tissue pairs (0 = off)"),
+    age_pair_weight: float = typer.Option(
+        0.0, help="RM27 age-order loss weight on same study x tissue pairs (0 = off)"
+    ),
     age_pair_min: float = typer.Option(20.0, help="minimum age difference of an age-order pair, years"),
     age_pair_scale: float = typer.Option(5.0, help="logistic scale of the age-order loss, years"),
 ) -> None:
@@ -850,3 +856,102 @@ def sc_pretrain_universal_eval_cmd(run_id: str, device: str = typer.Option("")) 
 
     with pl.Config(tbl_rows=-1, tbl_cols=-1, tbl_width_chars=200):
         print(universal_eval(run_id, device=device or None))
+
+
+@app.command("expr-icl-prepare")
+def expr_icl_prepare(
+    what: str = typer.Option("panel,bulk,sc,screen", help="comma-separated parts, in this order"),
+    n_genes: int = typer.Option(1000, help="gene panel size"),
+    max_bulk: int | None = typer.Option(None, help="bulk samples (smoke runs; default all)"),
+    sc_datasets: str = typer.Option("", help="comma-separated single-cell datasets (default all on disk)"),
+    screen_max_rows: int | None = typer.Option(None, help="smoke runs: one donor × condition, this many profiles"),
+    cache: str | None = typer.Option(None, help="table directory (default data/interim/expr_icl)"),
+) -> None:
+    """RM30: the gene panel and the prepared tables (bulk, single-cell donors, screen knockdowns) on it."""
+    from pathlib import Path
+
+    from rna_age.train import expr_icl as e
+
+    d = Path(cache) if cache else e.CACHE
+    parts = _csv(what)
+    if "panel" in parts:
+        e.build_panel(n_genes, cache=d)
+    genes = e.read_panel(d)
+    if "bulk" in parts:
+        e.build_bulk(genes, max_samples=max_bulk, cache=d)
+    if "sc" in parts:
+        e.build_sc(genes, list(_csv(sc_datasets)) or None, cache=d)
+    if "screen" in parts:
+        e.build_screen(genes, max_rows=screen_max_rows, cache=d)
+
+
+@app.command("expr-icl-train")
+def expr_icl_train(
+    steps: int = typer.Option(20000),
+    lr: float = typer.Option(3e-5),
+    warmup: int = typer.Option(500),
+    micro_batch: int = typer.Option(4, help="episodes per forward (one task, one shape)"),
+    accum: int = typer.Option(4, help="forwards per optimiser step"),
+    task_weights: str = typer.Option("age=1,health=1,masked_gene=1,perturbation=1"),
+    rows: str = typer.Option("64,512", help="episode rows min,max"),
+    cols: str = typer.Option("100,500", help="episode columns min,max"),
+    eval_every: int = typer.Option(500),
+    eval_episodes: int = typer.Option(32, help="fixed held-out episodes per task"),
+    ckpt_every: int = typer.Option(2000),
+    seed: int = typer.Option(0),
+    device: str = typer.Option("auto"),
+    name: str = typer.Option("expricl"),
+    cache: str | None = typer.Option(None, help="table directory (default data/interim/expr_icl)"),
+) -> None:
+    """RM30: train TabICLv2 (from its released weights) on expression episodes; prints the run id."""
+    from pathlib import Path
+
+    from rna_age.train.expr_icl import CACHE
+    from rna_age.train.expr_icl_model import TrainConfig, train
+
+    w = {k: float(v) for k, v in (t.split("=") for t in _csv(task_weights))}
+    r, c = (tuple(int(x) for x in _csv(s)) for s in (rows, cols))
+    cfg = TrainConfig(steps=steps, lr=lr, warmup=warmup, micro_batch=micro_batch, accum=accum, task_weights=w,
+                      n_rows=r, n_cols=c, eval_every=eval_every, eval_episodes=eval_episodes,
+                      ckpt_every=ckpt_every, seed=seed, device=device)  # fmt: skip
+    run_dir = train(cfg, name=name, cache=Path(cache) if cache else CACHE)
+    print(run_dir.name)
+
+
+@app.command("expr-icl-eval")
+def expr_icl_eval(
+    run_id: str,
+    what: str = typer.Option("sc", help="sc | bulk | health | perturb"),
+    n_genes: int = typer.Option(500, help="sc: genes per fold (D7: 500); bulk: panel columns used"),
+    cohorts: str = typer.Option("", help="sc: comma-separated cohorts (default the seven)"),
+    bulk_run: str | None = typer.Option(None, help="health: the bulk run (default the one eval bulk wrote)"),
+    splits: str = typer.Option("val,test", help="bulk: scored splits"),
+    n_context: int = typer.Option(4000, help="bulk: prompt rows"),
+    n_readouts: int = typer.Option(100, help="perturb: readout genes"),
+    permutations: int = typer.Option(0, help="health: within-study label shuffles"),
+    device: str = typer.Option("auto"),
+    cache: str | None = typer.Option(None, help="table directory (default data/interim/expr_icl)"),
+) -> None:
+    """RM30's evaluations of a trained run (see rna_age.train.expr_icl_eval)."""
+    from pathlib import Path
+
+    import polars as pl
+
+    from rna_age.train import expr_icl_eval as ev
+    from rna_age.train.expr_icl import CACHE, EVAL_COHORTS
+
+    d = Path(cache) if cache else CACHE
+    if what == "sc":
+        out = ev.eval_sc(run_id, cohorts=_csv(cohorts) or EVAL_COHORTS, n_genes=n_genes, device=device)
+    elif what == "bulk":
+        row = ev.eval_bulk(run_id, splits=_csv(splits), n_context=n_context, max_features=n_genes, device=device,
+                           cache=d)  # fmt: skip
+        out = pl.DataFrame([{k: v for k, v in row.items() if k.startswith(("run_id", "val_exact", "test_exact"))}])
+    elif what == "health":
+        out = ev.eval_health(run_id, bulk_run, permutations=permutations)
+    elif what == "perturb":
+        out = ev.eval_perturb(run_id, n_readouts=n_readouts, device=device, cache=d)
+    else:
+        raise typer.BadParameter(f"--what must be sc, bulk, health or perturb, got {what!r}")
+    with pl.Config(tbl_rows=-1, tbl_cols=-1, tbl_width_chars=200):
+        print(out)

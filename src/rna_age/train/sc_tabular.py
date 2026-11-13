@@ -15,6 +15,8 @@ the MAE difference against ridge with a 95 % CI from resampling donors (D7's bar
 from __future__ import annotations
 
 import logging
+from collections.abc import Callable
+from typing import Any
 
 import numpy as np
 import polars as pl
@@ -26,9 +28,13 @@ from rna_age.train.composition import _cpm, donor_profiles
 log = logging.getLogger(__name__)
 
 MODELS = ("ridge", "enet", "gbm", "mlp", "tabicl")
+# other estimators by name: seed → an object with fit(X, y) and predict(X) (RM30 registers its trained model here)
+ESTIMATORS: dict[str, Callable[[int], Any]] = {}
 
 
 def _fit_predict(model: str, Xtr: np.ndarray, ytr: np.ndarray, Xte: np.ndarray, seed: int) -> np.ndarray:
+    if model in ESTIMATORS:
+        return np.asarray(ESTIMATORS[model](seed).fit(Xtr, ytr).predict(Xte), dtype=np.float64)
     if model == "ridge":
         from sklearn.linear_model import RidgeCV
 
