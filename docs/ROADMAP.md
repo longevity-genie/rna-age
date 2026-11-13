@@ -18,7 +18,12 @@ individual + group loss with the system (cell type; tissue in bulk) as the unit.
 chronological age; the person's age is a learned non-negative weighted sum of the system ages; loss = person error +
 λ × each system's error; output per person: overall age, each system's bias-corrected gap with a CI split into the shared person-level part and the system-specific deviation, its weight. Bar:
 the system-sum model stays within the paired CI of the whole-sample clock in at least 5 of 7 cohorts (RM31's plain
-mean lost 0.3-0.7 y). Then the known-cause tests below, on its system gaps.
+mean lost 0.3-0.7 y). Annotation bias (Anton: "is it not biased on cell type detection and attribution of cell types to subsystems?"):
+coarse classes first; a second, uniform annotation of every cohort by reference mapping (e.g. CellTypist, one
+reference) beside the authors' labels, a system gap reported only where the two agree (r ≥ 0.7 across donors); each
+type's share and the unassigned share against age, a type that drifts with age flagged; and a label-free arm, K
+learned soft groups of cells each with its own age, named afterwards by marker genes. Then the known-cause tests
+below, on its system gaps.
 
 RM31's per-cell-type clocks (out of fold, TabICLv2) give each donor an age per cell type; their age-adjusted gaps
 correlate at r 0.2-0.5 between types, so part of a gap is type-specific, real or noise. Tests where the answer is
