@@ -1180,7 +1180,7 @@ the best pseudobulk reference over the 7 D7 cohorts (0 of 7 beats in every arm):
 - Attention pooling ties the mean; the per-cell loss makes the donor clock worse by 0.4-0.6 y at either weight. On
   this encoder, Anton's per-cell design adds nothing over a donor-level target.
 
-### 2026-11-14 00:05 · RM30 read-outs queued
+### 2026-11-14 00:02 · RM30 read-outs queued
 Training job 6479218 (`20261113-2053-expricl`) held-out quick evals, step 0 → 9k (the lead's reading): age MAE 8.45 →
 8.32, health AUC 0.70 → 0.78, masked-gene skill 0.18 → 0.24, perturbation skill −0.08 → +0.015; flat since 4-6k, so
 no continuation past 10k. `expr-icl-eval` read-outs, each on one GPU, after it ends: sc 6479915, bulk 6479916, health
