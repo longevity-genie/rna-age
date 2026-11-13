@@ -419,6 +419,9 @@ class Group:
     pooled: bool = False
 
 
+Y_SD_FLOOR = 0.05  # log units: an expression target's scale never below this
+
+
 def standardise(Xc: np.ndarray, Xq: np.ndarray, clip: float = CLIP) -> tuple[np.ndarray, np.ndarray]:
     """Columns centred and scaled on the context rows only, clipped to ±``clip``."""
     mu = Xc.mean(0)
@@ -591,11 +594,13 @@ class EpisodeSampler:
             meta["target_gene"] = self.c.genes[target]
         elif task == "perturbation":
             pv = self._pert_var[g.cols]
+            varies = np.nan_to_num(X[ctx][:, g.cols]).std(0) > Y_SD_FLOOR  # the readout must vary in the context
             if rng.random() < 0.5:  # a responsive readout half of the time
                 top = g.cols[np.argsort(-pv)[: max(10, len(pv) // 10)]]
-                target = int(rng.choice(top))
+                top_v = top[np.isin(top, g.cols[varies])]
+                target = int(rng.choice(top_v if len(top_v) else top))
             else:
-                target = int(rng.choice(g.cols))
+                target = int(rng.choice(g.cols[varies] if varies.any() else g.cols))
             yc, yq = X[ctx, target], X[qry, target]
             mode = perturb_mode or str(rng.choice(self.perturb_modes))
             D = self._descr
@@ -621,7 +626,11 @@ class EpisodeSampler:
         Xc, Xq = standardise(np.nan_to_num(Xc), np.nan_to_num(Xq))
         if task == "health":
             return Episode(Xc, yc.astype(np.float32), Xq, yq.astype(np.float32), task, source, meta=meta or {})
-        mu, sd = float(np.mean(yc)), float(np.std(yc)) + 1e-6
+        # an expression target (masked gene, perturbation readout) is scaled by at least Y_SD_FLOOR log units: a
+        # near-constant context otherwise turns a small query difference into a huge target (RM30's first run: a
+        # perturbation loss spike to 119 at step 100, held-out skill -10.5)
+        floor = Y_SD_FLOOR if task in ("masked_gene", "perturbation") else 1e-6
+        mu, sd = float(np.mean(yc)), max(float(np.std(yc)), floor)
         return Episode(Xc, ((yc - mu) / sd).astype(np.float32), Xq, ((yq - mu) / sd).astype(np.float32), task,
                        source, mu, sd, meta or {})  # fmt: skip
 

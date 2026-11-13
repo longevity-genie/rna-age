@@ -277,3 +277,16 @@ def test_recompute_flag_reaches_tabicl_and_keeps_outputs():
     a.eval(), b.eval()
     with torch.no_grad():
         assert torch.allclose(a(X, y), b(X, y), atol=1e-5)
+
+
+def test_expression_target_scale_has_a_floor():
+    from rna_age.train.expr_icl import Y_SD_FLOOR, EpisodeSampler
+
+    Xc, Xq = np.random.default_rng(0).normal(size=(10, 4)), np.random.default_rng(1).normal(size=(3, 4))
+    yc = np.full(10, 1.0) + 1e-4 * np.arange(10)  # a near-constant readout in the context
+    yq = np.array([1.0, 1.2, 0.9])
+    e = EpisodeSampler.episode(Xc, yc, Xq, yq, "perturbation", "screen")
+    assert e.y_sd >= Y_SD_FLOOR
+    assert np.abs(e.y_qry).max() < 10  # 0.2 log units off is 4 floors, not thousands of context SDs
+    a = EpisodeSampler.episode(Xc, np.linspace(20, 80, 10), Xq, np.array([30.0, 50, 70]), "age", "bulk")
+    assert np.isclose(a.y_sd, np.std(np.linspace(20, 80, 10)))  # age keeps its own scale
