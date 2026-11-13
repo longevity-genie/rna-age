@@ -18,7 +18,9 @@ parsed into our schema; de-duplicated against ARCHS4 and GTEx by SRA run and exp
 (tumour, cell line, single cell, prenatal) and the D4 rules. Splits by the same study hash, so no current study
 changes side. Bar: the headline recipe retrained on the enlarged table lowers test MAE on the **unchanged** test
 samples beyond the paired bootstrap's 95 % CI (by study); recount3 studies that hash to test are scored separately as
-new unseen studies, never mixed into the comparison.
+new unseen studies, never mixed into the comparison. Source reviewed and passed 2026-11-13 (c87fe6c: 3,289 samples, 198 studies). Both arms use only the
+genes recount3 measures (GENCODE v26; ~1,600 of ours are absent there), the control arm being the old table on that
+gene set, so the comparison isolates the samples; plasma cell-free RNA (SRP223445) stays out of training.
 
 ## RM27 — An age-shift ranking objective on bulk (after RM26)
 
