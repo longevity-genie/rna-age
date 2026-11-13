@@ -21,9 +21,7 @@ above 0.
 
 ## RM30 — An in-context tabular model pretrained on expression tables: age, health, perturbation
 
-**State:** after RM28 (Anton, 2026-11-13: "train tabular model from scratch to be able to do aging, perturbations
-(and whatever virtual cell asks) and health related stuff ... increase training corpus"; code is written meanwhile,
-the first GPU run follows RM28's first result, which shares the GPUs) · **Owner:** lead
+**State:** building (job 6479218 training, 10,000 steps, due ~02:45 on 2026-11-14) · **Owner:** lead
 (design, code), runner (GPU runs)
 
 TabICLv2 (BSD-3, architecture and pretraining code public) is pretrained on synthetic tables; on donor tables it is our
