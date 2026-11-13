@@ -228,3 +228,13 @@ and the bulk ones were RM10's tests. What exists: long-COVID recovery series (GS
 time confounded with pooling batch; GSE270479), autologous transplant series of 3 patients each, and gender-affirming
 testosterone (Lakshmikanth et al. 2024, 23 donors, mostly stimulated PBMC). None is an aging intervention with enough
 donors and clean pairing; they stay ideas, not plan items.
+
+**RM26 outcome (2026-11-13, runner, 7afe44c/c624a5c/35d2685; read by the lead):** fails its bar, narrowly. The 20k-HVG
+MLP (3 seeds per arm, genes recount3 measures) trained with recount3's 3,289 new adult samples against the same recipe
+without them, on the unchanged test (8,843 samples, 212 studies): 7.73 vs 7.90, −0.17 y [−0.39, +0.02]; per seed the
+arm is better in all three pairings' means but not resolved by study. Bgee's 4 test studies gain −0.64 [−1.64, −0.20].
+Against the 7.46 headline the arm alone is +0.27 [−0.14, +0.69] (it lacks the two fine-tunes). The 494 recount3
+samples of new test studies score 11.2 y, far worse than the old test: those studies are harder or their labels
+noisier, and they are the honest estimate for studies outside ARCHS4. Reading: 3 % more samples buys at most ~0.2 y;
+the headline stays on the old table, no fine-tune retrain, and the recount3 source stays in the tree for later use
+(e.g. as an external test). More data of the same kind is not where the next year of error is.

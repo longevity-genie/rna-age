@@ -7,24 +7,9 @@ The lead (`docs/seats/LEAD.md`) keeps it. Seeded at the lead's first seating (20
 
 ## Items
 
-## RM26 — recount3's new adult bulk samples into the table, headline retrained
-
-**State:** building (default of the lead's proposal in #rna-age > decisions, 2026-11-13 12:00, no answer) · **Owner:**
-runner (source, parse, GPU runs), lead reviews the source before merge
-
-The 2026-11-12 inventory found 4,430 recount3 bulk samples (healthy or no disease stated, adult, exact age) not in our
-table. A `recount3` source: gene sums of those projects, coverage converted to read counts by mapped read length,
-parsed into our schema; de-duplicated against ARCHS4 and GTEx by SRA run and experiment id; the same annotation flags
-(tumour, cell line, single cell, prenatal) and the D4 rules. Splits by the same study hash, so no current study
-changes side. Bar: the headline recipe retrained on the enlarged table lowers test MAE on the **unchanged** test
-samples beyond the paired bootstrap's 95 % CI (by study); recount3 studies that hash to test are scored separately as
-new unseen studies, never mixed into the comparison. Source reviewed and passed 2026-11-13 (c87fe6c: 3,289 samples, 198 studies). Both arms use only the
-genes recount3 measures (GENCODE v26; ~1,600 of ours are absent there), the control arm being the old table on that
-gene set, so the comparison isolates the samples; plasma cell-free RNA (SRP223445) stays out of training.
-
 ## RM27 — An age-shift ranking objective on bulk (after RM26)
 
-**State:** after RM26 · **Owner:** lead (code), runner (GPU runs)
+**State:** building (RM26 scored 2026-11-13) · **Owner:** lead (code), runner (GPU runs)
 
 Pasta-style (Salignon et al. 2025): same-tissue sample pairs far apart in age, the network trained to order them, as
 a second head beside age. Bar: a within-study aging-linked disease gap at least D6's +2.9 y on the same 33 unseen
