@@ -13,6 +13,13 @@ The lead (`docs/seats/LEAD.md`) keeps it. Seeded at the lead's first seating (20
 explanatory info on why person is older than chronological age ... can there be samples where we know that some
 systems of body should show higher age?"; proposed there, built when he is away unless he says no) · **Owner:** lead
 
+Design (Anton, same topic: "we have to modify design to allow idea of seeing age difference per system"): his
+individual + group loss with the system (cell type; tissue in bulk) as the unit. (0) One clock per system on
+chronological age; the person's age is a learned non-negative weighted sum of the system ages; loss = person error +
+λ × each system's error; output per person: overall age, each system's bias-corrected gap with a CI, its weight. Bar:
+the system-sum model stays within the paired CI of the whole-sample clock in at least 5 of 7 cohorts (RM31's plain
+mean lost 0.3-0.7 y). Then the known-cause tests below, on its system gaps.
+
 RM31's per-cell-type clocks (out of fold, TabICLv2) give each donor an age per cell type; their age-adjusted gaps
 correlate at r 0.2-0.5 between types, so part of a gap is type-specific, real or noise. Tests where the answer is
 known: (1) Alzheimer donors vs controls in the brain cohorts 37a17b78 and 5e57cd50, within processing batch (D9). Bar:
