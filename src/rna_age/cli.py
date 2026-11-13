@@ -344,12 +344,16 @@ def train_health_cmd(
     all_diseases: bool = typer.Option(False, help="use every categorised disease, not only aging-linked ones"),
     seed: int = typer.Option(0),
     external: bool = typer.Option(False, help="also score data/input/external (rna-age external)"),
+    age_pair_weight: float = typer.Option(0.0, help="RM27 age-order loss weight on same study x tissue pairs (0 = off)"),
+    age_pair_min: float = typer.Option(20.0, help="minimum age difference of an age-order pair, years"),
+    age_pair_scale: float = typer.Option(5.0, help="logistic scale of the age-order loss, years"),
 ) -> None:
-    """Health-aware MLP (age loss on controls + optional ranking loss / disease head)."""
+    """Health-aware MLP (age loss on controls + optional ranking loss / disease head / age-order loss)."""
     from rna_age.train.health import train_health
 
     train_health(rank_weight=rank_weight, margin=margin, disease_head=disease_head, aging_only=not all_diseases,
-                 seed=seed, external=external)  # fmt: skip
+                 seed=seed, external=external, age_pair_weight=age_pair_weight, age_pair_min=age_pair_min,
+                 age_pair_scale=age_pair_scale)  # fmt: skip
 
 
 @app.command("external")

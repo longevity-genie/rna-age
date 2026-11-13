@@ -10,7 +10,11 @@
    - optional within-study ranking loss: for (case, control) pairs from the same training study, the case's gap
      should exceed the control's by a margin (only for aging-linked categories),
    - optional disease head (logit) trained on case vs control; ``bio_age = age_pred + β·logit`` with β chosen on
-     validation to maximise the within-study gap at fixed MAE cost (reported separately).
+     validation to maximise the within-study gap at fixed MAE cost (reported separately),
+   - optional age-order loss (RM27, after Pasta, Salignon et al. 2025): pairs of control samples of the same tissue
+     and the same study (GTEx: the same tissue across donors) at least ``age_pair_min`` years apart; the older one's
+     prediction should exceed the younger one's (logistic loss on the difference). Within-study pairs cancel batch,
+     so the term teaches the age direction free of study effects.
 """
 
 from __future__ import annotations
@@ -192,6 +196,37 @@ def _pairs(t: pl.DataFrame, train_mask: np.ndarray, aging_only: bool, max_pairs:
     return p[rng.permutation(len(p))[:max_pairs]]
 
 
+def _age_pairs(
+    t: pl.DataFrame, mask: np.ndarray, min_gap: float = 20.0, max_pairs: int = 200_000, seed: int = 0
+) -> np.ndarray:
+    """(older_idx, younger_idx) pairs of masked rows in the same pairing group, ``target`` ≥ ``min_gap`` apart.
+
+    The group is study × tissue, except GTEx (one study per donor), where it is the tissue across donors."""
+    rng = np.random.default_rng(seed)
+    t = t.with_row_index("_i").filter(pl.Series(mask) & pl.col("target").is_not_null())
+    t = t.with_columns(
+        _grp=pl.when(pl.col("source") == "gtex")
+        .then(pl.lit("gtex:") + pl.col("tissue").fill_null(""))
+        .otherwise(pl.col("study_id") + pl.lit(":") + pl.col("tissue").fill_null(""))
+    )
+    out = []
+    for _, g in t.group_by("_grp"):
+        if g.height < 2:
+            continue
+        a, idx = g["target"].to_numpy(), g["_i"].to_numpy()
+        if a.max() - a.min() < min_gap:
+            continue
+        n = min(g.height * 20, 5000)
+        i, j = rng.integers(0, g.height, n), rng.integers(0, g.height, n)
+        keep = a[i] - a[j] >= min_gap
+        if keep.any():
+            out.append(np.stack([idx[i[keep]], idx[j[keep]]], axis=1))
+    if not out:
+        return np.zeros((0, 2), dtype=np.int64)
+    p = np.concatenate(out)
+    return p[rng.permutation(len(p))[:max_pairs]]
+
+
 def train_health(
     rank_weight: float = 0.0,
     margin: float = 3.0,
@@ -202,6 +237,9 @@ def train_health(
     epochs: int = 200,
     name: str | None = None,
     external: bool = False,
+    age_pair_weight: float = 0.0,
+    age_pair_min: float = 20.0,
+    age_pair_scale: float = 5.0,
 ) -> dict:
     import torch
 
@@ -236,6 +274,8 @@ def train_health(
         case = case & t["category"].is_in(list(AGING_LINKED)).fill_null(False).to_numpy()
     head_mask = is_train & exact & (ctrl | case)
     pairs = _pairs(t, is_train, aging_only, seed=seed) if rank_weight > 0 else np.zeros((0, 2), np.int64)
+    age_pairs = _age_pairs(t, age_mask, age_pair_min, seed=seed) if age_pair_weight > 0 else np.zeros((0, 2), np.int64)
+    log.info("age-order pairs: %d (≥ %g y apart, same study × tissue)", len(age_pairs), age_pair_min)
     log.info("health MLP: %d age-training samples, %d case/control pairs, disease head %s", age_mask.sum(), len(pairs),
              disease_head)  # fmt: skip
 
@@ -274,6 +314,11 @@ def train_health(
                 ak, _ = fwd(pp[:, 1], True)
                 gap = (ac - yt[pp[:, 0]]) - (ak - yt[pp[:, 1]])
                 loss = loss + rank_weight * torch.relu(margin - gap).mean()
+            if age_pair_weight > 0 and len(age_pairs):
+                ap = age_pairs[rng.integers(0, len(age_pairs), 256)]
+                ao, _ = fwd(ap[:, 0], True)
+                ay, _ = fwd(ap[:, 1], True)
+                loss = loss + age_pair_weight * torch.nn.functional.softplus(-(ao - ay) / age_pair_scale).mean()
             if disease_head and len(hm):
                 hb = hm[rng.integers(0, len(hm), 512)]
                 _, lg = fwd(hb, True)
@@ -334,9 +379,13 @@ def train_health(
         beta = max(ok, key=lambda c: c[2])[0]
         out = out.with_columns(bio_age=pl.col("pred") + beta * pl.col("health_logit"))
     run_dir = new_run(
-        name or f"health-mlp-rank{rank_weight:g}{'-head' if disease_head else ''}{'' if aging_only else '-alldis'}-s{seed}",
+        name
+        or f"health-mlp-rank{rank_weight:g}{'-head' if disease_head else ''}{'' if aging_only else '-alldis'}"
+        f"{f'-agepair{age_pair_weight:g}' if age_pair_weight > 0 else ''}-s{seed}",
         {"model": "health-aware MLP", "features": f"logCPM HVG {n_hvg}", "rank_weight": rank_weight, "margin": margin,
          "disease_head": disease_head, "aging_linked_only": aging_only, "beta": beta, "n_pairs": int(len(pairs)),
+         "age_pair_weight": age_pair_weight, "age_pair_min": age_pair_min, "age_pair_scale": age_pair_scale,
+         "n_age_pairs": int(len(age_pairs)),
          "train_set": "age loss on controls (bulk train); ranking/head on train-study cases"},
     )  # fmt: skip
     if ext_pred is not None:
