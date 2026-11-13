@@ -34,6 +34,12 @@ and caveat single-cell sets, small ones first, Allen and ALTRA once the obs job 
 after each, per-donor obs, per-type pseudobulk and the verdict rerun on the full file. Bulk seeds the scan could not
 use: curated case/control labels from GEO characteristics for series in ARCHS4 without them (GSE113957, GSE111016,
 GSE167186, GSE114007) and NCBI-generated counts for those missing from ARCHS4 (GSE190125, GSE135251, GSE47460).
+Step 3 (Anton, 2026-11-14: "did you search for scrna-seq on awesome singlecell, websearch, open data and others?"):
+age-related diseases from outside reference lists searched per disease in GEO, and GEO single-cell series as a whole,
+awesome-single-cell, Synapse, Zenodo/figshare and web search; the HCA/DISCO/SCEA/PBMCpedia scan merged; labels
+normalised to disease families. Rule change, unless Anton objects: usability is scored per condition, studies pooled by
+meta-analysis of within-study contrasts (study a random effect), so studies with ≥ 3 donors per arm count; per-donor
+age may come from a paper's supplement.
 
 ## RM33 — System-level age gaps: which cell types or tissues make a person look older
 
