@@ -60,11 +60,12 @@ stop before Anton is back; 07:00 report, then keep updating; one tabbed artifact
   rules: Census 2,356 healthy (3,815 any health), scBaseCount 492 (1,656), recount3 bulk 4,430 (6,380).
 
 ## Running (jobs carry seat / what / eta in their Slurm comment)
-- RM28: all three arms trained (5-16 min each); read-outs 6475125-6475130, 6475903-6475906.
 - RM30: out of memory on the 11 GB cards even at micro-batch 1; waits on the lead (smaller episodes or checkpointing).
 - RM31 (several cell types per donor, 2026-11-13 19:44): job 6474667, one GPU.
 
 ## Results so far (details: `docs/experiments.md`, `data/output/summary/experiments.parquet`)
+- **RM28 (2026-11-13 21:12)**: our own single-cell pretraining (mask, mask+perturb, universal; 30 epochs) gives
+  donor-age clocks 1.3-2.0 y worse than pseudobulk in all 7 cohorts, frozen or fine-tuned; universal bulk MAE 18.7.
 - **RM27 (2026-11-13 19:33)**: a Pasta-style age-order term on same study × tissue pairs leaves the health MLP's
   aging-linked gap at +2.69 y (3-seed mean; control 2.55; bar +2.9 not met), test MAE 0.27 y better; null p 0.005.
 - **RM26 (2026-11-13 17:50)**: adding 3,289 recount3 bulk samples (2,046 training rows) lowers the 3-seed MLP test MAE

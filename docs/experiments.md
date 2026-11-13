@@ -1119,3 +1119,24 @@ ridge + TabICLv2, 5 classes, 5 folds × 7 representations). Writes sc_multitype.
 - RM30 `expr-icl-train`: 6475131 out of memory in the first backward pass (micro-batch 4); 6475493 with
   `--micro-batch 1 --accum 16` and expandable segments out of memory too (1.86 GiB short). Smaller episodes or
   gradient checkpointing needed; asked the lead.
+
+### 2026-11-13 21:12 · RM28 read-outs: no arm beats pseudobulk in any cohort
+Runs `20261113-1942-scpre-{mask,mask-perturb,universal}-s0` (30 epochs, 5-16 min each on one 2080 Ti; trained before
+the fp16 fix e25363a, so in emulated bf16). Donor-age clocks on the frozen encoders (`sc-pretrain-clock`, GPU) and
+after fine-tuning (`sc-pretrain-finetune`), each against the best pseudobulk reference per cohort (7 D7 cohorts):
+
+| arm | frozen + ridge | frozen + TabICLv2 | fine-tuned |
+|---|---|---|---|
+| mask | 0 of 7, +1.71 y | 0 of 7, +1.41 y | 0 of 7, +1.78 y |
+| mask+perturb | 0 of 7, +1.76 y | 0 of 7, +1.61 y | 0 of 7, +1.85 y |
+| universal | 0 of 7, +1.83 y | 0 of 7, +1.25 y | 0 of 7, +1.97 y |
+
+(mean difference in MAE vs the best pseudobulk reference; positive = worse.) E.g. Terekhova whole sample: mask +
+TabICL 9.13 y vs pseudobulk TabICLv2 6.92 y; CD4 T 8.39 vs 6.10.
+- Universal-eval (6475906): bulk test MAE 18.7 (val 18.0) vs the bulk headline 7.46; its aging-linked within-study
+  gap +6.0 y [1.4, 11.7] with control-sample MAE 14.9, so the gap is on a much noisier clock and not comparable to
+  D6's +2.9.
+- Perturbation head (mask+perturb, universal): validation Δ correlation 0.045, MSE 0.0127 vs no-change 0.013 (barely
+  above the no-change baseline).
+- Jobs: embeds 6475125/6475126/6475903; clocks first failed on CPU nodes (TabICL wants a GPU: 6475127/8, 6475904),
+  rerun 6479150-6479152; fine-tunes 6475129/6475130/6475905; universal-eval 6475906.
