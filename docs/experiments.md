@@ -1076,3 +1076,9 @@ worse than the control runs'. Then `health-eval --permutations 200` on the best 
   are unmeasured; the built-in epoch-1 stop rule (masked MSE must beat the mean-gene baseline) applies.
 - Then per run: `sc-pretrain-embed` (first alone), `sc-pretrain-clock` (`--with tabicl`), `sc-pretrain-finetune`;
   universal also `sc-pretrain-universal-eval`.
+
+### 2026-11-13 19:32 · RM28 fp32 fix picked up; RM30 prep submitted
+- The lead's 1234b0b makes RM28's loop use fp32 on cards without bf16; the queued scpre jobs (still pending) pick it up.
+- RM30 (TabICLv2 initialised from its released weights, trained on expression episodes; bars in ROADMAP RM30):
+  `uv run --with tabicl rna-age expr-icl-prepare`, job 6472840 (CPU 8, 96 GB, 12 h limit, unmeasured). Training
+  (`expr-icl-train --steps 20000`) waits for RM28's first arm's result, per the plan; first 500 steps get timed.
