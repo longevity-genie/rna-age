@@ -9,9 +9,10 @@ The lead (`docs/seats/LEAD.md`) keeps it. Seeded at the lead's first seating (20
 
 ## RM33 — System-level age gaps: which cell types or tissues make a person look older
 
-**State:** unattended (Anton, 2026-11-13, #rna-age > per-cell clock: "from the state of some cell types we can get
-explanatory info on why person is older than chronological age ... can there be samples where we know that some
-systems of body should show higher age?"; proposed there, built when he is away unless he says no) · **Owner:** lead
+**State:** building (design phase; Anton, 2026-11-13, #rna-age > per-cell clock: "make this research, than make 3
+alternative designs and ask reviwer agents to evaluate pros and cons of them, reviwer agents must know our cluaters and
+datasets but be separate from agents that design the architectures"; research agents running, then a design agent,
+then separate reviewers; the chosen design is built, the top-ranked one by default) · **Owner:** lead
 
 Design (Anton, same topic: "we have to modify design to allow idea of seeing age difference per system"): his
 individual + group loss with the system (cell type; tissue in bulk) as the unit. (0) One clock per system on
