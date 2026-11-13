@@ -215,3 +215,16 @@ r 0.51, bias slope −0.69 (8,843 samples), against the bar of 9.1 (the 20k-HVG 
 (200 PCs, random 10k context) was 15.7. Predictions shrink to the context mean. Reading: on bulk, with tens of
 thousands of heterogeneous samples, an in-context regressor cannot replace a trained network; TabICLv2 stays a
 single-cell clock (D7), where tables are a few hundred donors. No fine-tuning step.
+
+**RM18 outcome (2026-11-13, lead; steps 1-2 above in the plan's history, `clock_compare_same_donors.parquet`,
+`clock_compare_disease.parquet`):** done with step 3 canceled for want of data. Accuracy: on the same blood donors the
+bulk clock, never trained on them, ranks age as well as the single-cell clock or better (r 0.80-0.92 vs 0.77-0.85);
+it reads single-nucleus cortex 10-39 y young; gap agreement between the two 0.35-0.64. Unhealthy cohorts: no clock
+shows a patient-control gap that survives processing batch (COVID none; lupus withdrawn, D9). Interventions: a search
+of CELLxGENE, GEO, ArrayExpress and the literature (2026-11-13) found no public paired before/after single-cell blood
+data for calorie restriction, fasting, exercise training, metformin, rapalogs, senolytics, NAD precursors, plasma
+exchange, thymus regeneration, bariatric surgery or smoking cessation; those designs exist only in bulk or cytometry,
+and the bulk ones were RM10's tests. What exists: long-COVID recovery series (GSE262861, 20 donors × 3 time points,
+time confounded with pooling batch; GSE270479), autologous transplant series of 3 patients each, and gender-affirming
+testosterone (Lakshmikanth et al. 2024, 23 donors, mostly stimulated PBMC). None is an aging intervention with enough
+donors and clean pairing; they stay ideas, not plan items.
