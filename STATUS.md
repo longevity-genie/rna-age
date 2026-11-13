@@ -60,8 +60,8 @@ stop before Anton is back; 07:00 report, then keep updating; one tabbed artifact
   rules: Census 2,356 healthy (3,815 any health), scBaseCount 492 (1,656), recount3 bulk 4,430 (6,380).
 
 ## Running (jobs carry seat / what / eta in their Slurm comment)
-- RM28: mask and mask+perturb trained (5-6 min each); read-outs 6475125-6475130; universal 6472138 training.
-- RM30: training 6475131 (GPU, 20k steps).
+- RM28: all three arms trained (5-16 min each); read-outs 6475125-6475130, 6475903-6475906.
+- RM30: out of memory on the 11 GB cards even at micro-batch 1; waits on the lead (smaller episodes or checkpointing).
 - RM31 (several cell types per donor, 2026-11-13 19:44): job 6474667, one GPU.
 
 ## Results so far (details: `docs/experiments.md`, `data/output/summary/experiments.parquet`)

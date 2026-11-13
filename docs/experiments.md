@@ -1111,3 +1111,11 @@ ridge + TabICLv2, 5 classes, 5 folds × 7 representations). Writes sc_multitype.
 - Read-outs: embed mask 6475125 (CPU, builds the cohort cache) → embed mask+perturb 6475126; clocks (`--with tabicl`,
   CPU) 6475127, 6475128; fine-tunes (GPU, chained on one card) 6475129, 6475130.
 - RM30: `expr-icl-train --steps 20000` job 6475131 (GPU, 24 h limit until the first 500 steps are timed).
+
+### 2026-11-13 20:02 · RM28 universal trained; RM30 does not fit an 11 GB card as specified
+- RM28 universal (6472138, 16 min, 30 epochs): run `20261113-1942-scpre-universal-s0`, best bulk val MAE 15.2 (its
+  selection score), pool pseudobulk val MAE 6.9. Read-outs: embed 6475903, clock 6475904, fine-tune 6475905 (after the
+  other two fine-tunes), universal-eval 6475906.
+- RM30 `expr-icl-train`: 6475131 out of memory in the first backward pass (micro-batch 4); 6475493 with
+  `--micro-batch 1 --accum 16` and expandable segments out of memory too (1.86 GiB short). Smaller episodes or
+  gradient checkpointing needed; asked the lead.
