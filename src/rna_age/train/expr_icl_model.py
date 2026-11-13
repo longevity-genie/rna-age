@@ -303,7 +303,8 @@ def train(
     ckpt_dir = Path(json.loads((run_dir / "config.json").read_text())["checkpoint_dir"])
     opt = torch.optim.AdamW([p for p in model.parameters() if p.requires_grad], lr=cfg.lr,
                             weight_decay=cfg.weight_decay, betas=(0.9, 0.95))  # fmt: skip
-    amp = cfg.amp and dev.startswith("cuda")
+    # bf16 only where the card has it (a 2080 Ti does not: fp32 there, never fp16 without a loss scaler)
+    amp = cfg.amp and dev.startswith("cuda") and torch.cuda.is_bf16_supported()
     rows: list[dict] = []
     rng = np.random.default_rng(cfg.seed)
 
