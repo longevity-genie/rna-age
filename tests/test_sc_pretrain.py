@@ -184,3 +184,40 @@ def test_tiny_pretraining_beats_the_mean_gene_baseline():
     m = scp.sample_mask(len(xv), 40, 0.15, 0.3, torch.Generator().manual_seed(1))
     with torch.no_grad():
         assert scp.masked_mse(model(xv, m), xv, m) < 0.8 * scp.mean_gene_mse(x[:1500].mean(0), xv, m)
+
+
+def test_cellpool_mean_equals_head_on_mean_embedding_and_attn_starts_as_mean():
+    import torch
+
+    from rna_age.train.sc_pretrain import CellPool
+
+    torch.manual_seed(0)
+    z = torch.randn(30, 8)
+    m = CellPool(8, "mean")
+    torch.nn.init.normal_(m.head.weight)
+    don, cell = m(z)
+    assert cell.shape == (30,)
+    assert torch.allclose(don, m.head(z.mean(0)).squeeze(), atol=1e-5)
+    a = CellPool(8, "attn")
+    a.head.load_state_dict(m.head.state_dict())
+    assert torch.allclose(a.weights(z), torch.full((30,), 1 / 30), atol=1e-6)  # zero-initialised gate = mean
+    assert torch.allclose(a(z)[0], don, atol=1e-5)
+
+
+def test_finetune_fold_runs_with_cell_loss_and_attention():
+    import numpy as np
+    import torch
+
+    from rna_age.train.sc_pretrain import ScMAE, finetune_fold
+
+    torch.manual_seed(0)
+    rng = np.random.default_rng(0)
+    model = ScMAE(n_genes=12, hidden=16, emb=4)
+    donors = [f"d{i}" for i in range(12)]
+    cell_donor = np.repeat(donors, 5)
+    x = torch.from_numpy(rng.normal(size=(60, 12)).astype(np.float32))
+    age = rng.uniform(20, 80, 12)
+    for pool, w in (("mean", 0.0), ("attn", 0.5)):
+        p = finetune_fold(model, x, cell_donor, donors[:8], age[:8], donors[8:10], age[8:10], donors[10:], 2, 1e-3,
+                          1e-2, 4, 0, pool, w)  # fmt: skip
+        assert p.shape == (2,) and np.isfinite(p).all()

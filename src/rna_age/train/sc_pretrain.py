@@ -894,20 +894,53 @@ def _inner_split(groups: np.ndarray, frac: float, seed: int) -> np.ndarray:
     return np.isin(groups, rng.choice(u, max(1, round(frac * len(u))), replace=False))
 
 
+class CellPool(nn.Module):
+    """Per-cell age (a linear head on each cell's embedding) and the donor's age as a pooled sum of its cells' ages.
+
+    ``mean``: every cell weighs the same (identical to a linear head on the mean embedding, RM28's read-out).
+    ``attn``: gated attention weights over the donor's cells (Ilse et al. 2018), so the model can learn which cells
+    carry age. RM32 (Anton, 2026-11-13): "an ensemble of per cell predictions where some cells push age higher and
+    some lower, the loss split into individual age prediction and group prediction"."""
+
+    def __init__(self, dim: int, pool: str = "mean", hidden: int = 64):
+        super().__init__()
+        if pool not in ("mean", "attn"):
+            raise ValueError(f"pool must be mean or attn, got {pool!r}")
+        self.pool = pool
+        self.head = nn.Linear(dim, 1)
+        nn.init.zeros_(self.head.weight)
+        nn.init.zeros_(self.head.bias)
+        if pool == "attn":
+            self.v = nn.Linear(dim, hidden)
+            self.u = nn.Linear(dim, hidden)
+            self.w = nn.Linear(hidden, 1)
+            nn.init.zeros_(self.w.weight)  # starts as the mean
+            nn.init.zeros_(self.w.bias)
+
+    def weights(self, z: torch.Tensor) -> torch.Tensor:
+        if self.pool == "mean":
+            return torch.full((len(z),), 1.0 / len(z), device=z.device, dtype=z.dtype)
+        return torch.softmax(self.w(torch.tanh(self.v(z)) * torch.sigmoid(self.u(z))).squeeze(-1), dim=0)
+
+    def forward(self, z: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
+        """``z``: one donor's cells × dim → (donor age, per-cell ages), standardised units."""
+        cell = self.head(z).squeeze(-1)
+        return (self.weights(z) * cell).sum(), cell
+
+
 def finetune_fold(model0: ScMAE, x: torch.Tensor, cell_donor: np.ndarray, train: list[str], age_tr: np.ndarray,
                   val: list[str], age_val: np.ndarray, test: list[str], epochs: int, lr: float, head_lr: float,
-                  donors_per_batch: int, seed: int) -> np.ndarray:  # fmt: skip
-    """Copy of the encoder + a linear head on the mean cell embedding of each donor; trained on ``train`` donors,
-    the epoch with the lowest MAE on ``val`` donors kept; returns predictions for ``test`` donors."""
+                  donors_per_batch: int, seed: int, pool: str = "mean", cell_weight: float = 0.0) -> np.ndarray:  # fmt: skip
+    """Copy of the encoder + a per-cell age head pooled per donor (:class:`CellPool`); loss = donor error
+    + ``cell_weight`` × the mean per-cell error against the donor's age; trained on ``train`` donors, the epoch with
+    the lowest MAE on ``val`` donors kept; returns predictions for ``test`` donors."""
     import copy
 
     dev = x.device
     torch.manual_seed(seed)
     enc = copy.deepcopy(model0).train()
     mu, sd = float(age_tr.mean()), float(age_tr.std() + 1e-6)
-    head = nn.Linear(enc.to_emb[-1].out_features, 1).to(dev)
-    nn.init.zeros_(head.weight)
-    nn.init.zeros_(head.bias)
+    head = CellPool(enc.to_emb[-1].out_features, pool).to(dev)
     idx = {d: torch.from_numpy(np.flatnonzero(cell_donor == d)).to(dev) for d in set(train) | set(val) | set(test)}
     opt = torch.optim.AdamW([{"params": enc.parameters(), "lr": lr}, {"params": head.parameters(), "lr": head_lr}],
                             weight_decay=0.01)  # fmt: skip
@@ -916,7 +949,7 @@ def finetune_fold(model0: ScMAE, x: torch.Tensor, cell_donor: np.ndarray, train:
     def predict(donors: list[str]) -> np.ndarray:
         enc.eval()
         with torch.no_grad():
-            out = [float(head(enc.encode(x[idx[d]]).mean(0))) * sd + mu for d in donors]
+            out = [float(head(enc.encode(x[idx[d]]))[0]) * sd + mu for d in donors]
         enc.train()
         return np.array(out)
 
@@ -924,8 +957,14 @@ def finetune_fold(model0: ScMAE, x: torch.Tensor, cell_donor: np.ndarray, train:
     y = torch.tensor((age_tr - mu) / sd, dtype=torch.float32, device=dev)
     for _ in range(epochs):
         for b in np.array_split(rng.permutation(len(train)), max(1, len(train) // donors_per_batch)):
-            z = torch.stack([enc.encode(x[idx[train[i]]]).mean(0) for i in b])
-            loss = ((head(z).squeeze(1) - y[torch.from_numpy(b).to(dev)]) ** 2).mean()
+            donor_err, cell_err = [], []
+            for i in b:
+                don, cell = head(enc.encode(x[idx[train[i]]]))
+                donor_err.append((don - y[i]) ** 2)
+                cell_err.append(((cell - y[i]) ** 2).mean())
+            loss = torch.stack(donor_err).mean()
+            if cell_weight > 0:
+                loss = loss + cell_weight * torch.stack(cell_err).mean()
             opt.zero_grad(set_to_none=True)
             loss.backward()
             opt.step()
@@ -940,8 +979,10 @@ def finetune_fold(model0: ScMAE, x: torch.Tensor, cell_donor: np.ndarray, train:
 
 def finetune(run_id: str, cohorts: tuple[str, ...] = EVAL_COHORTS, epochs: int = 20, lr: float = 1e-4,
              head_lr: float = 1e-3, donors_per_batch: int = 16, inner_val: float = 0.15, cap: int = 200, seed: int = 0,
-             max_donors: int | None = None, device: str | None = None, n_boot: int = 2000) -> pl.DataFrame:  # fmt: skip
-    """Fine-tune read-out on RM14's folds; rows ``scpre-<arm>-s<seed>-finetune`` added to the summaries."""
+             max_donors: int | None = None, device: str | None = None, n_boot: int = 2000, pool: str = "mean",
+             cell_weight: float = 0.0) -> pl.DataFrame:  # fmt: skip
+    """Fine-tune read-out on RM14's folds; rows ``scpre-<arm>-s<seed>-finetune[-<pool>][-cell<w>]`` added to the
+    summaries (the plain name is RM28's mean pooling without the per-cell loss)."""
     from sklearn.model_selection import GroupKFold
 
     from rna_age.train.fm_embed import clock_folds, compare
@@ -949,6 +990,7 @@ def finetune(run_id: str, cohorts: tuple[str, ...] = EVAL_COHORTS, epochs: int =
     dev = _device(device)
     model0, cfg = load_encoder(run_id, dev)
     tag = f"scpre-{cfg['arm'].replace('+', '-')}-s{cfg['seed']}-finetune"
+    tag += ("" if pool == "mean" else f"-{pool}") + (f"-cell{cell_weight:g}" if cell_weight > 0 else "")
     rows = []
     for c in cohorts:
         cc = cohort_cells(c, cfg["pool"], cap, seed, max_donors)
@@ -967,7 +1009,7 @@ def finetune(run_id: str, cohorts: tuple[str, ...] = EVAL_COHORTS, epochs: int =
                 fit, val = tr[~iv], tr[iv]
                 pred[te] = finetune_fold(model0, x, cell_donor, donors[fit].tolist(), age[fit], donors[val].tolist(),
                                          age[val], donors[te].tolist(), epochs, lr, head_lr, donors_per_batch,
-                                         seed + k)  # fmt: skip
+                                         seed + k, pool, cell_weight)  # fmt: skip
             rows += [{"cohort": c[:8], "representation": rep, "model": tag, "donor": d, "group": int(g),
                       "age": float(a), "pred": float(p)} for d, g, a, p in zip(donors, groups, age, pred, strict=True)]  # fmt: skip
             log.info("%s %s finetune MAE %.2f (%d donors)", c[:8], rep, float(np.abs(pred - age).mean()), len(donors))

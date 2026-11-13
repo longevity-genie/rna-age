@@ -834,13 +834,16 @@ def sc_pretrain_finetune_cmd(
     lr: float = typer.Option(1e-4),
     max_donors: int = typer.Option(0, help="smoke runs only"),
     device: str = typer.Option(""),
+    pool: str = typer.Option("mean", help="RM32: mean or attn (attention over the donor's cells)"),
+    cell_weight: float = typer.Option(0.0, help="RM32: weight of the per-cell age loss (0 = donor loss only)"),
 ) -> None:
-    """RM28: fine-tune read-out (encoder + linear head on donor age inside each training fold, GPU)."""
+    """RM28/RM32: fine-tune read-out (encoder + per-cell age head pooled per donor, inside each training fold, GPU)."""
     import polars as pl
 
     from rna_age.train.sc_pretrain import bar, finetune
 
-    cmp = finetune(run_id, _cohorts(cohorts), epochs, lr, max_donors=max_donors or None, device=device or None)
+    cmp = finetune(run_id, _cohorts(cohorts), epochs, lr, max_donors=max_donors or None, device=device or None,
+                   pool=pool, cell_weight=cell_weight)  # fmt: skip
     with pl.Config(tbl_rows=-1, tbl_cols=-1, tbl_width_chars=200):
         print(cmp)
         print(bar(cmp))
