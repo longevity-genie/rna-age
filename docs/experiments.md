@@ -1039,3 +1039,25 @@ and `splits_recount3.parquet` (`rna-age merge --suffix _recount3`; the shared `s
 - Bar (the lead, fixed before the run): `rna-age rm26-compare` arm − control on the old test (8,843 exact), 3-seed
   mean per arm, CI over test studies; pass if hi < 0. Noise floor of two identical 3-seed means: +0.11 [−0.09, 0.32].
   test_new and the ensemble vs 7.46 are secondary read-outs. Fine-tunes retrained only on a pass.
+
+### 2026-11-13 17:50 · RM26 result: recount3 helps a little, not beyond the CI (bar not met)
+Control runs `20261113-1716/1720/1724-hvg20000-mlp-trainall-genes-recount3[-seedN]` (job 6470325); recount3 arm
+`20261113-1727/1731/1735-...-table-recount3-excl1[-seedN]` (job 6470326); `rna-age rm26-compare` →
+`data/output/summary/rm26_compare.parquet`. 3-seed means, old test (8,843 exact, 212 studies), CI over 2,000 study
+resamples:
+
+| comparison | MAE a | MAE b | diff [95 % CI] |
+|---|---|---|---|
+| recount3 arm − control (all) | 7.73 | 7.90 | −0.17 [−0.39, +0.02] |
+| recount3 arm − control (ARCHS4 test) | 7.75 | 7.92 | −0.16 [−0.38, +0.02] |
+| recount3 arm − control (Bgee test, 4 studies) | 5.78 | 6.41 | −0.64 [−1.64, −0.20] |
+| recount3 arm − headline 7.46 | 7.73 | 7.46 | +0.27 [−0.14, +0.69] |
+| control − headline 7.46 | 7.90 | 7.46 | +0.44 [−0.01, +0.94] |
+
+- Bar (hi < 0 on arm − control, all): not met; the upper bound is +0.02. The direction is consistent across seeds
+  (control 7.92 / 8.32 / 7.99, arm 7.99 / 7.87 / 7.80 single-seed test MAE) and larger than the +0.11 noise floor
+  in size, but not resolved. By the lead's rule no fine-tune retrain follows.
+- test_new (494 recount3 test samples, 35 studies, arm only): MAE 11.24, i.e. new studies from a new pipeline are
+  much harder than the old test; the control cannot score them on the same footing (it never saw recount3), so no
+  paired read.
+- Headline-style MLP-only means are worse than the 7.46 ensemble, as expected (no fine-tunes in either arm).

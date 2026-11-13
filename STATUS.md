@@ -60,9 +60,12 @@ stop before Anton is back; 07:00 report, then keep updating; one tabbed artifact
   rules: Census 2,356 healthy (3,815 any health), scBaseCount 492 (1,656), recount3 bulk 4,430 (6,380).
 
 ## Running (jobs carry seat / what / eta in their Slurm comment)
-- RM26 (recount3 retrain, 2026-11-13 17:11): control 6470325, recount3 arm 6470326 (chained), 3 MLP seeds each, ~25 min per job.
+- Nothing (2026-11-13 17:50). RM26 finished: recount3 −0.17 y [−0.39, +0.02], bar not met.
 
 ## Results so far (details: `docs/experiments.md`, `data/output/summary/experiments.parquet`)
+- **RM26 (2026-11-13 17:50)**: adding 3,289 recount3 bulk samples (2,046 training rows) lowers the 3-seed MLP test MAE
+  from 7.90 to 7.73 y on the old test samples, −0.17 [−0.39, +0.02]: in the right direction but not beyond the CI; bar
+  not met, no fine-tune retrain. New recount3 test studies read 11.2 y.
 - **RM25 (2026-11-13 02:39)**: TabICLv2 as a bulk clock fails the lead's bar by far: test MAE 15.3 y, r 0.51
   (n 8,843; 2,000 HVG, 4,000 nearest-study context rows) vs the MLP's 8.1 and the headline's 7.46. TabICL stays a
   single-cell clock; no bulk fine-tuning step.
