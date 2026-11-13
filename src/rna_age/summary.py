@@ -26,7 +26,11 @@ log = logging.getLogger(__name__)
 
 
 def load_samples() -> pl.DataFrame:
-    paths = sorted(INPUT.glob("*/samples.parquet"))
+    """Every age-table source's ``samples.parquet`` (``sources.SOURCES``; ``data/input/external`` and other
+    directories with their own tables are not sources)."""
+    from rna_age.sources import SOURCES
+
+    paths = sorted(p for p in INPUT.glob("*/samples.parquet") if p.parent.name in SOURCES)
     if not paths:
         raise FileNotFoundError(f"no {INPUT}/*/samples.parquet yet; run `rna-age parse <source>` first")
     return pl.concat([pl.read_parquet(p) for p in paths], how="vertical_relaxed")

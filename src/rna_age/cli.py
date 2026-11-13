@@ -58,11 +58,13 @@ def census_donor_obs(dataset_id: str = typer.Argument(..., help="Census dataset_
 
 
 @app.command()
-def merge() -> None:
+def merge(
+    suffix: str = typer.Option("", help="write samples_all<suffix>.parquet / splits<suffix>.parquet instead"),
+) -> None:
     """Merge all sources into data/interim/samples_all.parquet with dedup, cohort labels and splits."""
     from rna_age.merge import merge as _merge
 
-    _merge()
+    _merge(suffix)
 
 
 @app.command()
