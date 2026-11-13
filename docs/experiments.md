@@ -1099,3 +1099,7 @@ runs `20261111-0854/0908/0918-health-mlp-rank1-head-s0..s2`. `rna-age health-eva
   moves the mean gap by +0.14 y, well inside seed spread (control seeds alone span 2.30-2.92).
 - Best seed (s1), 200 shuffles within study: null mean +0.01, p 0.005 (1 of 200 bounds): the gap is real, as for the
   controls; the term just does not add to it.
+
+### 2026-11-13 19:44 · RM31 submitted: several cell types per donor (the lead's fcdca9c; bar in ROADMAP RM31)
+Job 6474667 (one GPU, 64 GB, 10 h limit, unmeasured): `uv run --with tabicl rna-age sc-multitype` (7 D7 cohorts,
+ridge + TabICLv2, 5 classes, 5 folds × 7 representations). Writes sc_multitype.parquet and sc_multitype_compare.parquet.

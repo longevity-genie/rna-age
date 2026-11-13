@@ -62,6 +62,7 @@ stop before Anton is back; 07:00 report, then keep updating; one tabbed artifact
 ## Running (jobs carry seat / what / eta in their Slurm comment)
 - RM28 (single-cell pretraining): pool done (13 min); arms mask 6472027, mask+perturb 6472097, universal 6472138 running since 19:42, one 2080 Ti each.
 - RM30 (expression-episode TabICL): prep done (6472840, 5 min); training after RM28's first arm.
+- RM31 (several cell types per donor, 2026-11-13 19:44): job 6474667, one GPU.
 
 ## Results so far (details: `docs/experiments.md`, `data/output/summary/experiments.parquet`)
 - **RM27 (2026-11-13 19:33)**: a Pasta-style age-order term on same study × tissue pairs leaves the health MLP's
