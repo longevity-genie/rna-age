@@ -16,7 +16,7 @@ systems of body should show higher age?"; proposed there, built when he is away 
 Design (Anton, same topic: "we have to modify design to allow idea of seeing age difference per system"): his
 individual + group loss with the system (cell type; tissue in bulk) as the unit. (0) One clock per system on
 chronological age; the person's age is a learned non-negative weighted sum of the system ages; loss = person error +
-λ × each system's error; output per person: overall age, each system's bias-corrected gap with a CI, its weight. Bar:
+λ × each system's error; output per person: overall age, each system's bias-corrected gap with a CI split into the shared person-level part and the system-specific deviation, its weight. Bar:
 the system-sum model stays within the paired CI of the whole-sample clock in at least 5 of 7 cohorts (RM31's plain
 mean lost 0.3-0.7 y). Then the known-cause tests below, on its system gaps.
 
