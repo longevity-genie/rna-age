@@ -60,11 +60,13 @@ def checkpoint_path(filename: str = REGRESSOR_CKPT, allow_download: bool = True)
 
 
 class ExprICL(nn.Module):
-    def __init__(self, config: dict, max_classes: int = MAX_CLASSES):
+    def __init__(self, config: dict, max_classes: int = MAX_CLASSES, recompute: bool = False):
         super().__init__()
         from tabicl._model.tabicl import TabICL
 
         config = {k: v for k, v in config.items() if k != "max_classes"}
+        if recompute:  # TabICL's own gradient checkpointing (activation recomputation): memory for compute
+            config["recompute"] = True
         self.config = config
         self.max_classes = max_classes
         self.reg = TabICL(max_classes=0, **config)
@@ -88,11 +90,13 @@ class ExprICL(nn.Module):
         return sum(p.numel() for p in self.parameters())
 
 
-def from_pretrained(regressor: Path | None = None, classifier: Path | None | bool = None) -> ExprICL:
+def from_pretrained(
+    regressor: Path | None = None, classifier: Path | None | bool = None, recompute: bool = False
+) -> ExprICL:
     """TabICLv2's released weights. ``classifier=False`` skips the classification head's own tensors (they stay at
-    their initialisation)."""
+    their initialisation); ``recompute`` turns on TabICL's gradient checkpointing (same weights, less memory)."""
     ck = torch.load(regressor or checkpoint_path(), map_location="cpu", weights_only=True)
-    model = ExprICL(ck["config"])
+    model = ExprICL(ck["config"], recompute=recompute)
     model.reg.load_state_dict(ck["state_dict"])  # strict: every tensor of the released regressor
     if classifier is not False:
         try:
@@ -239,7 +243,8 @@ class TrainConfig:
     log_every: int = 50
     seed: int = 0
     device: str = "auto"
-    amp: bool = True
+    amp: bool = True  # bf16 where the card has it, else fp16 with a loss scaler
+    recompute: bool = False  # gradient checkpointing inside TabICL (for 11 GB cards)
 
 
 def _device(name: str) -> str:
@@ -288,7 +293,7 @@ def train(
     tr = EpisodeSampler(corpus, "train", n_rows=cfg.n_rows, n_cols=cfg.n_cols, seed=cfg.seed)
     ev = EpisodeSampler(corpus, "eval", n_rows=cfg.n_rows, n_cols=cfg.n_cols, seed=cfg.seed + 1)
     evset = ev.fixed_set(cfg.eval_episodes) if cfg.eval_episodes else []
-    model = model or from_pretrained()
+    model = model or from_pretrained(recompute=cfg.recompute)
     model.to(dev).train()
     tasks = [t for t in tr.tasks() if cfg.task_weights.get(t, 0) > 0]
     if not tasks:
@@ -303,8 +308,10 @@ def train(
     ckpt_dir = Path(json.loads((run_dir / "config.json").read_text())["checkpoint_dir"])
     opt = torch.optim.AdamW([p for p in model.parameters() if p.requires_grad], lr=cfg.lr,
                             weight_decay=cfg.weight_decay, betas=(0.9, 0.95))  # fmt: skip
-    # bf16 only where the card has it (a 2080 Ti does not: fp32 there, never fp16 without a loss scaler)
-    amp = cfg.amp and dev.startswith("cuda") and torch.cuda.is_bf16_supported()
+    # bf16 where the card has it; a 2080 Ti has not: fp16 there, with a loss scaler against underflow
+    amp = cfg.amp and dev.startswith("cuda")
+    amp_dtype = torch.bfloat16 if amp and torch.cuda.is_bf16_supported() else torch.float16
+    scaler = torch.amp.GradScaler("cuda", enabled=amp and amp_dtype == torch.float16)
     rows: list[dict] = []
     rng = np.random.default_rng(cfg.seed)
 
@@ -322,12 +329,14 @@ def train(
         for _ in range(cfg.accum):
             t = tasks[rng.choice(len(tasks), p=w)]
             eps = tr.sample_batch(t, cfg.micro_batch)
-            with torch.autocast("cuda", dtype=torch.bfloat16, enabled=amp):
+            with torch.autocast("cuda", dtype=amp_dtype, enabled=amp):
                 loss = episode_loss(model, eps, dev)
-            (loss / cfg.accum).backward()
+            scaler.scale(loss / cfg.accum).backward()
             per_task.setdefault(t, []).append(float(loss.detach()))
+        scaler.unscale_(opt)
         gn = float(torch.nn.utils.clip_grad_norm_(model.parameters(), cfg.grad_clip))
-        opt.step()
+        scaler.step(opt)  # skipped when the scaled gradients overflowed
+        scaler.update()
         for t, ls in per_task.items():
             rows.append({"step": step + 1, "split": "train", "task": t, "metric": "loss", "value": float(np.mean(ls)),
                          "episodes": len(ls) * cfg.micro_batch})  # fmt: skip

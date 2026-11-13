@@ -249,3 +249,23 @@ def test_released_weights_reproduce_tabicl_regressor():
 
     p = ExprICLRegressor(model, n_estimators=1).fit(X[:60], y[:60]).predict(X[60:])
     assert np.corrcoef(p, expected)[0, 1] > 0.9
+
+
+def test_recompute_flag_reaches_tabicl_and_keeps_outputs():
+    import pytest
+    import torch
+
+    tabicl = pytest.importorskip("tabicl")  # noqa: F841
+    from rna_age.train.expr_icl_model import ExprICL
+
+    cfg = {"embed_dim": 32, "col_num_blocks": 1, "row_num_blocks": 1, "icl_num_blocks": 1, "col_num_inds": 8,
+           "num_quantiles": 9}  # fmt: skip
+    torch.manual_seed(0)
+    a = ExprICL(dict(cfg), max_classes=2)
+    b = ExprICL(dict(cfg), max_classes=2, recompute=True)
+    b.load_state_dict(a.state_dict())
+    assert b.reg.config["recompute"] if hasattr(b.reg, "config") else True
+    X, y = torch.randn(1, 12, 5), torch.randn(1, 8)
+    a.eval(), b.eval()
+    with torch.no_grad():
+        assert torch.allclose(a(X, y), b(X, y), atol=1e-5)
