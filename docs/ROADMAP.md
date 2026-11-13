@@ -18,7 +18,13 @@ individual + group loss with the system (cell type; tissue in bulk) as the unit.
 chronological age; the person's age is a learned non-negative weighted sum of the system ages; loss = person error +
 λ × each system's error; output per person: overall age, each system's bias-corrected gap with a CI split into the shared person-level part and the system-specific deviation, its weight. Bar:
 the system-sum model stays within the paired CI of the whole-sample clock in at least 5 of 7 cohorts (RM31's plain
-mean lost 0.3-0.7 y). Annotation bias (Anton: "is it not biased on cell type detection and attribution of cell types to subsystems?"):
+mean lost 0.3-0.7 y). Unit (Anton: "pseudocells ... make it balanced ... save computation but still provide per system distributions"):
+a fixed number of 15-cell pseudocells per donor × system (e.g. 30, with replacement for small donors), so every
+donor and system weighs the same and compute is fixed; each system's age per person is the mean over its pseudocells,
+the spread gives its CI and shows mixed systems. Read by ridge and TabICLv2 on summed expression (Buckley 2023's
+setting), against the per-type pseudobulk of RM31; similarity metacells (SEACells-style) as the variant that keeps
+sub-states apart.
+Annotation bias (Anton: "is it not biased on cell type detection and attribution of cell types to subsystems?"):
 coarse classes first; a second, uniform annotation of every cohort by reference mapping (e.g. CellTypist, one
 reference) beside the authors' labels, a system gap reported only where the two agree (r ≥ 0.7 across donors); each
 type's share and the unassigned share against age, a type that drifts with age flagged; and a label-free arm, K
