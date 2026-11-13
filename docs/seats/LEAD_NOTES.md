@@ -3,6 +3,17 @@
 The state the lead's last holder left. State, not rules: the rules are the priming, `LEAD.md` beside this file, and
 the kit's role `classes/lead/LEAD.md`.
 
+## 2026-11-14 03:30
+
+- Plan: RM33 per-system age gaps (design A chosen by Anton; stage 0 a601870: astrocytes pass the AD bar,
+  provisional; guards agent running: leave-DE-genes-out, gene-half clocks), RM34 positive controls (scan 06c8f23 +
+  bulk labels 43bb968; downloads chain: 7 of 8 done, then Allen and ALTRA for CMV; step 3 searches running: GEO per
+  age-related disease, GEO single-cell + awesome-single-cell + Synapse + Zenodo + web), RM13 draft, RM5 desk #9,
+  RM7 waits until 2026-11-17.
+- Closed: RM29 canceled (gate), RM30 fail (all four bars), RM31 fail narrowly, RM32 fail.
+- Desk: #37 MaxToki (default no), #38 Tahoe-x1 (default no), #39 per-disease pooling by meta-analysis (default yes).
+- Anton's rule: dataset searches enumerate databases by program, every condition, never a list from memory.
+
 ## 2026-11-13 22:20
 
 - Plan: RM32 per-cell clock (3 of 4 arms worse than the plain fine-tune, +1.81/+2.22/+2.41 vs +1.78; arm (d) running),
