@@ -70,6 +70,17 @@ gene is described only by its own baseline expression and a hashed id (no gene e
 Virtual Cell Challenge data are not yet in the corpus. Reported per head; "universal" needs (1) or (2) and no head
 failing its reference by more than its CI.
 
+## RM31 — Several cell types per donor at once in the single-cell clock
+
+**State:** building (Anton, 2026-11-13, #rna-age > milestones: "improve prediction if we get multiple cells per
+evaluation for single cell clocks together") · **Owner:** lead (code, fcdca9c), runner (the TabICLv2 run)
+
+Per cohort, donors with ≥ 20 cells in each of the 5 best-covered classes; D7 folds. Arms: the class pseudobulks side
+by side with the composition fractions (`concat`), the mean of the per-class clocks, and that mean with the
+whole-sample clock, each against the whole-sample clock rerun on the same donors. Bar: an arm beats the whole-sample
+TabICLv2 beyond the paired CI (persons) in at least 4 of 7 cohorts. If one does, the bigger version (a set model over
+the cells, on RM28's encoder) follows. Ridge check on the lupus cohort: `concat` ties (6.80 vs 6.80), the means lose.
+
 ## RM13 — A manuscript draft of the results (plan line 5)
 
 **State:** building (default of desk #23 applied 2026-11-13; draft v0.1 kept outside git, the repository being public; where it goes: desk #23) · **Owner:** lead
