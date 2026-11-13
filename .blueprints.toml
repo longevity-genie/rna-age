@@ -27,7 +27,8 @@ cmd = "sh kit:bin/py.sh kit:classes/desk/watch-answers.py rna-age lead"
 # The key upstream's releases from the package index (duty upstream-index, held by the lead acting; kit L136, L143):
 # TabICL, the single-cell clock (D7) and the base of RM30's expression-episode model.
 [seat.lead.watch.upstream-index]
-cmd = "sh kit:bin/py.sh kit:drivers/pypi/watch-pypi.py --upstream tabicl"
+# --upstream once the pinned kit carries L143; this repository has no [on_publish], so nothing runs on a release.
+cmd = "sh kit:bin/py.sh kit:drivers/pypi/watch-pypi.py tabicl"
 
 # The runner (docs/seats/RUNNER.md): keeps the pipeline's jobs running on the cluster, logs each run.
 [seat.runner]
