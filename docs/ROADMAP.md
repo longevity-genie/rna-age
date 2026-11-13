@@ -32,6 +32,17 @@ Bars, fixed now: (1) the age clock on the pretrained encoder beats TabICLv2 on g
 beyond its CI. Compute: a few A100-days at most; stopped if the masked loss has not beaten a mean-gene baseline after
 one epoch.
 
+## RM29 — Score RM28's perturbation head on the Virtual Cell Challenge H1 set
+
+**State:** after RM28 (proposed to Anton 2026-11-13 in #rna-age > general chat; default: queued after RM28's first
+result) · **Owner:** lead (code), runner (GPU runs)
+
+Anton (2026-11-13): "is our model compatible with virtual cell challenge, curious to score it". The age clocks are
+not (they map expression to age); RM28's perturbation head (control pseudobulk + knocked-down gene → knockdown
+profile) is. Train it on the challenge's public H1 training perturbations, predict the held-out ones (cells sampled
+around the predicted mean for the cell-level format), score with Arc's public cell-eval. Bar: beat the mean baseline
+on PDS and DES on the held-out perturbations.
+
 ## RM13 — A manuscript draft of the results (plan line 5)
 
 **State:** building (default of desk #23 applied 2026-11-13; draft v0.1 kept outside git, the repository being public; where it goes: desk #23) · **Owner:** lead
