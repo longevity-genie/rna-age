@@ -998,3 +998,35 @@ rna-age tabfm --model tabicl --features hvg --n-genes 2000 --context nearest-stu
   genes across hundreds of bulk studies the in-context model does not find the age signal that a trained network
   (or ridge) finds. On single-cell pseudobulk (RM14/RM16: one cohort, one technology, ≤ ~1,000 donors) it does.
 - Limits: one seed, one context size and gene count; 4,000 rows is the most the 11 GB card held (RUNNER_NOTES).
+
+### 2026-11-13 17:00 · RM26 building: recount3 source, 3,289 new adult bulk samples in 198 studies
+`rna-age fetch recount3` then `rna-age parse recount3` (login node, nice, 4 threads; fetch 85 s, parse 1 min): for
+the 248 projects holding the inventory's 4,430 `new` samples, `sra.gene_sums.<SRP>.G026.gz` and
+`sra.recount_qc.<SRP>.MD.gz` (496 files, 1.30 GB, each md5-checked against its S3 ETag, sidecars written).
+Output `data/input/recount3/` (samples, genes, 4 count parts, `README.json` with every count below,
+`studies.parquet`, `read_length_check.parquet`, `audit.parquet`); merged to `data/interim/samples_all_recount3.parquet`
+and `splits_recount3.parquet` (`rna-age merge --suffix _recount3`; the shared `samples_all.parquet` is untouched).
+
+| step | samples | studies |
+|---|---|---|
+| inventory targets | 4,430 | 248 |
+| dropped: already in Bgee (by SRX/SRR) | 104 | — |
+| dropped: in ARCHS4 or GTEx by GSM/SRX/SRR | 0 | — |
+| dropped: project spans several ARCHS4 series (SRP013565) | 19 | 1 |
+| excluded: single cell (D4, whole study) | 574 | 18 |
+| excluded: tumour / cancer patient | 172 / 257 | — |
+| excluded: prenatal, cell line, stem/organoid | 15 | — |
+| eligible, with counts | 3,289 | 198 |
+
+- Ages: 3,236 exact, 53 decade bins. Health: 762 healthy stated (`is_healthy` true), 2,527 nothing stated (null, ARCHS4's
+  convention), 0 disease stated. 21 projects partly in ARCHS4 take ARCHS4's GEO series as `study_id` (147 samples).
+- Coverage → counts: sums divided by each run's `star.average_mapped_length`, rounded, runs summed per SRX. Check
+  over 3,335 runs: library size / featureCounts assigned reads median 1.04 (5-95 %: 0.74-1.15), single-end 1.10,
+  paired-end 0.98 (median mapped length 198 = both mates, so the counts are fragments); / STAR mapped reads 0.77.
+- D4 rules: a study is single cell when > 0.4 of its runs are predicted `scrna-seq` by recount3 or its ARCHS4 series
+  is single cell; tumour wording through `add_flags`, plus every sample of a project with a tumour sample is
+  `cancer_patient` (101 normals of SRP114315's lung squamous carcinoma patients otherwise passed).
+- Splits by the same study hash: no existing assignment moves (test `test_real_merge_keeps_old_assignments`). recount3:
+  2,322 train, 457 val, and 510 samples of 36 studies in `test_new`, scored apart; `test` stays the old 12,144.
+- Limits: GENCODE v26 lacks 1,600 of the 46,028 shared bulk genes (zeros for recount3 samples); `BULK_SOURCES` left
+  unchanged so the headline's gene axis does not move. SRP223445 (240 plasma cell-free RNA samples) is eligible.

@@ -10,6 +10,11 @@ Splits: the grouping unit is ``study_id`` (GSE / Bgee experiment / Census datase
 the donor. A group goes wholly to train / val / test by a stable hash of ``source:group`` (70/15/15), so adding
 sources never reshuffles existing assignments, and no donor or series is on both sides. Pseudobulk sources get
 the same treatment but are reported separately (domain shift).
+
+Sources added after the test set was fixed (:data:`NEW_SOURCES`, recount3 since RM26) hash by the same rule, but a
+group an older source already has (a GEO series recount3 maps through ARCHS4) takes that source's split, and their
+samples that land in test get split ``test_new``: scored as unseen new studies, never mixed into ``test``, so every
+``split == "test"`` filter (evaluation, figures, clocks) still reads exactly the old test samples.
 """
 
 from __future__ import annotations
@@ -32,8 +37,11 @@ TAGE_TRAINING_SERIES = (
     "GSE183701", "GSE221178", "GSE53890", "GSE103232", "GSE40645", "GSE17612", "GSE21935", "GSE674",
 )  # fmt: skip
 
-PRIORITY = {"archs4": 0, "ncbi_geo": 1, "bgee": 2}
+PRIORITY = {"archs4": 0, "ncbi_geo": 1, "bgee": 2, "recount3": 3}
 SPLIT_FRACTIONS = (0.70, 0.15)  # train, val; rest test
+# sources added after the test set was fixed; their test samples are split TEST_NEW (see the module docstring)
+NEW_SOURCES = ("recount3",)
+TEST_NEW = "test_new"
 
 
 def _split_of(key: str) -> str:
@@ -43,6 +51,30 @@ def _split_of(key: str) -> str:
     if h < SPLIT_FRACTIONS[0] + SPLIT_FRACTIONS[1]:
         return "val"
     return "test"
+
+
+def assign_splits(df: pl.DataFrame, use: pl.Expr) -> pl.DataFrame:
+    """``split`` per row (null where ``use`` is false), by ``source, group`` (module docstring)."""
+    groups = df.filter(use).select("source", "group").unique()
+    groups = groups.with_columns(
+        split=pl.Series([_split_of(f"{s}:{g}") for s, g in groups.iter_rows()], dtype=pl.String)
+    )
+    is_new = pl.col("source").is_in(NEW_SOURCES)
+    known = (
+        groups.filter(~is_new)
+        .with_columns(_prio=pl.col("source").replace_strict(PRIORITY, default=9, return_dtype=pl.Int32))
+        .sort("_prio", "source")
+        .unique("group", keep="first", maintain_order=True)
+        .select("group", _known="split")
+    )
+    groups = (
+        groups.join(known, on="group", how="left")
+        .with_columns(split=pl.when(is_new).then(pl.coalesce("_known", "split")).otherwise("split"))
+        .with_columns(split=pl.when(is_new & (pl.col("split") == "test")).then(pl.lit(TEST_NEW)).otherwise("split"))
+        .drop("_known")
+    )
+    df = df.drop("split", strict=False).join(groups, on=["source", "group"], how="left")
+    return df.with_columns(split=pl.when(use).then(pl.col("split")))
 
 
 def _duplicates(df: pl.DataFrame) -> pl.DataFrame:
@@ -97,7 +129,8 @@ def _cohorts(df: pl.DataFrame) -> pl.DataFrame:
     return df.drop("_cohort")
 
 
-def merge() -> pl.DataFrame:
+def merge(suffix: str = "") -> pl.DataFrame:
+    """Write ``samples_all{suffix}.parquet`` and ``splits{suffix}.parquet`` (a suffix leaves the shared files alone)."""
     INTERIM.mkdir(parents=True, exist_ok=True)
     df = load_samples()
     df = df.with_columns(eligible=eligible(df), age_mid=age_mid(df))
@@ -118,14 +151,10 @@ def merge() -> pl.DataFrame:
         group=pl.when(pl.col("source") == "gtex").then(pl.col("donor_id")).otherwise(pl.col("study_id"))
     )
     use = pl.col("eligible") & pl.col("duplicate_of").is_null()
-    groups = df.filter(use).select("source", "group").unique()
-    groups = groups.with_columns(
-        split=pl.Series([_split_of(f"{s}:{g}") for s, g in groups.iter_rows()], dtype=pl.String)
-    )
-    df = df.join(groups, on=["source", "group"], how="left").with_columns(split=pl.when(use).then(pl.col("split")))
-    df.write_parquet(INTERIM / "samples_all.parquet", compression="zstd")
+    df = assign_splits(df, use)
+    df.write_parquet(INTERIM / f"samples_all{suffix}.parquet", compression="zstd")
     splits = df.filter(use).select("source", "sample_id", "group", "split", "age_type", "age_mid", "is_pseudobulk")
-    splits.write_parquet(INTERIM / "splits.parquet", compression="zstd")
+    splits.write_parquet(INTERIM / f"splits{suffix}.parquet", compression="zstd")
     shok = (
         df.filter(pl.col("in_shokhirev2021") & pl.col("age_years").is_not_null())
         if "in_shokhirev2021" in df.columns
