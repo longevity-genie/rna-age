@@ -265,3 +265,18 @@ bf16 (fixed in e25363a afterwards), which has bf16's precision, so the conclusio
 these cohorts a cell representation learned without labels, ours or Geneformer's, carries less age than summed
 expression read by TabICLv2; the single-cell clock stays TabICLv2 on donor pseudobulk. RM29 is retargeted to RM30's
 perturbation task.
+
+**RM31 outcome (2026-11-13, lead's code fcdca9c/e52b2ae, runner's job 6479183, logged 3e92738; read by the lead):**
+fails its bar, narrowly. Donors with ≥ 20 cells in each of 5 cell classes, D7 folds; arms against the whole-sample
+clock rerun on the same donors, cohorts of 7 better beyond the paired CI (mean MAE difference, y):
+
+| model | concat (5 classes + composition) | mean of class clocks | mean incl. whole |
+|---|---|---|---|
+| TabICLv2 | 3 (−0.31) | 1 (+0.53) | 1 (+0.32) |
+| ridge | 1 (+0.24) | 1 (+0.71) | 2 (+0.43) |
+
+TabICLv2 `concat` wins in the lupus cohort (6.72 vs 7.44) and both larger brain cohorts (5.99 vs 7.01; 5.13 vs 5.97),
+leans its way in Terekhova (6.70 vs 7.28) and 5e57cd50, and loses in c838aec3 (6.73 vs 5.88), where a single CD4 T
+clock still beats whole blood. Reading: giving the in-context model each cell class side by side helps on average
+(−0.31 y) but not in enough cohorts to replace the whole-sample clock; averaging per-class clocks loses. The bigger
+set-model version is not started on this result; RM32 tests the per-cell form of the same idea.

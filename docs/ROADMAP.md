@@ -47,17 +47,6 @@ episode size even one episode per step, so the first run trains on smaller episo
 evaluation is unchanged. Gradient checkpointing and a rerun at full size follow only if this run shows a gain. Reported per head; "universal" needs (1) or (2) and no head
 failing its reference by more than its CI.
 
-## RM31 — Several cell types per donor at once in the single-cell clock
-
-**State:** building (Anton, 2026-11-13, #rna-age > milestones: "improve prediction if we get multiple cells per
-evaluation for single cell clocks together") · **Owner:** lead (code, fcdca9c), runner (the TabICLv2 run)
-
-Per cohort, donors with ≥ 20 cells in each of the 5 best-covered classes; D7 folds. Arms: the class pseudobulks side
-by side with the composition fractions (`concat`), the mean of the per-class clocks, and that mean with the
-whole-sample clock, each against the whole-sample clock rerun on the same donors. Bar: an arm beats the whole-sample
-TabICLv2 beyond the paired CI (persons) in at least 4 of 7 cohorts. If one does, the bigger version (a set model over
-the cells, on RM28's encoder) follows. Ridge check on the lupus cohort: `concat` ties (6.80 vs 6.80), the means lose.
-
 ## RM32 — Anton's per-cell clock: cells push the donor's age up or down, individual + group loss
 
 **State:** building (Anton, 2026-11-13, #rna-age > plan: "make a separate topic to build and test my design"; topic
