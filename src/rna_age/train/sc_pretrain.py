@@ -668,9 +668,9 @@ def pretrain(arm: str = "mask", epochs: int = 30, seed: int = 0, pool: str = "de
     sched = torch.optim.lr_scheduler.LambdaLR(
         opt, lambda s: min(1.0, (s + 1) / warm) * 0.5 * (1 + np.cos(np.pi * min(1.0, s / max(1, total))))
     )
-    amp = (
-        dict(device_type="cuda", dtype=torch.bfloat16) if dev.type == "cuda" else dict(device_type="cpu", enabled=False)
-    )
+    # bf16 only where the card has it (a 2080 Ti does not: fp32 there, never fp16 without a loss scaler)
+    bf16 = dev.type == "cuda" and torch.cuda.is_bf16_supported()
+    amp = dict(device_type="cuda", dtype=torch.bfloat16) if bf16 else dict(device_type=dev.type, enabled=False)
     gval = torch.Generator(device=dev).manual_seed(seed + 12345)
     va_t = torch.from_numpy(va_idx).to(dev)
     va_masks = [sample_mask(min(8192, len(va_idx) - a), n_genes, mask_lo, mask_hi, gval, dev)
