@@ -56,6 +56,10 @@ def finish_run(run_dir: Path, predictions: pl.DataFrame, extra: dict | None = No
         d = dict(zip(m["metric"].to_list(), m["value"].to_list(), strict=True))
         row[f"test_{group}_exact_mae"] = d.get("exact_mae")
         row[f"test_{group}_exact_r"] = d.get("exact_pearson_r")
+    if (metrics["split"] == "test_new").any():  # studies of a source added after the test set was fixed (RM26)
+        h = headline(metrics, "test_new")
+        for k in ("exact_mae", "exact_median_ae", "exact_pearson_r", "exact_n", "binned_interval_hit"):
+            row[f"test_new_{k}"] = h.get(k)
     tr = headline(metrics, "transfer")
     for k in ("exact_mae", "exact_pearson_r", "exact_n", "exact_mean_error"):
         row[f"transfer_{k}"] = tr.get(k)
