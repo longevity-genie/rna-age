@@ -215,6 +215,14 @@ def test_two_training_steps_on_cpu(tmp_path, monkeypatch):
     again = load_trained(run_dir.name)
     for k, v in m.state_dict().items():
         assert np.allclose(again.state_dict()[k], v)
+    # resume: continues at step 3 from last.pt in a new run directory
+    cfg2 = TrainConfig(steps=3, warmup=1, micro_batch=2, accum=4, n_rows=(24, 36), n_cols=(5, 12), eval_every=1,
+                       eval_episodes=2, ckpt_every=2, device="cpu")  # fmt: skip
+    run2 = train(cfg2, corpus=make_corpus(), name="t2", resume=run_dir.name)
+    met2 = pl.read_parquet(run2 / "train_metrics.parquet")
+    assert set(met2.filter(pl.col("split") == "train")["step"].to_list()) == {3}
+    with pytest.raises(ValueError):
+        train(cfg, corpus=make_corpus(), name="t3", resume=run2.name)  # already at step 3 ≥ steps 2
 
 
 def test_released_weights_reproduce_tabicl_regressor():

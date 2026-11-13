@@ -908,6 +908,7 @@ def expr_icl_train(
     cache: str | None = typer.Option(None, help="table directory (default data/interim/expr_icl)"),
     recompute: bool = typer.Option(False, help="gradient checkpointing inside TabICL (less memory, ~30 % slower)"),
     amp: bool = typer.Option(True, help="bf16 where supported, else fp16 with a loss scaler; off = fp32"),
+    resume: str = typer.Option("", help="continue from this run's last.pt up to --steps in total (new run dir)"),
 ) -> None:
     """RM30: train TabICLv2 (from its released weights) on expression episodes; prints the run id."""
     from pathlib import Path
@@ -920,7 +921,7 @@ def expr_icl_train(
     cfg = TrainConfig(steps=steps, lr=lr, warmup=warmup, micro_batch=micro_batch, accum=accum, task_weights=w,
                       n_rows=r, n_cols=c, eval_every=eval_every, eval_episodes=eval_episodes,
                       ckpt_every=ckpt_every, seed=seed, device=device, recompute=recompute, amp=amp)  # fmt: skip
-    run_dir = train(cfg, name=name, cache=Path(cache) if cache else CACHE)
+    run_dir = train(cfg, name=name, cache=Path(cache) if cache else CACHE, resume=resume or None)
     print(run_dir.name)
 
 

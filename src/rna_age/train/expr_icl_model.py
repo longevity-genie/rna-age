@@ -281,8 +281,11 @@ def train(
     model: ExprICL | None = None,
     name: str = "expricl",
     cache: Path = CACHE,
+    resume: str | None = None,
 ) -> Path:
-    """Train on mixed-task episodes; returns the run directory."""
+    """Train on mixed-task episodes; returns the run directory. ``resume``: a run id whose ``last.pt`` (weights,
+    optimiser, step) this run continues from, in a new run directory, up to ``cfg.steps`` in total; the cosine
+    schedule is read at the global step, so a longer ``cfg.steps`` than the first run's is a warm restart."""
     from rna_age.train.expr_icl import load_corpus
     from rna_age.train.runs import new_run
 
@@ -293,6 +296,17 @@ def train(
     tr = EpisodeSampler(corpus, "train", n_rows=cfg.n_rows, n_cols=cfg.n_cols, seed=cfg.seed)
     ev = EpisodeSampler(corpus, "eval", n_rows=cfg.n_rows, n_cols=cfg.n_cols, seed=cfg.seed + 1)
     evset = ev.fixed_set(cfg.eval_episodes) if cfg.eval_episodes else []
+    start, ck = 0, None
+    if resume:
+        from rna_age.train.runs import RUNS
+
+        conf = json.loads((RUNS / resume / "config.json").read_text())
+        ck = torch.load(Path(conf["checkpoint_dir"]) / "last.pt", map_location="cpu", weights_only=True)
+        model = ExprICL(ck["config"], ck["max_classes"], recompute=cfg.recompute)
+        model.load_state_dict(ck["state_dict"])
+        start = int(ck["step"])
+        if start >= cfg.steps:
+            raise ValueError(f"{resume} is at step {start}; --steps must be larger to continue")
     model = model or from_pretrained(recompute=cfg.recompute)
     model.to(dev).train()
     tasks = [t for t in tr.tasks() if cfg.task_weights.get(t, 0) > 0]
@@ -304,10 +318,13 @@ def train(
                              "features": f"panel {len(corpus.genes)} genes, episodes of {cfg.n_cols} columns",
                              "train_set": "expression episodes (RM30)", "n_params": model.n_params(),
                              "train_groups": tr.counts(), "eval_groups": ev.counts(), "tasks": tasks,
-                             "train_config": asdict(cfg), "device": dev})  # fmt: skip
+                             "train_config": asdict(cfg), "device": dev, "resumed_from": resume,
+                             "start_step": start})  # fmt: skip
     ckpt_dir = Path(json.loads((run_dir / "config.json").read_text())["checkpoint_dir"])
     opt = torch.optim.AdamW([p for p in model.parameters() if p.requires_grad], lr=cfg.lr,
                             weight_decay=cfg.weight_decay, betas=(0.9, 0.95))  # fmt: skip
+    if ck is not None:
+        opt.load_state_dict(ck["optimizer"])
     # bf16 where the card has it; a 2080 Ti has not: fp16 there, with a loss scaler against underflow
     amp = cfg.amp and dev.startswith("cuda")
     amp_dtype = torch.bfloat16 if amp and torch.cuda.is_bf16_supported() else torch.float16
@@ -321,7 +338,7 @@ def train(
     if evset:
         for r in quick_eval(model, evset, dev):
             rows.append({"step": 0, "split": "eval", **r})
-    for step in range(cfg.steps):
+    for step in range(start, cfg.steps):
         for g in opt.param_groups:
             g["lr"] = lr_at(step, cfg)
         opt.zero_grad(set_to_none=True)
