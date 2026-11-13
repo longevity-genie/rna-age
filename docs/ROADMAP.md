@@ -26,10 +26,19 @@ Bar: step 1 scores every candidate; a dataset counts as usable with ≥ 10 donor
 
 ## RM33 — System-level age gaps: which cell types or tissues make a person look older
 
-**State:** building (design phase; Anton, 2026-11-13, #rna-age > per-cell clock: "make this research, than make 3
-alternative designs and ask reviwer agents to evaluate pros and cons of them, reviwer agents must know our cluaters and
-datasets but be separate from agents that design the architectures"; research agents running, then a design agent,
-then separate reviewers; the chosen design is built, the top-ranked one by default) · **Owner:** lead
+**State:** unattended (design A by default, staged; Anton's pick of A/B/C asked in #rna-age > per-cell clock,
+2026-11-13) · **Owner:** lead
+
+Review (2026-11-13; a design agent wrote three designs, two separate reviewers judged them on our data and cluster):
+A labelled cell types 6/10 validity, 8/10 feasibility; B label-free groups on our encoder 4/4 (encoder never saw brain,
+lacks CD4/CD8A/KLRC2 and glial markers; CNA kept as a cross-check on A); C gene programs 3/3 (expected programs are
+the disease's response programs: circular). Fixes taken into A: cases and controls scored by the same fold models;
+every bar in years of acceleration (clock sensitivity differs 2.6× between CD8 T and monocytes), nulls as equivalence
+tests, accuracy as non-inferiority; clocks retrained without the condition's DE genes (from another dataset) and on
+disjoint gene halves; QC and ambient covariates, test-retest reliability where repeat visits exist; reliability floor
+not tied to age range. Stages: 0 data on disk, ridge, shared vs specific gaps and AD in PsychAD (go/no-go: microglia
+and astrocytes older than oligodendrocytes); 1 HLCA smoking within study, ILD; 2 Allen CMV after its obs column is
+confirmed; 3 pseudocells and fine types only for passing systems. Datasets come from RM34.
 
 Design (Anton, same topic: "we have to modify design to allow idea of seeing age difference per system"): his
 individual + group loss with the system (cell type; tissue in bulk) as the unit. (0) One clock per system on
