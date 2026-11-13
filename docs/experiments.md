@@ -1061,3 +1061,10 @@ resamples:
   much harder than the old test; the control cannot score them on the same footing (it never saw recount3), so no
   paired read.
 - Headline-style MLP-only means are worse than the 7.46 ensemble, as expected (no fine-tunes in either arm).
+
+### 2026-11-13 18:32 · RM27 submitted: health MLP plus the age-order term (the lead's cefc4fc)
+Job 6470599 (CPU, 8 cores): `rna-age train-health --rank-weight 1 --disease-head --age-pair-weight 1 --seed S
+--external` for S in 0-2 (`--external` only scores the RM10 external series, as the control runs did). Control: the
+RM12-table runs `20261111-0854/0908/0918-health-mlp-rank1-head-s0..s2` (same recipe without the term). Bar (the lead):
+aging-linked within-study gap (`health-eval`, mean of 3 seeds) ≥ +2.9 y, and control test MAE no more than 0.5 y
+worse than the control runs'. Then `health-eval --permutations 200` on the best seed.
