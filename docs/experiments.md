@@ -980,3 +980,21 @@ pseudobulk TabICLv2 2,000 genes and the row's best of ridge/enet/gbm, paired boo
 - Against the best classical pseudobulk baseline the embeddings mostly tie; the one win is c838aec3 whole sample
   (cls + ridge 6.13 vs ridge 6.97, −0.84 [−1.24, −0.44]), where TabICLv2 on genes is still better.
 - Limits: one model, one seed, ≤ 200 cells per donor (pseudobulk uses every cell), no fine-tuning.
+
+### 2026-11-13 02:45 · RM25 result: TabICLv2 is no bulk clock (test MAE 15.3 y vs the bar of 9.1)
+Job 6439059 (6 h 09 min on one 2080 Ti), run `20261113-0239-tfm-tabicl-hvg-ctx4k-near`: `uv run --with tabicl
+rna-age tabfm --model tabicl --features hvg --n-genes 2000 --context nearest-study --n-context 4000 --cap-per-study 200
+--splits test`; 376 test studies, each predicted from 4,000 context rows drawn from the 1,069 nearest training studies.
+
+| set | n | MAE | median AE | r | R² | bias slope |
+|---|---|---|---|---|---|---|
+| test, all | 8,843 | 15.30 | 12.12 | 0.51 | 0.21 | −0.69 |
+| test, ARCHS4 | — | 15.12 | — | 0.52 | — | — |
+
+- Bar (the lead's, fixed before the run): within 1 y of the 20k-HVG MLP (8.1 test) earns the fine-tuning step;
+  beating the headline 7.46 beyond the paired CI is a finding. Neither: 7.2 y worse than the MLP, so no paired CI
+  was needed and no fine-tuning step follows.
+- The bias slope of −0.69 says predictions shrink hard towards the context's mean age: with 4,000 rows and 2,000
+  genes across hundreds of bulk studies the in-context model does not find the age signal that a trained network
+  (or ridge) finds. On single-cell pseudobulk (RM14/RM16: one cohort, one technology, ≤ ~1,000 donors) it does.
+- Limits: one seed, one context size and gene count; 4,000 rows is the most the 11 GB card held (RUNNER_NOTES).

@@ -60,9 +60,12 @@ stop before Anton is back; 07:00 report, then keep updating; one tabbed artifact
   rules: Census 2,356 healthy (3,815 any health), scBaseCount 492 (1,656), recount3 bulk 4,430 (6,380).
 
 ## Running (jobs carry seat / what / eta in their Slurm comment)
-- RM20-RM23 (virtual-cell ideas, Anton 2026-11-12): four arms being built in parallel worktrees; jobs follow.
+- Nothing (2026-11-13 02:45). RM20-RM25 all finished; next work waits on Anton (recount3, Census pin) or the lead.
 
 ## Results so far (details: `docs/experiments.md`, `data/output/summary/experiments.parquet`)
+- **RM25 (2026-11-13 02:39)**: TabICLv2 as a bulk clock fails the lead's bar by far: test MAE 15.3 y, r 0.51
+  (n 8,843; 2,000 HVG, 4,000 nearest-study context rows) vs the MLP's 8.1 and the headline's 7.46. TabICL stays a
+  single-cell clock; no bulk fine-tuning step.
 - **Sample sets (2026-11-11, RM12)**: meningioma and 169 plate single-cell series removed; eligible 100,312 →
   94,526. Figures before 06:58 (the 9.20 headline included) are on the old set and not comparable with figures on
   the new one; each figure below says which. On the new set, 20k-HVG MLP seeds: val 8.73, test 8.14 (old seeds 9.02 /
