@@ -221,3 +221,18 @@ def test_finetune_fold_runs_with_cell_loss_and_attention():
         p = finetune_fold(model, x, cell_donor, donors[:8], age[:8], donors[8:10], age[8:10], donors[10:], 2, 1e-3,
                           1e-2, 4, 0, pool, w)  # fmt: skip
         assert p.shape == (2,) and np.isfinite(p).all()
+
+
+def test_pseudocells_group_within_donor_and_flag():
+    import numpy as np
+
+    from rna_age.train.sc_pretrain import pseudocells
+
+    x = np.arange(40, dtype=np.float16).reshape(20, 2)
+    donor = np.array(["a"] * 12 + ["b"] * 5 + ["c"] * 3)
+    flag = np.ones(20, bool)
+    flag[0] = False
+    xu, du = pseudocells(x, donor, flag, size=5, seed=0)
+    assert list(du) == ["a", "a", "b", "c"]  # a: 11 flagged cells → 2 units; b: 1; c: fewer than 5 → 1 unit of all
+    assert xu.shape == (4, 2)
+    assert np.isclose(float(xu[3, 0]), float(x[17:, 0].astype(np.float32).mean()))  # c's 3 cells averaged

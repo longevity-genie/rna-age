@@ -977,10 +977,27 @@ def finetune_fold(model0: ScMAE, x: torch.Tensor, cell_donor: np.ndarray, train:
     return predict(test)
 
 
+def pseudocells(
+    x: np.ndarray, donor: np.ndarray, flag: np.ndarray, size: int, seed: int = 0
+) -> tuple[np.ndarray, np.ndarray]:
+    """Groups of ``size`` flagged cells of one donor averaged (log scale), Buckley et al. 2023's BootstrapCell /
+    sc-ImmuAging's pseudocell: the units then carry the donor's age as a far less noisy label. A donor's remainder
+    smaller than ``size`` is dropped unless it is all the donor has. Returns (units × genes, donor per unit)."""
+    rng = np.random.default_rng(seed)
+    xs, ds = [], []
+    for d in sorted(set(donor[flag].tolist())):
+        idx = rng.permutation(np.flatnonzero(flag & (donor == d)))
+        n = max(1, len(idx) // size)
+        for g in np.array_split(idx[: n * size] if len(idx) >= size else idx, n):
+            xs.append(x[g].astype(np.float32).mean(0))
+            ds.append(d)
+    return np.stack(xs).astype(np.float16), np.array(ds)
+
+
 def finetune(run_id: str, cohorts: tuple[str, ...] = EVAL_COHORTS, epochs: int = 20, lr: float = 1e-4,
              head_lr: float = 1e-3, donors_per_batch: int = 16, inner_val: float = 0.15, cap: int = 200, seed: int = 0,
              max_donors: int | None = None, device: str | None = None, n_boot: int = 2000, pool: str = "mean",
-             cell_weight: float = 0.0) -> pl.DataFrame:  # fmt: skip
+             cell_weight: float = 0.0, pseudocell: int = 0) -> pl.DataFrame:  # fmt: skip
     """Fine-tune read-out on RM14's folds; rows ``scpre-<arm>-s<seed>-finetune[-<pool>][-cell<w>]`` added to the
     summaries (the plain name is RM28's mean pooling without the per-cell loss)."""
     from sklearn.model_selection import GroupKFold
@@ -991,6 +1008,7 @@ def finetune(run_id: str, cohorts: tuple[str, ...] = EVAL_COHORTS, epochs: int =
     model0, cfg = load_encoder(run_id, dev)
     tag = f"scpre-{cfg['arm'].replace('+', '-')}-s{cfg['seed']}-finetune"
     tag += ("" if pool == "mean" else f"-{pool}") + (f"-cell{cell_weight:g}" if cell_weight > 0 else "")
+    tag += f"-pc{pseudocell}" if pseudocell > 1 else ""
     rows = []
     for c in cohorts:
         cc = cohort_cells(c, cfg["pool"], cap, seed, max_donors)
@@ -1002,12 +1020,16 @@ def finetune(run_id: str, cohorts: tuple[str, ...] = EVAL_COHORTS, epochs: int =
             have = set(cc["donor"][flag].tolist())
             ok = ok & np.isin(donors_all, list(have))
             donors, age, groups = donors_all[ok], age_all[ok], groups_all[ok]
-            cell_donor = np.where(flag, cc["donor"], "")
+            if pseudocell > 1:  # units of ``pseudocell`` averaged cells (no labels involved: no leakage)
+                xu, cell_donor = pseudocells(cc["x"], cc["donor"], flag, pseudocell, seed)
+                xr = torch.from_numpy(xu.astype(np.float32)).to(dev)
+            else:
+                xr, cell_donor = x, np.where(flag, cc["donor"], "")
             pred = np.full(len(donors), np.nan)
             for k, (tr, te) in enumerate(GroupKFold(n_splits=5).split(donors, age, groups)):
                 iv = _inner_split(groups[tr], inner_val, seed + k)
                 fit, val = tr[~iv], tr[iv]
-                pred[te] = finetune_fold(model0, x, cell_donor, donors[fit].tolist(), age[fit], donors[val].tolist(),
+                pred[te] = finetune_fold(model0, xr, cell_donor, donors[fit].tolist(), age[fit], donors[val].tolist(),
                                          age[val], donors[te].tolist(), epochs, lr, head_lr, donors_per_batch,
                                          seed + k, pool, cell_weight)  # fmt: skip
             rows += [{"cohort": c[:8], "representation": rep, "model": tag, "donor": d, "group": int(g),
