@@ -11,6 +11,21 @@ from rna_age import sources
 
 app = typer.Typer(no_args_is_help=True, add_completion=False)
 
+# RM26's switches, shared by `baseline` and `probe` (defaults keep today's table, gene axis and training set)
+SAMPLES_SUFFIX = typer.Option("", "--samples-suffix", help="read data/interim/samples_all<S>.parquet (rna-age merge --suffix S)")
+GENES_WITH = typer.Option("", "--genes-with", help="comma-separated extra sources: gene axis = shared bulk genes ∩ theirs")
+EXCLUDE_TRAIN = typer.Option("", "--exclude-train-studies", help="comma-separated study_ids dropped from training only")
+
+
+def _csv(text: str) -> tuple[str, ...]:
+    return tuple(t.strip() for t in text.split(",") if t.strip())
+
+
+def _rm26_setup(samples_suffix: str) -> None:
+    from rna_age.train.features import set_samples_suffix
+
+    set_samples_suffix(samples_suffix)  # every sample_table() reader in this process reads the same table
+
 
 @app.callback()
 def _setup(verbose: bool = typer.Option(False, "--verbose", "-v")) -> None:
@@ -86,11 +101,18 @@ def baseline(
     gtex_midpoints: bool = typer.Option(True, help="train on GTEx bin midpoints too"),
     transform: str = typer.Option("none", help="none | horvath (log-linear age)"),
     with_pseudobulk: bool = typer.Option(False, help="also train on the pseudobulk train split"),
+    samples_suffix: str = SAMPLES_SUFFIX,
+    genes_with: str = GENES_WITH,
+    exclude_train_studies: str = EXCLUDE_TRAIN,
 ) -> None:
     """Rung 1 baseline on log-CPM HVGs; writes a run under data/output/runs/."""
     from rna_age.train.baselines import run_baseline
 
-    run_baseline(model, n_genes, gtex_midpoints, transform=transform, with_pseudobulk=with_pseudobulk)
+    _rm26_setup(samples_suffix)
+    run_baseline(
+        model, n_genes, gtex_midpoints, transform=transform, with_pseudobulk=with_pseudobulk,
+        samples_suffix=samples_suffix, genes_with=_csv(genes_with), exclude_studies=_csv(exclude_train_studies),
+    )  # fmt: skip
 
 
 @app.command()
@@ -120,14 +142,19 @@ def probe(
     train_set: str = typer.Option("healthy", help="healthy (healthy-or-unknown) | all (incl. disease)"),
     restrict_to: str = typer.Option("", help="latest: only samples with Latest embeddings"),
     external: bool = typer.Option(False, help="also score data/input/external (rna-age external); --features hvg"),
+    samples_suffix: str = SAMPLES_SUFFIX,
+    genes_with: str = GENES_WITH,
+    exclude_train_studies: str = EXCLUDE_TRAIN,
 ) -> None:
     """Probe / MLP on Atlas CLS, panel genes or HVGs; writes a run under data/output/runs/."""
     from rna_age.train.probes import run_probe
 
+    _rm26_setup(samples_suffix)
     run_probe(
         features, model, n_hvg, transform=transform, seed=seed, interval=interval, study_weights=study_weights,
         hidden=tuple(int(h) for h in hidden.split(",")), dropout=dropout, train_set=train_set,
-        restrict_to=restrict_to, external=external,
+        restrict_to=restrict_to, external=external, samples_suffix=samples_suffix, genes_with=_csv(genes_with),
+        exclude_studies=_csv(exclude_train_studies),
     )  # fmt: skip
 
 
@@ -665,6 +692,25 @@ def kron_rank_mlp(length: int = typer.Option(2048), seed: int = typer.Option(0))
 
     row = train_rank_mlp(length=length, seed=seed)
     print({k: v for k, v in row.items() if k.startswith(("val_exact", "test_exact", "transfer_exact"))})
+
+
+@app.command("rm26-compare")
+def rm26_compare_cmd(
+    control: str = typer.Option(..., help="comma-separated run ids of the control arm's seeds"),
+    arm: str = typer.Option(..., help="comma-separated run ids of the recount3 arm's seeds"),
+    headline: str = typer.Option("20261111-0747-ens-mlp3t2-plus-atlasft2", help="the headline run to compare against"),
+    n_boot: int = typer.Option(2000),
+    seed: int = typer.Option(0),
+) -> None:
+    """RM26's bar: seed-averaged MAE per arm on test and test_new, arm − control with a 95 % study-bootstrap CI,
+    each arm vs the headline; writes data/output/summary/rm26_compare.parquet."""
+    from rna_age.train.rm26 import compare
+
+    out = compare(_csv(control), _csv(arm), headline, n_boot=n_boot, seed=seed)
+    import polars as pl
+
+    with pl.Config(tbl_rows=-1, tbl_cols=-1, tbl_width_chars=200):
+        print(out)
 
 
 @app.command("kron-compare")

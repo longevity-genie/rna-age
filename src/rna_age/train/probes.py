@@ -16,7 +16,16 @@ from sklearn.preprocessing import StandardScaler
 from rna_age.schema import age_mid
 from rna_age.train.baselines import PRED_COLS
 from rna_age.train.embed import load_embeddings
-from rna_age.train.features import load_matrix, log_cpm, sample_table, select_hvg, shared_genes
+from rna_age.train.features import (
+    exclude_train_studies,
+    gene_axis_label,
+    load_matrix,
+    log_cpm,
+    sample_table,
+    samples_path,
+    select_hvg,
+    shared_genes,
+)
 from rna_age.train.runs import finish_run, new_run
 
 log = logging.getLogger(__name__)
@@ -105,20 +114,30 @@ def run_probe(
     train_set: str = "healthy",
     restrict_to: str = "",
     external: bool = False,
+    samples_suffix: str = "",
+    genes_with: tuple[str, ...] = (),
+    exclude_studies: tuple[str, ...] = (),
 ) -> dict:
+    """``samples_suffix``, ``genes_with`` and ``exclude_studies`` are RM26's switches (see
+    :mod:`rna_age.train.features`); with either of the first two, gene-only features (hvg, tpm) skip the join to the
+    Atlas embeddings, so samples without an embedding (a new source) are kept."""
     from rna_age.train.baselines import horvath, horvath_inv
 
     t0 = time.time()
-    s = sample_table()
+    s = sample_table(samples_suffix)
     s = s.with_columns(target=age_mid(s))
-    emb = load_embeddings("latest" if features.startswith("latest") else "atlas")
-    if restrict_to == "latest" and not features.startswith("latest"):  # same samples as the Latest runs
-        s = s.join(load_embeddings("latest").select("sample_id"), on="sample_id", how="inner")
-    s = s.join(emb, on="sample_id", how="inner")
+    skip_emb = features in ("hvg", "tpm") and not restrict_to and bool(samples_suffix or genes_with)
+    X = None
+    if not skip_emb:
+        emb = load_embeddings("latest" if features.startswith("latest") else "atlas")
+        if restrict_to == "latest" and not features.startswith("latest"):  # same samples as the Latest runs
+            s = s.join(load_embeddings("latest").select("sample_id"), on="sample_id", how="inner")
+        s = s.join(emb, on="sample_id", how="inner")
     s = s.with_columns(split=pl.when(pl.col("is_pseudobulk")).then(pl.lit("transfer")).otherwise(pl.col("split")))
-    prefix = {"latest": "s", "latestpanel": "p"}.get(features, "e")
-    ecols = [c for c in emb.columns if c.startswith(prefix) and c[1:].isdigit()]
-    X = s.select(ecols).to_numpy().astype(np.float32)
+    if not skip_emb:
+        prefix = {"latest": "s", "latestpanel": "p"}.get(features, "e")
+        ecols = [c for c in emb.columns if c.startswith(prefix) and c[1:].isdigit()]
+        X = s.select(ecols).to_numpy().astype(np.float32)
     if features == "panel":  # the Atlas input panel itself (log2 TPM+1), no model: separates panel from encoder
         from rna_age.train.finetune import load_inputs
 
@@ -130,8 +149,10 @@ def run_probe(
         & ((s["is_healthy"].fill_null(True)).to_numpy() | (train_set == "all"))
         & ((s["age_type"] == "exact").to_numpy() | (gtex_midpoints & (s["source"] == "gtex").to_numpy()))
     )
+    train = exclude_train_studies(train, s["study_id"], exclude_studies)
+    genes = None
     if features in ("cls+hvg", "hvg", "tpm"):
-        genes = shared_genes()
+        genes = shared_genes(with_sources=genes_with)
         if features == "tpm":  # BulkFormer-style gene-length TPM on genes with a released length
             from rna_age.train.features import gene_lengths, log_tpm
 
@@ -173,6 +194,7 @@ def run_probe(
         exact = (s["age_type"] == "exact").to_numpy()
         if interval:  # GTEx / other bins: hinge on [min, max+1) instead of the midpoint target
             train = train | ((s["split"] == "train").to_numpy() & (s["age_type"] == "binned").to_numpy())
+            train = exclude_train_studies(train, s["study_id"], exclude_studies)
         lo = fwd(np.nan_to_num(s["age_min"].to_numpy(), nan=0.0))
         hi = fwd(np.nan_to_num(s["age_max"].to_numpy(), nan=0.0) + 1)
         w = None
@@ -193,11 +215,17 @@ def run_probe(
         + ("-horvath" if transform == "horvath" else "") + ("-interval" if interval else "")
         + ("-studyw" if study_weights else "") + ("" if hidden == (512, 128) else "-h" + "x".join(map(str, hidden)))
         + ("-trainall" if train_set == "all" else "") + ("-onlatest" if restrict_to == "latest" else "")
+        + (f"-genes-{'+'.join(genes_with)}" if genes_with else "")
+        + (f"-table{samples_suffix.replace('_', '-')}" if samples_suffix else "")
+        + (f"-excl{len(exclude_studies)}" if exclude_studies else "")
         + (f"-seed{seed}" if seed else ""),
         {"model": f"{model} probe", "features": "Latest pooled sample embedding" if features == "latest" else "Latest gene embeddings pooled over panel" if features == "latestpanel" else "Atlas panel log2TPM (no encoder)" if features == "panel" else f"logCPM HVG {n_hvg}" if features == "hvg" else f"log2 TPM HVG {n_hvg}" if features == "tpm" else f"Atlas CLS{' + HVG ' + str(n_hvg) if features == 'cls+hvg' else ''}",
          "params": params, "target_transform": transform, "interval_loss": interval, "study_weights": study_weights,
          "hidden": list(hidden), "dropout": dropout, "train_set": ("bulk train, all health states" if train_set == "all" else "bulk train, healthy-or-unknown") + ", exact" + (" + GTEx midpoints" if gtex_midpoints else ""),
-         "n_train": int(train.sum())},
+         "n_train": int(train.sum()), "samples_table": samples_path(samples_suffix).name,
+         "gene_axis": gene_axis_label(genes_with) if genes is not None else None,
+         "n_gene_axis": len(genes) if genes is not None else None, "exclude_train_studies": list(exclude_studies),
+         "embedding_join": not skip_emb},
     )  # fmt: skip
     if ext_out:
         pl.DataFrame({"sample_id": ext_ids, "pred": inv(ext_out[0]).astype(np.float64)}).write_parquet(

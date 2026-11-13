@@ -6,12 +6,20 @@
   is normalised on the same denominator.
 - HVGs: highest variance of log-CPM among genes with mean log-CPM ≥ 1, computed on (a subsample of) the
   training samples only.
+
+RM26 switches (all off by default, so default runs read and train exactly as before):
+- :func:`set_samples_suffix` makes :func:`sample_table` read ``samples_all{suffix}.parquet`` (a table written by
+  ``rna-age merge --suffix``) for the rest of the process.
+- ``shared_genes(with_sources=(...))`` narrows the bulk gene axis to the genes the named extra sources measure
+  (recount3: GENCODE v26), so arms with and without such a source share one axis.
+- :func:`exclude_train_studies` drops named studies from a training mask (they are still predicted and scored).
 """
 
 from __future__ import annotations
 
 import json
 import logging
+from pathlib import Path
 
 import numpy as np
 import polars as pl
@@ -23,10 +31,30 @@ log = logging.getLogger(__name__)
 BULK_SOURCES = ("archs4", "gtex", "bgee")
 
 
-def sample_table() -> pl.DataFrame:
+_SAMPLES_SUFFIX = ""
+
+
+def set_samples_suffix(suffix: str) -> None:
+    """Every later :func:`sample_table` call reads ``samples_all{suffix}.parquet`` ("" = the shared table)."""
+    global _SAMPLES_SUFFIX
+    _SAMPLES_SUFFIX = suffix
+
+
+def samples_path(suffix: str | None = None) -> Path:
+    return INTERIM / f"samples_all{_SAMPLES_SUFFIX if suffix is None else suffix}.parquet"
+
+
+def sample_table(suffix: str | None = None) -> pl.DataFrame:
     """Eligible, non-duplicate samples with split labels (pseudobulk included, flagged)."""
-    m = pl.read_parquet(INTERIM / "samples_all.parquet")
+    m = pl.read_parquet(samples_path(suffix))
     return m.filter(pl.col("split").is_not_null())
+
+
+def exclude_train_studies(train: np.ndarray, study_ids: pl.Series, studies: list[str] | tuple[str, ...]) -> np.ndarray:
+    """``train`` with the rows of ``studies`` set False (no-op for an empty list)."""
+    if not studies:
+        return train
+    return train & ~study_ids.is_in(list(studies)).fill_null(False).to_numpy()
 
 
 def gene_ids(source: str) -> list[str]:
@@ -38,11 +66,24 @@ def symbol_map() -> dict[str, str]:
     return dict(zip(g["symbol"].to_list(), g["gene_id"].to_list(), strict=True))
 
 
-def shared_genes(sources=BULK_SOURCES) -> list[str]:
+def shared_genes(sources=BULK_SOURCES, with_sources: tuple[str, ...] | list[str] = ()) -> list[str]:
+    """Genes all ``sources`` measure (those with a gene table), intersected with every ``with_sources`` gene table
+    (which must exist)."""
     sets = [set(gene_ids(s)) for s in sources if (INPUT / s / "genes.parquet").exists()]
-    genes = sorted(set.intersection(*sets))
+    genes = set.intersection(*sets)
+    if with_sources:
+        n0 = len(genes)
+        for s in with_sources:
+            genes &= set(gene_ids(s))
+        log.info("shared genes across %s: %d; ∩ %s: %d", ",".join(sources), n0, ",".join(with_sources), len(genes))
+        return sorted(genes)
+    genes = sorted(genes)
     log.info("shared genes across %s: %d", ",".join(sources), len(genes))
     return genes
+
+
+def gene_axis_label(with_sources: tuple[str, ...] | list[str] = ()) -> str:
+    return f"shared({','.join(BULK_SOURCES)})" + "".join(f" ∩ {s}" for s in with_sources)
 
 
 def load_counts(source: str, sample_ids: list[str], genes: list[str]) -> np.ndarray:

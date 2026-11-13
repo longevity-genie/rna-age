@@ -18,7 +18,15 @@ from sklearn.linear_model import ElasticNet, Ridge
 from sklearn.preprocessing import StandardScaler
 
 from rna_age.schema import age_mid
-from rna_age.train.features import load_matrix, log_cpm, sample_table, select_hvg, shared_genes
+from rna_age.train.features import (
+    gene_axis_label,
+    load_matrix,
+    log_cpm,
+    sample_table,
+    samples_path,
+    select_hvg,
+    shared_genes,
+)
 from rna_age.train.runs import finish_run, new_run
 
 log = logging.getLogger(__name__)
@@ -42,11 +50,19 @@ def horvath_inv(f: np.ndarray) -> np.ndarray:
 
 
 def hvg_design(
-    n_genes: int, gtex_midpoints: bool = True, hvg_sample: int = 20000, with_pseudobulk: bool = False
+    n_genes: int,
+    gtex_midpoints: bool = True,
+    hvg_sample: int = 20000,
+    with_pseudobulk: bool = False,
+    samples_suffix: str = "",
+    genes_with: tuple[str, ...] = (),
+    exclude_studies: tuple[str, ...] = (),
 ) -> tuple[pl.DataFrame, np.ndarray, np.ndarray, list[str], list[str], int]:
     """Samples (bulk + pseudobulk), log-CPM of train-chosen HVGs, the train mask and the gene list (shared by every
-    expression model so that all of them see the same samples, features and splits)."""
-    s = sample_table()
+    expression model so that all of them see the same samples, features and splits). The last three arguments are
+    RM26's switches (:mod:`rna_age.train.features`): the table, the extra sources narrowing the gene axis, and studies
+    kept out of training (and so out of the HVG choice)."""
+    s = sample_table(samples_suffix)
     s = s.with_columns(target=age_mid(s))
     bulk = s.filter(~pl.col("is_pseudobulk"))
     pseudo = s.filter(pl.col("is_pseudobulk"))
@@ -57,7 +73,9 @@ def hvg_design(
         & pl.col("is_healthy").fill_null(True)  # healthy or unknown
         & ((pl.col("age_type") == "exact") | (pl.lit(gtex_midpoints) & (pl.col("source") == "gtex")))
     )
-    genes = shared_genes()
+    if exclude_studies:
+        train_mask = train_mask & ~pl.col("study_id").is_in(list(exclude_studies)).fill_null(False)
+    genes = shared_genes(with_sources=genes_with)
     train = bulk.filter(train_mask)
     hv = train.sample(min(hvg_sample, train.height), seed=0)
     hvg = select_hvg(log_cpm(load_matrix(hv, genes)), genes, n_genes)
@@ -84,9 +102,14 @@ def run_baseline(
     name: str | None = None,
     transform: str = "none",
     with_pseudobulk: bool = False,
+    samples_suffix: str = "",
+    genes_with: tuple[str, ...] = (),
+    exclude_studies: tuple[str, ...] = (),
 ) -> dict:
     t0 = time.time()
-    allx, X, is_train, hvg, genes, n_hv = hvg_design(n_genes, gtex_midpoints, hvg_sample, with_pseudobulk)
+    allx, X, is_train, hvg, genes, n_hv = hvg_design(
+        n_genes, gtex_midpoints, hvg_sample, with_pseudobulk, samples_suffix, genes_with, exclude_studies
+    )
     split = allx["split"].to_numpy()
     y_years = allx["target"].to_numpy()
     fwd, inv = (horvath, horvath_inv) if transform == "horvath" else (lambda a: a, lambda a: a)
@@ -124,11 +147,16 @@ def run_baseline(
         pred=pl.Series(inv(est.predict(Xs)).astype(np.float64))
     )
     run_dir = new_run(
-        name or f"{model}-hvg{n_genes}{'-gtexmid' if gtex_midpoints else ''}{'-horvath' if transform == 'horvath' else ''}{'-withpb' if with_pseudobulk else ''}",
+        name or f"{model}-hvg{n_genes}{'-gtexmid' if gtex_midpoints else ''}{'-horvath' if transform == 'horvath' else ''}{'-withpb' if with_pseudobulk else ''}"
+        + (f"-genes-{'+'.join(genes_with)}" if genes_with else "")
+        + (f"-table{samples_suffix.replace('_', '-')}" if samples_suffix else "")
+        + (f"-excl{len(exclude_studies)}" if exclude_studies else ""),
         {"model": model, "features": f"logCPM HVG {n_genes}", "params": params, "target_transform": transform, "n_shared_genes": len(genes),
          "train_set": ("bulk + pseudobulk" if with_pseudobulk else "bulk") + " train, healthy-or-unknown, exact"
          + (" + GTEx midpoints" if gtex_midpoints else ""),
-         "n_train": int(is_train.sum()), "hvg_sample": n_hv},
+         "n_train": int(is_train.sum()), "hvg_sample": n_hv, "samples_table": samples_path(samples_suffix).name,
+         "gene_axis": gene_axis_label(genes_with), "n_gene_axis": len(genes),
+         "exclude_train_studies": list(exclude_studies)},
     )  # fmt: skip
     if hasattr(est, "coef_"):
         pl.DataFrame({"gene_id": hvg, "coef": est.coef_.astype(np.float64)}).write_parquet(

@@ -555,7 +555,7 @@ def paired_ci(d: pl.DataFrame, n_boot: int = 2000, seed: int = 0) -> dict:
     rng = np.random.default_rng(seed)
 
     def one(t: pl.DataFrame) -> dict:
-        per = t.group_by("study_id").agg(pl.col("diff").sum().alias("s"), pl.len().alias("n"))
+        per = t.group_by("study_id").agg(pl.col("diff").sum().alias("s"), pl.len().alias("n")).sort("study_id")
         s_, n_ = per["s"].to_numpy(), per["n"].to_numpy()
         boots = []
         for _ in range(n_boot):
@@ -566,6 +566,6 @@ def paired_ci(d: pl.DataFrame, n_boot: int = 2000, seed: int = 0) -> dict:
                 "studies": len(s_)}  # fmt: skip
 
     out = {"all": one(d)}
-    for (src,), t in d.group_by("source"):
+    for (src,), t in d.sort("source").group_by("source", maintain_order=True):  # fixed order: one rng
         out[str(src)] = one(t)
     return out
