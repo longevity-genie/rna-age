@@ -65,9 +65,10 @@ age (regression), case vs control (classification), a held-out gene's expression
 or a knockdown's change on a gene given the perturbed gene's features (perturbation). Context rows carry labels, query
 rows are predicted; episodes from the evaluation cohorts, the bulk val/test studies and held-out knockdowns never
 enter training. Corpus: bulk (≈94k samples), recount3, single-cell donor pseudobulk of the pretraining pool, Census
-donors, Marson CD4 pseudobulk, the Virtual Cell Challenge H1 training split. Primary arm: continued from the released
-TabICLv2 weights, at its own size (Anton, 2026-11-13: "use default tabicl weights for start to avoid random
-start"); from scratch only as a secondary arm if the budget allows.
+donors, Marson CD4 pseudobulk, the Virtual Cell Challenge H1 training split. One arm: a new model initialised from the
+released TabICLv2 weights, at its own size, trained on these episodes (Anton, 2026-11-13: "by from scratch I still
+meant reusing tabicl2 weights, not using random, I meant that we do not fine tune old stuff"), not a fine-tune of
+our earlier clocks; no random-init arm.
 Bars, fixed now: (1) single-cell age on the 7 cohorts beats pretrained TabICLv2 beyond the paired CI in at least 4;
 (2) bulk test MAE within 1 y of the 20k-HVG MLP (RM25's bar, 9.1); (3) within-study health gap at least D6's +2.9 y on
 the same unseen studies; (4) perturbation scored as RM29. Reported per head; "universal" needs (1) or (2) and no head
