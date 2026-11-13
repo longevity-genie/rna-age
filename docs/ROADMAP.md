@@ -50,6 +50,28 @@ profile) is. Train it on the challenge's public H1 training perturbations, predi
 around the predicted mean for the cell-level format), score with Arc's public cell-eval. Bar: beat the mean baseline
 on PDS and DES on the held-out perturbations.
 
+## RM30 — An in-context tabular model pretrained on expression tables: age, health, perturbation
+
+**State:** after RM28 (Anton, 2026-11-13: "train tabular model from scratch to be able to do aging, perturbations
+(and whatever virtual cell asks) and health related stuff ... increase training corpus"; code is written meanwhile,
+the first GPU run follows RM28's first result, which shares the GPUs) · **Owner:** lead
+(design, code), runner (GPU runs)
+
+TabICLv2 (BSD-3, architecture and pretraining code public) is pretrained on synthetic tables; on donor tables it is our
+best single-cell clock, on bulk it collapses to the context mean (RM25). Here the same architecture is trained on
+real expression episodes. An episode is a table drawn from our corpus (a study, a cohort, a tissue, a Perturb-seq
+condition): rows are samples or donors, columns a random subset of the shared gene panel, and the target one of:
+age (regression), case vs control (classification), a held-out gene's expression (masked expression in tabular form),
+or a knockdown's change on a gene given the perturbed gene's features (perturbation). Context rows carry labels, query
+rows are predicted; episodes from the evaluation cohorts, the bulk val/test studies and held-out knockdowns never
+enter training. Corpus: bulk (≈94k samples), recount3, single-cell donor pseudobulk of the pretraining pool, Census
+donors, Marson CD4 pseudobulk, the Virtual Cell Challenge H1 training split. Arms: from scratch, and continued from
+the TabICLv2 weights (the cheap reference). A small model first (~10-30M parameters).
+Bars, fixed now: (1) single-cell age on the 7 cohorts beats pretrained TabICLv2 beyond the paired CI in at least 4;
+(2) bulk test MAE within 1 y of the 20k-HVG MLP (RM25's bar, 9.1); (3) within-study health gap at least D6's +2.9 y on
+the same unseen studies; (4) perturbation scored as RM29. Reported per head; "universal" needs (1) or (2) and no head
+failing its reference by more than its CI.
+
 ## RM13 — A manuscript draft of the results (plan line 5)
 
 **State:** building (default of desk #23 applied 2026-11-13; draft v0.1 kept outside git, the repository being public; where it goes: desk #23) · **Owner:** lead
