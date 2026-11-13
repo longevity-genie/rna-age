@@ -727,3 +727,109 @@ def kron_compare(
 
     for k, v in compare(runs_a.split(","), runs_b.split(",")).items():
         print(f"{k}: {v['diff']:+.2f} y [{v['lo']:+.2f}, {v['hi']:+.2f}]  n={v['n']} studies={v['studies']}")
+
+
+# ---------------------------------------------------------------- RM28: our own single-cell pretraining
+
+COHORTS_OPT = typer.Option("", help="comma-separated evaluation cohorts (default: all 7)")
+
+
+def _cohorts(text: str) -> tuple[str, ...]:
+    from rna_age.train.sc_pretrain import EVAL_COHORTS
+
+    return _csv(text) or EVAL_COHORTS
+
+
+@app.command("sc-pretrain-pool")
+def sc_pretrain_pool_cmd(
+    name: str = typer.Option("default", help="pool name (data/interim/sc_pretrain/<name>)"),
+    cap: int = typer.Option(2000, help="cells per donor"),
+    hvg_cap: int = typer.Option(200, help="cells per donor for the HVG statistics"),
+    n_genes: int = typer.Option(2000),
+    seed: int = typer.Option(0),
+    datasets: str = typer.Option("", help="comma-separated Census dataset ids (default: every non-evaluation h5ad)"),
+    max_cells_per_dataset: int = typer.Option(0, help="smoke runs only"),
+    perturb_max_rows: int = typer.Option(0, help="smoke runs only: one context, this many knockdown rows"),
+) -> None:
+    """RM28: pretraining pool (healthy adult primary cells, evaluation cohorts and their donors excluded), gene panel,
+    panel matrices and Perturb-seq tensors (a CPU job: reads every pool h5ad and the 44 GB screen)."""
+    from rna_age.train.sc_pretrain import build_pool
+
+    print(build_pool(name, cap, hvg_cap, n_genes, seed, max_cells_per_dataset or None, _csv(datasets) or None,
+                     perturb_max_rows or None))  # fmt: skip
+
+
+@app.command("sc-pretrain")
+def sc_pretrain_cmd(
+    arm: str = typer.Option("mask", help="mask | mask+perturb"),
+    epochs: int = typer.Option(30),
+    seed: int = typer.Option(0),
+    pool: str = typer.Option("default"),
+    batch_size: int = typer.Option(1024),
+    lr: float = typer.Option(1e-3),
+    perturb_weight: float = typer.Option(1.0, help="weight of the perturbation loss (arm mask+perturb)"),
+    max_cells: int = typer.Option(0, help="smoke runs only"),
+    max_steps: int = typer.Option(0, help="smoke runs only: steps per epoch"),
+    device: str = typer.Option("", help="cuda | cpu (default: cuda when available)"),
+) -> None:
+    """RM28: pretrain the masked autoencoder (GPU); exits 3 when epoch 1 is not below the mean-gene baseline."""
+    from rna_age.train.sc_pretrain import pretrain
+
+    s = pretrain(arm, epochs, seed, pool, batch_size, lr, perturb_weight=perturb_weight, max_cells=max_cells or None,
+                 max_steps=max_steps or None, device=device or None)  # fmt: skip
+    print(s)
+    if s["failed"]:
+        raise typer.Exit(3)
+
+
+@app.command("sc-pretrain-embed")
+def sc_pretrain_embed_cmd(
+    run_id: str,
+    cohorts: str = COHORTS_OPT,
+    cap: int = typer.Option(200, help="cells per donor (class-stratified), and CD4 T cells per donor in blood"),
+    max_donors: int = typer.Option(0, help="smoke runs only"),
+    device: str = typer.Option(""),
+) -> None:
+    """RM28: per-donor mean frozen embeddings of the evaluation cohorts (reads the cohort h5ads once per pool)."""
+    from rna_age.train.sc_pretrain import embed_cohorts
+
+    for p in embed_cohorts(run_id, _cohorts(cohorts), cap, max_donors=max_donors or None, device=device or None):
+        print(p)
+
+
+@app.command("sc-pretrain-clock")
+def sc_pretrain_clock_cmd(
+    run_id: str,
+    cohorts: str = COHORTS_OPT,
+    models: str = typer.Option("ridge,tabicl", help="`uv run --with tabicl` for tabicl"),
+) -> None:
+    """RM28: ridge/TabICLv2 on the donor-mean embeddings vs pseudobulk-tabicl-2000g (paired bootstrap); writes
+    data/output/summary/sc_pretrain_clock.parquet and prints bar (1)."""
+    import polars as pl
+
+    from rna_age.train.sc_pretrain import bar, clock
+
+    cmp = clock(run_id, _cohorts(cohorts), _csv(models))
+    with pl.Config(tbl_rows=-1, tbl_cols=-1, tbl_width_chars=200):
+        print(cmp)
+        print(bar(cmp))
+
+
+@app.command("sc-pretrain-finetune")
+def sc_pretrain_finetune_cmd(
+    run_id: str,
+    cohorts: str = COHORTS_OPT,
+    epochs: int = typer.Option(20),
+    lr: float = typer.Option(1e-4),
+    max_donors: int = typer.Option(0, help="smoke runs only"),
+    device: str = typer.Option(""),
+) -> None:
+    """RM28: fine-tune read-out (encoder + linear head on donor age inside each training fold, GPU)."""
+    import polars as pl
+
+    from rna_age.train.sc_pretrain import bar, finetune
+
+    cmp = finetune(run_id, _cohorts(cohorts), epochs, lr, max_donors=max_donors or None, device=device or None)
+    with pl.Config(tbl_rows=-1, tbl_cols=-1, tbl_width_chars=200):
+        print(cmp)
+        print(bar(cmp))

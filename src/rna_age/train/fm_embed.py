@@ -32,7 +32,7 @@ import numpy as np
 import polars as pl
 import scipy.sparse as sp
 
-from rna_age.paths import DOWNLOAD, INPUT, INTERIM, OUTPUT
+from rna_age.paths import DOWNLOAD, INTERIM, OUTPUT
 
 log = logging.getLogger(__name__)
 
@@ -316,32 +316,47 @@ def run_embed(dataset_id: str, cap: int = 200, cd4_cap: int = 200, seed: int = 0
 # ------------------------------------------------------------------ clocks
 
 
-def run_clock(dataset_id: str, models: tuple[str, ...] = ("ridge", "tabicl"), seed: int = 0) -> pl.DataFrame:
-    """Out-of-fold age predictions on the embeddings, the same folds and donors as RM14 (sc_tabular)."""
+def clock_folds(dataset_id: str) -> tuple[dict, list[tuple[str, str, np.ndarray]]]:
+    """``donor_profiles`` of a cohort (donors, ages, CV groups) and its representations: (name, embedding subset,
+    donor mask), RM14's donors for each."""
     from rna_age.train.composition import donor_profiles
-    from rna_age.train.sc_tabular import cross_validate
 
     dp = donor_profiles(dataset_id, "broad" if dataset_id in BLOOD else "cell_type")
-    donors, age, groups, N = np.array(dp["donors"]), dp["age"], dp["groups"], dp["N"]
-    emb = pl.read_parquet(EMB_DIR / f"geneformer_{dataset_id[:8]}.parquet")
-    reps = [("natural", "all", np.ones(len(donors), dtype=bool))]
+    reps = [("natural", "all", np.ones(len(dp["donors"]), dtype=bool))]
     if dataset_id in BLOOD and CD4 in dp["cix"]:
-        reps.append((f"class:{CD4}", CD4, N[:, dp["cix"][CD4]] >= 20))  # sc_tabular's min_cells
+        reps.append((f"class:{CD4}", CD4, dp["N"][:, dp["cix"][CD4]] >= 20))  # sc_tabular's min_cells
+    return dp, reps
+
+
+def clock_oof(dataset_id: str, emb: pl.DataFrame, feats: tuple[str, ...], name, models: tuple[str, ...] = ("ridge", "tabicl"),
+              seed: int = 0) -> pl.DataFrame:  # fmt: skip
+    """Out-of-fold age predictions on per-donor embeddings (``emb``: donor, subset, ``<feat>_<j>`` columns), the same
+    folds and donors as RM14 (sc_tabular); ``name(feat, model)`` gives the model column."""
+    from rna_age.train.sc_tabular import cross_validate
+
+    dp, reps = clock_folds(dataset_id)
+    donors, age, groups = np.array(dp["donors"]), dp["age"], dp["groups"]
     rows = []
     for rep, subset, ok in reps:
         e = pl.DataFrame({"donor": donors[ok]}).join(emb.filter(pl.col("subset") == subset), on="donor", how="left")
-        for feat in ("cls", "mean"):
+        for feat in feats:
             X = e.select([c for c in emb.columns if c.startswith(f"{feat}_")]).to_numpy()
             if np.isnan(X).any():
                 raise ValueError(f"{dataset_id[:8]} {rep}: {np.isnan(X).any(1).sum()} donors without an embedding")
             pred = cross_validate(X, age[ok], groups[ok], models, n_genes=X.shape[1], seed=seed)
             for m, p in pred.items():
-                rows += [{"cohort": dataset_id[:8], "representation": rep, "model": f"geneformer-{feat}-{m}",
+                rows += [{"cohort": dataset_id[:8], "representation": rep, "model": name(feat, m),
                           "donor": d, "group": int(g), "age": float(a), "pred": float(v)}
                          for d, g, a, v in zip(donors[ok], groups[ok], age[ok], p, strict=True)]  # fmt: skip
             log.info("%s %s %s: %s", dataset_id[:8], rep, feat,
                      {m: round(float(np.abs(p - age[ok]).mean()), 2) for m, p in pred.items()})  # fmt: skip
-    out = pl.DataFrame(rows)
+    return pl.DataFrame(rows)
+
+
+def run_clock(dataset_id: str, models: tuple[str, ...] = ("ridge", "tabicl"), seed: int = 0) -> pl.DataFrame:
+    """Out-of-fold age predictions on the Geneformer embeddings, the same folds and donors as RM14 (sc_tabular)."""
+    emb = pl.read_parquet(EMB_DIR / f"geneformer_{dataset_id[:8]}.parquet")
+    out = clock_oof(dataset_id, emb, ("cls", "mean"), lambda f, m: f"geneformer-{f}-{m}", models, seed)
     path = OUTPUT / "summary" / "fm_embedding_oof.parquet"
     if path.exists():
         out = pl.concat([pl.read_parquet(path).filter(pl.col("cohort") != dataset_id[:8]), out], how="vertical_relaxed")
