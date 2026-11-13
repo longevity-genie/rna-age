@@ -1164,3 +1164,18 @@ TabICLv2 concat per cohort (MAE vs whole-sample): wins in 218acb0f 6.72 vs 7.44,
 - Bar (TabICLv2 beyond the CI in ≥ 4 of 7): not met; the concat arm is the closest (3 wins, 2 ties leaning its way).
   By the plan the set-model follow-up does not start; reading is the lead's.
 - Caveat: 218acb0f's disease confound (D9) does not touch an age-only read-out; brain cohorts use their own 5 types.
+
+### 2026-11-13 22:00 · RM32 result: attention and per-cell losses do not help the per-cell clock
+Jobs 6479293-6479296 (12-16 min each, one GPU), fine-tunes of `20261113-1942-scpre-mask-s0`; mean MAE difference vs
+the best pseudobulk reference over the 7 D7 cohorts (0 of 7 beats in every arm):
+
+| arm | pool | per-cell loss | pseudocells | vs pseudobulk |
+|---|---|---|---|---|
+| reference (RM28 fine-tune) | mean | – | – | +1.78 |
+| a | attention | – | – | +1.81 |
+| b | mean | 0.1 | 15 | +2.22 |
+| c | attention | 0.1 | 15 | +2.41 |
+| d | attention | 0.5 | 15 | +2.32 |
+
+- Attention pooling ties the mean; the per-cell loss makes the donor clock worse by 0.4-0.6 y at either weight. On
+  this encoder, Anton's per-cell design adds nothing over a donor-level target.

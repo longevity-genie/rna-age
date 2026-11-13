@@ -61,9 +61,10 @@ stop before Anton is back; 07:00 report, then keep updating; one tabbed artifact
 
 ## Running (jobs carry seat / what / eta in their Slurm comment)
 - RM30: out of memory on the 11 GB cards even at micro-batch 1; waits on the lead (smaller episodes or checkpointing).
-- RM32 (per-cell clock, 2026-11-13 21:15): 4 arms chained on one GPU, 6479293-6479296.
 
 ## Results so far (details: `docs/experiments.md`, `data/output/summary/experiments.parquet`)
+- **RM32 (2026-11-13 22:00)**: per-cell clock on the RM28 mask encoder: attention ties mean pooling (+1.81 vs +1.78 y
+  behind pseudobulk), per-cell losses make it worse (+2.22 to +2.41).
 - **RM31 (2026-11-13 21:58)**: five cell types per donor side by side (TabICLv2) beat the whole-sample clock in 3
   of 7 cohorts (bar 4), mean −0.31 y; wins in two brain cohorts and one blood cohort.
 - **RM28 (2026-11-13 21:12)**: our own single-cell pretraining (mask, mask+perturb, universal; 30 epochs) gives
