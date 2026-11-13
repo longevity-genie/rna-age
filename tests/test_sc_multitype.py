@@ -39,3 +39,14 @@ def test_oof_and_compare_shapes():
     out = compare(pl.DataFrame(rows), n_boot=50)
     assert out.filter(pl.col("arm") == "whole")["diff"][0] == 0.0
     assert out.height == 6
+
+
+def test_run_cohort_skips_without_two_classes(monkeypatch):
+    from rna_age.train import sc_multitype as sm
+
+    def fake(dataset_id, mapping="broad", n_classes=12):
+        return {"P": np.zeros((60, 1, 4)), "N": np.full((60, 1), 30.0), "age": np.linspace(20, 80, 60),
+                "groups": np.arange(60), "donors": [f"d{i}" for i in range(60)], "classes": ["A"], "cix": {"A": 0}}  # fmt: skip
+
+    monkeypatch.setattr(sm, "donor_profiles", fake)
+    assert sm.run_cohort("x", "ridge").height == 0

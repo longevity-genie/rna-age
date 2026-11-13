@@ -94,9 +94,17 @@ def oof(
 def run_cohort(
     dataset_id: str, model: str = "tabicl", k: int = 5, min_cells: int = 20, n_genes: int = 2000, seed: int = 0
 ) -> pl.DataFrame:
+    """One cohort's predictions; the broad blood classes, or, where they do not apply (brain), the cohort's own
+    most frequent cell types. A cohort with fewer than two usable classes is skipped (empty frame)."""
     dp = donor_profiles(dataset_id)
+    cls = pick_classes(dp["N"], dp["classes"], k, min_cells)
+    if len(cls) < 2:
+        dp = donor_profiles(dataset_id, mapping="cell_type")
+        cls = pick_classes(dp["N"], dp["classes"], k, min_cells)
     P, N, age, groups, donors, classes = (dp[x] for x in ("P", "N", "age", "groups", "donors", "classes"))
-    cls = pick_classes(N, classes, k, min_cells)
+    if len(cls) < 2:
+        log.warning("%s: fewer than two cell classes cover enough donors; skipped", dataset_id[:8])
+        return pl.DataFrame()
     ok = (N[:, cls] >= min_cells).all(1)
     log.info("%s: classes %s, %d of %d donors", dataset_id[:8], [classes[c] for c in cls], ok.sum(), len(ok))
     X_whole = np.log1p(_cpm(P[ok].sum(1)))
@@ -132,10 +140,15 @@ def compare(pred: pl.DataFrame, reference: str = "whole", n_boot: int = 2000) ->
 def run(
     cohorts: tuple[str, ...], models: tuple[str, ...] = ("ridge", "tabicl"), k: int = 5, seed: int = 0
 ) -> pl.DataFrame:
-    parts = [run_cohort(c, m, k=k, seed=seed) for c in cohorts for m in models]
-    pred = pl.concat(parts)
     PRED.parent.mkdir(parents=True, exist_ok=True)
-    pred.write_parquet(PRED, compression="zstd")
+    parts = []
+    for c in cohorts:
+        for m in models:
+            part = run_cohort(c, m, k=k, seed=seed)
+            if part.height:
+                parts.append(part)
+                pl.concat(parts).write_parquet(PRED, compression="zstd")  # after every cohort: a crash keeps the rest
+    pred = pl.concat(parts)
     out = compare(pred)
     out.write_parquet(COMPARE, compression="zstd")
     return out
