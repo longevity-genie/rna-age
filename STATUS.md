@@ -60,11 +60,12 @@ stop before Anton is back; 07:00 report, then keep updating; one tabbed artifact
   rules: Census 2,356 healthy (3,815 any health), scBaseCount 492 (1,656), recount3 bulk 4,430 (6,380).
 
 ## Running (jobs carry seat / what / eta in their Slurm comment)
-- RM27 (age-order term, 2026-11-13 18:32): job 6470599, 3 health-MLP seeds on CPU, ~1 h.
 - RM28 (single-cell pretraining, 2026-11-13 19:14): pool 6472026, then arms mask 6472027, mask+perturb 6472097, universal 6472138.
 - RM30 (expression-episode TabICL, 2026-11-13 19:32): prep 6472840 (CPU); training after RM28's first arm.
 
 ## Results so far (details: `docs/experiments.md`, `data/output/summary/experiments.parquet`)
+- **RM27 (2026-11-13 20:05)**: a Pasta-style age-order term on same study × tissue pairs leaves the health MLP's
+  aging-linked gap at +2.69 y (3-seed mean; control 2.55; bar +2.9 not met), test MAE 0.27 y better; null p 0.005.
 - **RM26 (2026-11-13 17:50)**: adding 3,289 recount3 bulk samples (2,046 training rows) lowers the 3-seed MLP test MAE
   from 7.90 to 7.73 y on the old test samples, −0.17 [−0.39, +0.02]: in the right direction but not beyond the CI; bar
   not met, no fine-tune retrain. New recount3 test studies read 11.2 y.

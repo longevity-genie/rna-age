@@ -1082,3 +1082,20 @@ worse than the control runs'. Then `health-eval --permutations 200` on the best 
 - RM30 (TabICLv2 initialised from its released weights, trained on expression episodes; bars in ROADMAP RM30):
   `uv run --with tabicl rna-age expr-icl-prepare`, job 6472840 (CPU 8, 96 GB, 12 h limit, unmeasured). Training
   (`expr-icl-train --steps 20000`) waits for RM28's first arm's result, per the plan; first 500 steps get timed.
+
+### 2026-11-13 20:05 · RM27 result: the age-order term does not lift the gap to +2.9 (bar not met)
+Job 6470599 (58 min, CPU): runs `20261113-1848/1905/1931-health-mlp-rank1-head-agepair1-s0..s2`; control the RM12-table
+runs `20261111-0854/0908/0918-health-mlp-rank1-head-s0..s2`. `rna-age health-eval`, aging-linked within-study gap
+(33 held-out studies, 2,282 cases) and control test MAE:
+
+| seed | arm gap [95 % CI] | control gap | arm control-MAE | control control-MAE |
+|---|---|---|---|---|
+| 0 | 2.71 [0.83, 4.76] | 2.30 [0.31, 4.41] | 9.07 | 8.88 |
+| 1 | 2.95 [0.99, 5.00] | 2.44 [0.43, 4.42] | 9.30 | 9.30 |
+| 2 | 2.40 [0.42, 4.55] | 2.92 [0.90, 5.14] | 8.99 | 9.98 |
+| mean | **2.69** | 2.55 | 9.12 | 9.39 |
+
+- Bar (the lead): mean gap ≥ +2.9 y: not met (2.69); MAE no more than 0.5 y worse: met (0.27 y better). The term
+  moves the mean gap by +0.14 y, well inside seed spread (control seeds alone span 2.30-2.92).
+- Best seed (s1), 200 shuffles within study: null mean +0.01, p 0.005 (1 of 200 bounds): the gap is real, as for the
+  controls; the term just does not add to it.
