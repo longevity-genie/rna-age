@@ -280,3 +280,23 @@ leans its way in Terekhova (6.70 vs 7.28) and 5e57cd50, and loses in c838aec3 (6
 clock still beats whole blood. Reading: giving the in-context model each cell class side by side helps on average
 (−0.31 y) but not in enough cohorts to replace the whole-sample clock; averaging per-class clocks loses. The bigger
 set-model version is not started on this result; RM32 tests the per-cell form of the same idea.
+
+**RM32 outcome (2026-11-13, lead's code 331e85c, runner's jobs 6479293-6479296, logged c5ded58; read by the lead):**
+fails its bar in every arm (0 of 7 cohorts). Anton's per-cell clock: each cell gets an age from a head on RM28's
+masked encoder, the donor's age is the pooled sum, loss = donor error + λ × each cell's (or 15-cell pseudocell's)
+error against the donor's age. Mean MAE difference against the best pseudobulk clock, with the mean slope and r of
+predicted vs true age over the 7 cohorts:
+
+| arm | pool | λ (pseudocells) | vs pseudobulk | slope | r |
+|---|---|---|---|---|---|
+| reference | mean | 0 | +1.78 | 0.43 | 0.58 |
+| a | attention | 0 | +1.81 | 0.43 | 0.57 |
+| b | mean | 0.1 (15) | +2.22 | 0.38 | 0.54 |
+| c | attention | 0.1 (15) | +2.41 | 0.38 | 0.52 |
+| d | attention | 0.5 (15) | +2.32 | 0.37 | 0.53 |
+
+Gated attention learns nothing beyond the mean. The per-cell term costs 0.4-0.6 y at either weight, and it lowers
+both the slope (shrinkage, as Javanmard et al. predict: it penalises within-donor spread) and the ranking (r), so it
+is not only a calibration loss. Reading: on this encoder, asking cells to agree with their donor's age removes the
+spread the donor clock needs; per-cell ages are not kept, and the pseudocell head without an encoder (the follow-up
+had either part helped) is not started. The encoder itself is the floor here (RM28: +1.78 against summed expression).
