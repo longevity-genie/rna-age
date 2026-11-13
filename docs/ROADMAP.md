@@ -67,7 +67,9 @@ the same unseen studies; (4) perturbation scored as RM29. Code reviewed and on m
 1,000-gene panel of 16,585 measured everywhere; training groups age 352, health 64, masked gene 410, perturbation 12
 donor × condition tables (2,370 of 11,929 knocked-down genes held out). First-run limits: a held-out knocked-down
 gene is described only by its own baseline expression and a hashed id (no gene embedding), and recount3 and the
-Virtual Cell Challenge data are not yet in the corpus. Reported per head; "universal" needs (1) or (2) and no head
+Virtual Cell Challenge data are not yet in the corpus. Deviation (2026-11-13): the model does not fit an 11 GB card at the specified
+episode size even one episode per step, so the first run trains on smaller episodes (64-256 rows, 100-300 columns);
+evaluation is unchanged. Gradient checkpointing and a rerun at full size follow only if this run shows a gain. Reported per head; "universal" needs (1) or (2) and no head
 failing its reference by more than its CI.
 
 ## RM31 — Several cell types per donor at once in the single-cell clock
