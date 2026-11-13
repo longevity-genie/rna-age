@@ -761,7 +761,7 @@ def sc_pretrain_pool_cmd(
 
 @app.command("sc-pretrain")
 def sc_pretrain_cmd(
-    arm: str = typer.Option("mask", help="mask | mask+perturb"),
+    arm: str = typer.Option("mask", help="mask | mask+perturb | universal"),
     epochs: int = typer.Option(30),
     seed: int = typer.Option(0),
     pool: str = typer.Option("default"),
@@ -771,12 +771,17 @@ def sc_pretrain_cmd(
     max_cells: int = typer.Option(0, help="smoke runs only"),
     max_steps: int = typer.Option(0, help="smoke runs only: steps per epoch"),
     device: str = typer.Option("", help="cuda | cpu (default: cuda when available)"),
+    age_weight: float = typer.Option(1.0, help="universal: age head (pool donors + bulk train controls)"),
+    rank_weight: float = typer.Option(0.5, help="universal: within-study case/control ranking"),
+    health_weight: float = typer.Option(0.5, help="universal: case-vs-control logit"),
+    max_bulk: int = typer.Option(0, help="universal, smoke runs only: subsample the bulk table"),
 ) -> None:
     """RM28: pretrain the masked autoencoder (GPU); exits 3 when epoch 1 is not below the mean-gene baseline."""
     from rna_age.train.sc_pretrain import pretrain
 
     s = pretrain(arm, epochs, seed, pool, batch_size, lr, perturb_weight=perturb_weight, max_cells=max_cells or None,
-                 max_steps=max_steps or None, device=device or None)  # fmt: skip
+                 max_steps=max_steps or None, device=device or None, age_weight=age_weight, rank_weight=rank_weight,
+                 health_weight=health_weight, max_bulk=max_bulk or None)  # fmt: skip
     print(s)
     if s["failed"]:
         raise typer.Exit(3)
@@ -833,3 +838,15 @@ def sc_pretrain_finetune_cmd(
     with pl.Config(tbl_rows=-1, tbl_cols=-1, tbl_width_chars=200):
         print(cmp)
         print(bar(cmp))
+
+
+@app.command("sc-pretrain-universal-eval")
+def sc_pretrain_universal_eval_cmd(run_id: str, device: str = typer.Option("")) -> None:
+    """RM28 arm universal: bulk predictions of the age head (run dir predictions.parquet, every split) and the
+    within-study health gap (evaluate_health) for pred and bio_age."""
+    import polars as pl
+
+    from rna_age.train.sc_universal import universal_eval
+
+    with pl.Config(tbl_rows=-1, tbl_cols=-1, tbl_width_chars=200):
+        print(universal_eval(run_id, device=device or None))

@@ -71,7 +71,8 @@ RUNS = OUTPUT / "runs"
 SUMMARY = OUTPUT / "summary"
 TARGET_SUM = 10_000
 ADULT = 18.0
-ARMS = ("mask", "mask+perturb")
+ARMS = ("mask", "mask+perturb", "universal")
+PERTURB_ARMS = ("mask+perturb", "universal")
 
 
 # ------------------------------------------------------------------ pool
@@ -603,9 +604,13 @@ def pretrain(arm: str = "mask", epochs: int = 30, seed: int = 0, pool: str = "de
              perturb_weight: float = 1.0, perturb_batch: int = 256, perturb_holdout: float = 0.2, val_frac: float = 0.05,
              val_cells: int = 50_000, hidden: int = 1024, emb: int = 256, depth: int = 2, dropout: float = 0.1,
              max_cells: int | None = None, max_steps: int | None = None, device: str | None = None,
-             name: str | None = None) -> dict:  # fmt: skip
+             name: str | None = None, age_weight: float = 1.0, rank_weight: float = 0.5, health_weight: float = 0.5,
+             max_bulk: int | None = None) -> dict:  # fmt: skip
     """Train one arm; checkpoints per epoch under the run's ``checkpoint_dir``, ``metrics.parquet`` and ``status`` in
-    the run dir. Returns the run's status dict (``failed`` true when the epoch-1 baseline rule stopped it)."""
+    the run dir. Returns the run's status dict (``failed`` true when the epoch-1 baseline rule stopped it).
+    Arm ``universal`` (``sc_universal``) adds the age and health heads with weights ``age_weight``, ``rank_weight``,
+    ``health_weight``; its ``best.pt`` is the epoch with the lowest bulk val MAE, the others' the lowest val masked
+    MSE. ``max_bulk`` (smoke runs) subsamples the bulk table."""
     from rna_age.train.runs import new_run
 
     if arm not in ARMS:
@@ -627,10 +632,14 @@ def pretrain(arm: str = "mask", epochs: int = 30, seed: int = 0, pool: str = "de
     gene_mean = (gene_mean / len(tr_idx)).float()
     config = {"model": "sc_pretrain", "arm": arm, "pool": pool, "epochs": epochs, "seed": seed,
               "batch_size": batch_size, "lr": lr, "weight_decay": weight_decay, "mask": [mask_lo, mask_hi],
-              "perturb_weight": perturb_weight if arm == "mask+perturb" else 0.0, "perturb_batch": perturb_batch,
+              "perturb_weight": perturb_weight if arm in PERTURB_ARMS else 0.0, "perturb_batch": perturb_batch,
               "perturb_holdout": perturb_holdout, "hidden": hidden, "emb": emb, "depth": depth, "dropout": dropout,
               "n_genes": n_genes, "train_cells": len(tr_idx), "val_cells": len(va_idx), "max_cells": max_cells,
               "device": str(dev)}  # fmt: skip
+    if arm == "universal":
+        config |= {"age_weight": age_weight, "rank_weight": rank_weight, "health_weight": health_weight,
+                   "max_bulk": max_bulk, "features": f"panel {n_genes} log1p CP10k", "train_set":
+                   "pool cells (mask); Perturb-seq train genes; pool donors + bulk train controls (age); bulk train (health)"}  # fmt: skip
     run_dir = new_run(name or f"scpre-{arm.replace('+', '-')}-s{seed}", config)
     cfg = json.loads((run_dir / "config.json").read_text())
     ckpt = Path(cfg["checkpoint_dir"])
@@ -638,11 +647,19 @@ def pretrain(arm: str = "mask", epochs: int = 30, seed: int = 0, pool: str = "de
     log.info("run %s: %d train / %d val cells × %d genes on %s (%.0fs)", cfg["run_id"], len(tr_idx), len(va_idx),
              n_genes, dev, time.time() - t0)  # fmt: skip
     model = ScMAE(n_genes, hidden, emb, depth, dropout).to(dev)
-    pert = PerturbData(pool_dir(pool) / "perturb.npz", dev, perturb_holdout, seed) if arm == "mask+perturb" else None
+    pert = PerturbData(pool_dir(pool) / "perturb.npz", dev, perturb_holdout, seed) if arm in PERTURB_ARMS else None
     if pert is not None:
         log.info("perturbation: %d training / %d held-out knockdowns", len(pert.train_idx), len(pert.val_idx))
         pbatches = perturb_batches(pert.train_idx, perturb_batch, rng)
-    opt = torch.optim.AdamW(model.parameters(), lr=lr, weight_decay=weight_decay)
+    task = None
+    if arm == "universal":
+        from rna_age.train import sc_universal as su
+
+        bulk, bx = su.bulk_for_run(pool, max_bulk, seed)
+        w = {"age": age_weight, "rank": rank_weight, "health": health_weight}
+        task = su.UniversalTask(Xt, table, is_val, bulk, bx, emb, dev, w, seed=seed)
+    params = list(model.parameters()) + (list(task.parameters()) if task is not None else [])
+    opt = torch.optim.AdamW(params, lr=lr, weight_decay=weight_decay)
     steps_per_epoch = -(-len(tr_idx) // batch_size)
     if max_steps:
         steps_per_epoch = min(steps_per_epoch, max_steps)
@@ -664,17 +681,22 @@ def pretrain(arm: str = "mask", epochs: int = 30, seed: int = 0, pool: str = "de
         model.train()
         te = time.time()
         perm = torch.from_numpy(rng.permutation(tr_idx)).to(dev)
-        tot, totp = 0.0, 0.0
+        tot, totp, tasks_tot = 0.0, 0.0, {}
         for step in range(steps_per_epoch):
             x = Xt[perm[step * batch_size : (step + 1) * batch_size]].float()
             m = sample_mask(len(x), n_genes, mask_lo, mask_hi, device=dev)
             with torch.autocast(**amp):
                 loss = masked_mse(model(x, m).float(), x, m)
                 lp = pert.loss(model, next(pbatches)) if pert is not None else None
+                terms = task.loss(model) if task is not None else {}
             total_loss = loss + perturb_weight * lp if lp is not None else loss
+            if terms:
+                total_loss = total_loss + task.total(terms)
+                for k, v in terms.items():
+                    tasks_tot[k] = tasks_tot.get(k, 0.0) + float(v.detach())
             opt.zero_grad(set_to_none=True)
             total_loss.backward()
-            torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
+            torch.nn.utils.clip_grad_norm_(params, 1.0)
             opt.step()
             sched.step()
             tot += float(loss.detach())
@@ -698,19 +720,24 @@ def pretrain(arm: str = "mask", epochs: int = 30, seed: int = 0, pool: str = "de
         if pert is not None:
             model.eval()
             row |= {"train_perturb_loss": totp / steps_per_epoch, **pert.evaluate(model, pert.val_idx)}
+        if task is not None:
+            row |= {f"train_{k}_loss": v / steps_per_epoch for k, v in tasks_tot.items()} | task.evaluate(model)
         rows.append(row)
         pl.DataFrame(rows).write_parquet(run_dir / "metrics.parquet")
         log.info("epoch %d: %s", epoch, {k: round(v, 4) if isinstance(v, float) else v for k, v in row.items()})
         state = {"model": model.state_dict(), "config": cfg, "epoch": epoch, "gene_mean": gene_mean.cpu()}
+        if task is not None:
+            state["heads"] = task.heads.state_dict()
         torch.save(state, ckpt / "last.pt")
-        if val < best:
-            best = val
+        score = row.get("bulk_val_mae", val) if task is not None else val
+        if score < best:
+            best = score
             torch.save(state, ckpt / "best.pt")
         if early_stop_failed(epoch, val, base):
             status |= {"failed": True, "reason": f"epoch 1 masked MSE {val:.4f} not below mean-gene {base:.4f}"}
             log.error("stopped: %s", status["reason"])
             break
-    status |= {"epochs_run": len(rows), "best_val_masked_mse": best, "final": rows[-1],
+    status |= {"epochs_run": len(rows), "best_score": best, "best_by": "bulk_val_mae" if task is not None else "val_masked_mse", "final": rows[-1],
                "seconds": round(time.time() - t0)}  # fmt: skip
     (run_dir / "status.json").write_text(json.dumps(status, indent=2, default=float))
     return status
