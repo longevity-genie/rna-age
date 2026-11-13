@@ -208,3 +208,10 @@ Geneformer V2-104M start-token embeddings (at most 200 cells per donor, averaged
 200-cell cap against all cells for pseudobulk; Tahoe-x1 was not run (it needs bf16 and FlashAttention). Reading: on
 these cohorts a frozen single-cell model's embedding carries less age than the genes it reads; the expression clocks
 stay on genes, and continued pretraining of an expression encoder is not planned on this evidence.
+
+**RM25 outcome (2026-11-13, runner, job 6439059, 0cd6a88; read by the lead):** fails its bar by far. TabICLv2 on 2,000
+standardised HVGs with a nearest-study context (4,000 training samples, at most 200 per study): test MAE 15.30 y,
+r 0.51, bias slope −0.69 (8,843 samples), against the bar of 9.1 (the 20k-HVG MLP's 8.1 plus 1 y); the first try
+(200 PCs, random 10k context) was 15.7. Predictions shrink to the context mean. Reading: on bulk, with tens of
+thousands of heterogeneous samples, an in-context regressor cannot replace a trained network; TabICLv2 stays a
+single-cell clock (D7), where tables are a few hundred donors. No fine-tuning step.

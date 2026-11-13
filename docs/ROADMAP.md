@@ -7,18 +7,6 @@ The lead (`docs/seats/LEAD.md`) keeps it. Seeded at the lead's first seating (20
 
 ## Items
 
-## RM25 — TabICLv2 as the bulk clock, second try
-
-**State:** unattended (proposed to Anton 2026-11-12 in #rna-age > general chat; default: build) · **Owner:** lead
-(code), runner (GPU run)
-
-The first try (2026-11-10, `rna-age tabfm`: 200 PCs, a 10k-sample prompt) got test MAE 15.7 against the MLP's 10.4 on
-the old table. This one gives it what held it back: 2,000 HVGs (as on single cells), and a context of the training
-samples from the most similar studies (nearest by mean profile) rather than a random 10k. Same clean split as the
-headline. Bar: test MAE within 1 y of the 20k-HVG MLP (8.1 on the clean table) earns step 2, fine-tuning TabICLv2 on
-bulk + pseudobulk; beating the headline 7.46 beyond the paired CI would be a finding. Continued pretraining of an
-expression encoder is not planned: RM22's frozen Geneformer embeddings lost to genes in 5 of 7 cohorts.
-
 ## RM18 — Bulk clock vs single-cell clock, same people: accuracy, unhealthy cohorts, interventions
 
 **State:** building · **Owner:** lead (comparison code), then runner (pseudobulk passes and GPU runs)
