@@ -60,11 +60,13 @@ stop before Anton is back; 07:00 report, then keep updating; one tabbed artifact
   rules: Census 2,356 healthy (3,815 any health), scBaseCount 492 (1,656), recount3 bulk 4,430 (6,380).
 
 ## Running (jobs carry seat / what / eta in their Slurm comment)
-- RM30: job 6479218 trains `20261113-2053-expricl` (10k steps, fp16, ~2 s/step), ends ~02:55 on 2026-11-14; quick
-  evals flat since 4-6k, so no resume. Read-outs queued after it: sc 6479915, bulk 6479916 → health 6479917
-  (200 shuffles), perturb 6479918.
+- RM34 step 2: CELLxGENE positive-control downloads, a chain of CPU jobs: 7 of 8 done, PD 6480021 running,
+  then Allen aging 6480038 and ALTRA 6480039 (CMV).
 
 ## Results so far (details: `docs/experiments.md`, `data/output/summary/experiments.parquet`)
+- **RM30 (2026-11-14 00:53)**: our in-context tabular model pretrained on expression tables fails all four bars:
+  single-cell 0 of 7 vs TabICLv2 (worse in 5), bulk test MAE 14.0 (bar 10.1), health gap −0.05 y (bar +2.9),
+  perturbation ties the mean-change baseline (r 0.049 vs 0.050), so RM29 was cancelled.
 - **RM32 (2026-11-13 22:00)**: per-cell clock on the RM28 mask encoder: attention ties mean pooling (+1.81 vs +1.78 y
   behind pseudobulk), per-cell losses make it worse (+2.22 to +2.41).
 - **RM31 (2026-11-13 21:58)**: five cell types per donor side by side (TabICLv2) beat the whole-sample clock in 3

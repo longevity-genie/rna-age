@@ -1185,3 +1185,18 @@ Training job 6479218 (`20261113-2053-expricl`) held-out quick evals, step 0 → 
 8.32, health AUC 0.70 → 0.78, masked-gene skill 0.18 → 0.24, perturbation skill −0.08 → +0.015; flat since 4-6k, so
 no continuation past 10k. `expr-icl-eval` read-outs, each on one GPU, after it ends: sc 6479915, bulk 6479916, health
 6479917 (after bulk, 200 within-study shuffles), perturb 6479918. Bars: ROADMAP RM30.
+
+### 2026-11-14 00:53 · RM30 result: the expression-table pretrained model fails all four bars
+Run `20261113-2053-expricl`, 10k steps; read-outs with `expr-icl-eval` on one 2080 Ti each.
+
+| bar | read-out | result | verdict |
+|---|---|---|---|
+| (1) sc beats TabICLv2 in ≥ 4 of 7 | 6479915 | 0 of 7; worse beyond the CI in 5 (+0.58 to +1.67 y) | fail |
+| (2) bulk test MAE ≤ 10.1 | 6480060 | test 13.99 (r 0.59, n 8,843); val 13.92 | fail |
+| (3) health gap ≥ +2.9 y | 6480061 | −0.05 [−1.38, 1.27], 33 studies, null p 0.55 | fail |
+| (4) perturbation beats mean | 6479918 | r 0.0488 vs 0.0502; MAE 0.4931 vs 0.4939 (24,422 knockdowns) | ties |
+
+- Bulk ran out of memory at 4,000 prompt rows twice (6479916, 6480002 with expandable segments) and once at 2,000
+  (6480006); after ea2b88f (half-precision inference, `--chunk 128`) it ran at the planned 4,000 rows. No deviation.
+- The sc model ties or slightly beats ridge/elastic net/boosted trees in most cohorts but not pretrained TabICLv2.
+- RM29 cancelled on its gate (lead, 2b84917).
