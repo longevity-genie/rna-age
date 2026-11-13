@@ -7,6 +7,20 @@ The lead (`docs/seats/LEAD.md`) keeps it. Seeded at the lead's first seating (20
 
 ## Items
 
+## RM33 — System-level age gaps: which cell types or tissues make a person look older
+
+**State:** unattended (Anton, 2026-11-13, #rna-age > per-cell clock: "from the state of some cell types we can get
+explanatory info on why person is older than chronological age ... can there be samples where we know that some
+systems of body should show higher age?"; proposed there, built when he is away unless he says no) · **Owner:** lead
+
+RM31's per-cell-type clocks (out of fold, TabICLv2) give each donor an age per cell type; their age-adjusted gaps
+correlate at r 0.2-0.5 between types, so part of a gap is type-specific, real or noise. Tests where the answer is
+known: (1) Alzheimer donors vs controls in the brain cohorts 37a17b78 and 5e57cd50, within processing batch (D9). Bar:
+at least one glial type (microglia, astrocyte) shows a larger AD gap than OPCs and oligodendrocytes, beyond a donor
+bootstrap CI, in both cohorts. (2) CMV serostatus in Terekhova 2023, if its donor metadata carries it. Bar: the CD8 T
+gap is higher in CMV+ beyond the CI and the monocyte gap is not. (3) GTEx per-donor tissue gaps from the bulk clock,
+descriptive (how much organ ages agree within a person). CPU only.
+
 ## RM29 — Score a perturbation model on the Virtual Cell Challenge H1 set
 
 **State:** after RM30 (RM28's perturbation head failed its own check, 2026-11-13; retargeted to RM30's
