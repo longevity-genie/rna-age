@@ -955,3 +955,24 @@ def expr_icl_eval(
         raise typer.BadParameter(f"--what must be sc, bulk, health or perturb, got {what!r}")
     with pl.Config(tbl_rows=-1, tbl_cols=-1, tbl_width_chars=200):
         print(out)
+
+
+@app.command("sc-multitype")
+def sc_multitype_cmd(
+    cohorts: str = typer.Option(
+        "3faad104-2ab8-4434-816d-474d8d2641db,c838aec3-03ef-4398-b882-0e3912abfff0,"
+        "218acb0f-9f2f-4f76-b90b-15a4b7c7f629,terekhova2023,37a17b78-4864-4a42-b67b-31c00962795a,"
+        "5c97eeeb-7e52-44b3-b010-b832b1f5424c,5e57cd50-8e42-42d6-940d-5c1660d06864",
+        help="comma-separated cohorts (default: the 7 of D7)",
+    ),
+    models: str = typer.Option("ridge,tabicl", help="comma-separated; tabicl needs uv run --with tabicl"),
+    k: int = typer.Option(5, help="cell classes per donor"),
+) -> None:
+    """RM31: several cell types per donor at once (concat, mean of type clocks) vs the whole-sample clock."""
+    import polars as pl
+
+    from rna_age.train.sc_multitype import run
+
+    out = run(tuple(cohorts.split(",")), tuple(models.split(",")), k=k)
+    with pl.Config(tbl_rows=-1, tbl_cols=-1, tbl_width_chars=200):
+        print(out.select("dataset_id", "model", "arm", "n", "mae", "ref_mae", "diff", "lo", "hi", "beats_ref"))
