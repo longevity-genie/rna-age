@@ -40,6 +40,13 @@ awesome-single-cell, Synapse, Zenodo/figshare and web search; the HCA/DISCO/SCEA
 normalised to disease families. Rule change, unless Anton objects: usability is scored per condition, studies pooled by
 meta-analysis of within-study contrasts (study a random effect), so studies with ≥ 3 donors per arm count; per-donor
 age may come from a paper's supplement.
+Bulk seeds built (`rna-age positive-controls-bulk-labels [--counts]`, 2026-11-14): one rule per series on GEO's
+characteristics → `data/input/positive_controls/bulk_labels.parquet`, which the scan uses instead of our ARCHS4
+annotation for those series. Usable: GSE190125 (Down syndrome blood, 96 pairs, NCBI counts), GSE167186 and GSE111016
+(sarcopenia, 24 and 20 pairs). Not usable: GSE113957 (HGPS: 9 of 10 lines from PRF, all controls Coriell),
+GSE114007 (OA: 5 pairs, controls young), GSE135251 (MASLD: no ages in GEO, NCBI counts on disk), GSE47460
+(microarray only). Positive-control series are kept out of clock training: their NCBI counts are not parsed into the
+`ncbi_geo` source (its generic annotation would label trisomy-21 samples healthy).
 
 ## RM33 — System-level age gaps: which cell types or tissues make a person look older
 

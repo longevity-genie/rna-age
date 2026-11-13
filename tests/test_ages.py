@@ -23,6 +23,8 @@ from rna_age.ages import find_age, is_age_key, parse_age_field, split_characteri
         ("age", "10 days", "exact", 10 / 365.25, None, None),
         ("age (days)", "365.25", "exact", 1.0, 1.0, 1.0),
         ("age", "5 years 6 months", "exact", 5.5, 5.5, 5.5),
+        ("age", "2yr3mos", "exact", 2.25, 2.25, 2.25),  # GSE113957 (HGPS fibroblasts)
+        ("age", "5yr0mos", "exact", 5.0, 5.0, 5.0),  # GSE113957
         ("age", "50-59", "binned", None, 50, 59),
         ("age", "50 - 59 years", "binned", None, 50, 59),
         ("age", "50 to 59", "binned", None, 50, 59),

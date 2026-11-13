@@ -10,7 +10,9 @@ Sources:
   The per-cell obs is read over HTTP range requests from the h5ad (Census LTS bucket when the dataset is in the
   pinned release, else the Discover asset), aggregated to donor × standard columns × cell type counts and
   donor × author column × value counts, and cached under ``data/download/positive_controls/``.
-- ``bulk``: ARCHS4 series in ``data/interim/samples_all.parquet`` with disease and healthy samples of one tissue.
+- ``bulk``: ARCHS4 series in ``data/interim/samples_all.parquet`` with disease and healthy samples of one tissue;
+  series with curated GEO labels (``data/input/positive_controls/bulk_labels.parquet``, built by
+  :mod:`rna_age.positive_controls_bulk`) are scored from those labels instead, with their batch field.
 - ``scbasecount``: Arc's reprocessed SRA single-cell samples (local inventory), studies with diseased and healthy
   donors of one tissue; counts are not read at this step (``types: needs counts``).
 
@@ -37,7 +39,7 @@ import numpy as np
 import polars as pl
 
 from rna_age.download import Remote
-from rna_age.paths import DOWNLOAD, INTERIM, OUTPUT
+from rna_age.paths import DOWNLOAD, INPUT, INTERIM, OUTPUT
 from rna_age.sources.bgee import stage_age
 from rna_age.sources.census_pseudobulk import BUCKET_URL, CANCER, H5AD_PREFIX
 from rna_age.train.composition import broad_class
@@ -54,6 +56,7 @@ CENSUS_DATASETS = INTERIM / "inventory" / "census_datasets_2025-11-08.parquet"
 CENSUS_OBS = INTERIM / "inventory" / "census_obs_2025-11-08.parquet"
 SCBASECOUNT = INTERIM / "inventory" / "scbasecount_samples.parquet"
 SCBASECOUNT_META = DOWNLOAD / "scbasecount" / "hs_sample_metadata.parquet"
+BULK_LABELS = INPUT / NAME / "bulk_labels.parquet"
 
 CALIPER = 5.0  # years, 1:1 age matching
 MIN_PAIRS = 10  # matched donors per arm for "usable"
@@ -117,6 +120,7 @@ DISEASE_SITES: list[tuple[str, set[str]]] = [
     (r"periodont|gingiv|oral|sjogren|sjögren|salivary", {"oral"}),
     (r"retin|macular|glaucoma|cataract|uveitis|keratoconus|eye", {"eye"}),
     (r"down syndrome|trisomy", IMMUNE | {"brain_cns"}),
+    (r"progeria|hgps|werner", {"fibroblast", "skin", "vascular"}),
 ]
 _SITES = [(re.compile(rx, re.I), s) for rx, s in DISEASE_SITES]
 
@@ -876,8 +880,9 @@ def bulk_donors(samples: pl.DataFrame) -> pl.DataFrame:
     return s.with_columns(lo=lo, hi=hi)
 
 
-def scan_bulk(samples: pl.DataFrame) -> list[dict]:
+def scan_bulk(samples: pl.DataFrame, batch_cols: tuple[str, ...] = ("platform",)) -> list[dict]:
     s = bulk_donors(samples)
+    extra_cols = [c for c in batch_cols if c != "platform"]
     studies = s.group_by("study_id", "tissue_key").agg(
         pl.col("is_healthy").any().alias("h"), (~pl.col("is_healthy")).any().alias("d")
     ).filter("h", "d")
@@ -888,7 +893,7 @@ def scan_bulk(samples: pl.DataFrame) -> list[dict]:
         per = t.group_by("donor").agg(
             pl.col("label").unique().alias("labels"), pl.col("lo").first(), pl.col("hi").first(),
             pl.col("sex").first(), pl.col("platform").first(), pl.col("tissue").first(), pl.len().alias("n_samples"),
-            pl.col("source").first(), pl.col("cohort").first(),
+            pl.col("source").first(), pl.col("cohort").first(), *[pl.col(c).first() for c in extra_cols],
         )
         tissue = t["tissue"].drop_nulls().first() if t["tissue"].drop_nulls().len() else tkey
         tcls = system_class(tissue)
@@ -906,7 +911,7 @@ def scan_bulk(samples: pl.DataFrame) -> list[dict]:
             )
             if not donors.filter(pl.col("arm") == "control").height or not donors.filter(pl.col("arm") == "case").height:
                 continue
-            sc = score(donors, ["platform"], needs_batch=False, condition=lab)
+            sc = score(donors, list(batch_cols), needs_batch=False, condition=lab)
             rel, sites = target_relation(lab, tcls)
             note = "vague label: arm meaningful only within the study" if is_generic(lab) else ""
             rows.append({"source": "bulk", "dataset_id": study, "collection_id": None, "condition_ontology": None,
@@ -920,6 +925,39 @@ def scan_bulk(samples: pl.DataFrame) -> list[dict]:
                                                 .value_counts().sort("count", descending=True).iter_rows()),
                          "coarse_cells": "bulk", "coarse_cells_detail": [], "scan_status": "scored",
                          "notes": note, **sc})  # fmt: skip
+    return rows
+
+
+def labels_as_samples(labels: pl.DataFrame) -> pl.DataFrame:
+    """Curated GEO labels (``bulk_labels.parquet``) → the sample columns :func:`bulk_donors` reads. Samples left
+    out by the rules are dropped, except microarray ones (scored, then marked not usable for want of counts)."""
+    keep = labels.filter(pl.col("arm").is_not_null()
+                         & (pl.col("exclude_reason").is_null() | (pl.col("exclude_reason") == "microarray")))  # fmt: skip
+    age = pl.col("age_years")
+    return keep.select(
+        sample_id="gsm", study_id="gse", donor_id=pl.col("gse") + ":" + pl.col("donor"),
+        is_healthy=pl.col("arm") == "normal", disease=pl.when(pl.col("arm") == "case").then(pl.col("condition")),
+        tissue="tissue", age_type=pl.when(age.is_not_null()).then(pl.col("age_type")),
+        age_years=age, age_min=age, age_max=age, sex="sex", platform="assay", batch="batch",
+        source=pl.lit("bulk_labels"), cohort=pl.lit("curated GEO labels; counts: ") + pl.col("counts_source"),
+        is_pseudobulk=pl.lit(False), is_tumor=pl.lit(False), is_cell_line=pl.lit(False),
+        exclude_reason=pl.lit(None, pl.String),
+    )  # fmt: skip
+
+
+def scan_bulk_labels(labels: pl.DataFrame) -> list[dict]:
+    """Bulk rows for the series with curated labels; no RNA-seq counts (microarray, or none at NCBI) → not usable."""
+    counts = dict(labels.group_by("gse").agg(pl.col("counts_source").first()).iter_rows())
+    rows = scan_bulk(labels_as_samples(labels), batch_cols=("platform", "batch"))
+    for r in rows:
+        src = counts.get(r["dataset_id"], "")
+        notes = [f"curated GEO labels; counts: {src}"]
+        if "cultured" in (r["tissue"] or ""):
+            notes.append("cultured cells, not tissue")
+        if src.startswith("none"):
+            r["verdict"] = "not usable"
+            r["reason"] = "; ".join(x for x in (src.removeprefix("none: "), r["reason"]) if x)
+        r["notes"] = "; ".join(x for x in (r["notes"], *notes) if x)
     return rows
 
 
@@ -1119,7 +1157,13 @@ def run(seed_path: Path | None = None, workers: int = 4, fetch: bool = True, max
     full_seed = {x["dataset_id"] for x in discover for t in sids if len(t) >= 8 and x["dataset_id"].startswith(t)}
     rows = scan_cellxgene(full_seed, workers=workers, fetch=fetch, max_bytes=max_mb << 20)
     samples = pl.read_parquet(INTERIM / "samples_all.parquet")
-    rows += scan_bulk(samples.filter(pl.col("source") == "archs4"))
+    labels = pl.read_parquet(BULK_LABELS) if BULK_LABELS.exists() else None
+    a4 = samples.filter(pl.col("source") == "archs4")
+    if labels is not None:  # curated labels override our ARCHS4 annotation for their series
+        a4 = a4.filter(~pl.col("study_id").is_in(labels["gse"].unique().to_list()))
+    rows += scan_bulk(a4)
+    if labels is not None:
+        rows += scan_bulk_labels(labels)
     inv = pl.read_parquet(SCBASECOUNT)
     meta = pl.read_parquet(SCBASECOUNT_META) if SCBASECOUNT_META.exists() else None
     rows += scan_scbasecount(inv, meta)

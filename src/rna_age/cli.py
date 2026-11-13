@@ -999,6 +999,25 @@ def positive_controls_fetch(
         print(p.name, p.stat().st_size)
 
 
+@app.command("positive-controls-bulk-labels")
+def positive_controls_bulk_labels(
+    fetch: bool = typer.Option(True, help="fetch missing GEO sample texts (one request at a time)"),
+    counts: bool = typer.Option(False, help="also fetch NCBI-generated counts for the series missing from ARCHS4"),
+) -> None:
+    """RM34 step 2: curated case/control labels for the bulk GEO positive controls (rules per series, from GEO
+    characteristics) → data/input/positive_controls/bulk_labels.parquet; the scan then scores them."""
+    import polars as pl
+
+    from rna_age.positive_controls_bulk import build, fetch_ncbi_counts
+
+    if counts:
+        for gse, st in fetch_ncbi_counts().items():
+            print(gse, st)
+    out = build(fetch=fetch)
+    with pl.Config(tbl_rows=40, tbl_width_chars=200, fmt_str_lengths=50):
+        print(out.group_by("gse", "arm", "condition", "exclude_reason", "counts_source").len().sort("gse", "arm"))
+
+
 @app.command("positive-controls-scan")
 def positive_controls_scan(
     seed: str = typer.Option(

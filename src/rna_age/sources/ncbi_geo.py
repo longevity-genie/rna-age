@@ -9,7 +9,9 @@ NCBI throttles bursts (it answered 403 for about an hour after ~4 GB): one reque
 requests (``PAUSE`` s), long back-off on 403/429, and a per-run cap on new files so a run never bursts.
 
 Targets are chosen by :func:`select_targets` from ARCHS4's parsed tables and written to
-``data/interim/ncbi_geo_targets.parquet`` (columns ``gse``, ``reason``); ``fetch`` reads that list.
+``data/interim/ncbi_geo_targets.parquet`` (columns ``gse``, ``reason``); ``fetch`` reads that list. RM34 adds
+positive-control series missing from ARCHS4 with reason ``positive_control``
+(:func:`rna_age.positive_controls_bulk.add_ncbi_targets`).
 Counts are keyed by Entrez GeneID; ``Human.GRCh38.p13.annot.tsv.gz`` maps them to Ensembl IDs (GeneIDs without
 an Ensembl ID are dropped, several GeneIDs on one Ensembl ID are summed).
 """
@@ -222,7 +224,7 @@ def fetch(connections: int = 1, max_new: int = 400) -> None:
         if new >= max_new:
             log.info("NCBI GEO: reached max_new=%d for this run; rerun to continue", max_new)
             break
-        want_counts = reason == "crosscheck"
+        want_counts = reason in ("crosscheck", "positive_control")  # positive_control: RM34, labels curated apart
         if reason == "not_in_archs4":
             name = f"{gse}_samples.txt"
             if not meta_path(d / "series" / name).exists():
@@ -279,6 +281,8 @@ def parse() -> None:
             meta = a4.filter(pl.col("sample_id").is_in(gsms))
         else:
             spath = d / "series" / f"{gse}_samples.txt"
+            if not spath.exists():  # positive-control series keep their text with the curated labels
+                spath = download_dir("positive_controls") / "geo" / f"{gse}_samples.txt"
             if not spath.exists():
                 continue
             raw = parse_samples_text(spath.read_text(errors="replace"), gse)
