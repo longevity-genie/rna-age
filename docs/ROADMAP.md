@@ -83,6 +83,19 @@ whole-sample clock, each against the whole-sample clock rerun on the same donors
 TabICLv2 beyond the paired CI (persons) in at least 4 of 7 cohorts. If one does, the bigger version (a set model over
 the cells, on RM28's encoder) follows. Ridge check on the lupus cohort: `concat` ties (6.80 vs 6.80), the means lose.
 
+## RM32 — Anton's per-cell clock: cells push the donor's age up or down, individual + group loss
+
+**State:** building (Anton, 2026-11-13, #rna-age > plan: "make a separate topic to build and test my design"; topic
+#rna-age > per-cell clock) · **Owner:** lead (code 331e85c), runner (GPU runs)
+
+Every cell gets an age from a head on RM28's cell encoder; the donor's age is a pooled sum of its cells' ages (equal
+weights, or gated attention that learns which cells matter); loss = the donor's error + λ × each cell's error
+against the donor's age. Arms on the best RM28 encoder: mean λ=0 (RM28's read-out, the reference), mean λ>0, attention
+λ=0, attention λ>0; λ chosen from a short list on the inner validation donors. A literature check of per-cell aging
+clocks and of instance + bag losses in multiple-instance learning runs alongside and may change λ or the pooling.
+Bar: an arm beats the whole-sample TabICLv2 beyond the paired CI in at least 4 of 7 cohorts; per-cell ages are kept
+for the cells-that-look-old analysis only if it passes.
+
 ## RM13 — A manuscript draft of the results (plan line 5)
 
 **State:** building (default of desk #23 applied 2026-11-13; draft v0.1 kept outside git, the repository being public; where it goes: desk #23) · **Owner:** lead
