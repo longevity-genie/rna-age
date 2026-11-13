@@ -3,6 +3,15 @@
 The state the lead's last holder left. State, not rules: the rules are the priming, `LEAD.md` beside this file, and
 the kit's role `classes/lead/LEAD.md`.
 
+## 2026-11-13 22:20
+
+- Plan: RM32 per-cell clock (3 of 4 arms worse than the plain fine-tune, +1.81/+2.22/+2.41 vs +1.78; arm (d) running),
+  RM30 (job 6479218, 10k steps, due ~02:45 2026-11-14; quick evals at 2k/4k/6k, stop if flat by 5k), RM29 after RM30,
+  RM13 draft (outside git), RM5 desk #9, RM7 waits until 2026-11-17.
+- Closed: RM28 fail (0 of 7, every arm), RM31 fail narrowly (TabICLv2 concat 3 of 7, −0.31 y).
+- Anton away from ~20:10; chat-only questions moved to the desk: MaxToki contact #37 (default no), Tahoe-x1 test #38
+  (default no). Census pin stays the runner's.
+
 ## 2026-11-13 19:20
 
 - Plan: RM27 age-order loss on bulk (job 6470599, 3 seeds, 2 done), RM28 own single-cell pretraining, arms mask /
