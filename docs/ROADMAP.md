@@ -7,6 +7,23 @@ The lead (`docs/seats/LEAD.md`) keeps it. Seeded at the lead's first seating (20
 
 ## Items
 
+## RM34 — Positive-control datasets for system ageing: fetch and check which are usable
+
+**State:** urgent (Anton, 2026-11-13, #rna-age > general chat: "Ok, download these data and validate which is
+usable?") · **Owner:** lead (code), runner (downloads and parse jobs)
+
+From RM33's dataset search (~30 candidates: conditions where a known system should look older, with controls in the
+same study). Step 1, before any large download: read each CELLxGENE dataset's per-cell metadata over HTTP range
+requests and each GEO series' sample characteristics (bulk series first looked up in our ARCHS4 table), and score it:
+condition column and arms, donors per arm, share with exact ages, age overlap between arms (donors left after
+matching), cells per donor × coarse type, assay/platform, whether the condition is confounded with a batch column
+(D9), sex. Verdict per dataset: usable, usable with a caveat, or not, with the reason, in
+`data/output/summary/positive_controls_usability.parquet`. Step 2: download only the usable ones (CELLxGENE h5ads
+from the Census release or, if newer, the Discover API; GEO bulk from ARCHS4 where present), then per-donor metadata
+and per-type pseudobulk with the existing `census-donor-obs` / `census-pseudobulk --by-cell-type`.
+Bar: step 1 scores every candidate; a dataset counts as usable with ≥ 10 donors per arm after age matching, exact or
+≤ 5-year ages, and the condition not confounded with batch.
+
 ## RM33 — System-level age gaps: which cell types or tissues make a person look older
 
 **State:** building (design phase; Anton, 2026-11-13, #rna-age > per-cell clock: "make this research, than make 3
