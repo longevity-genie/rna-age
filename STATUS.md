@@ -60,7 +60,9 @@ stop before Anton is back; 07:00 report, then keep updating; one tabbed artifact
   rules: Census 2,356 healthy (3,815 any health), scBaseCount 492 (1,656), recount3 bulk 4,430 (6,380).
 
 ## Running (jobs carry seat / what / eta in their Slurm comment)
-- RM30: out of memory on the 11 GB cards even at micro-batch 1; waits on the lead (smaller episodes or checkpointing).
+- RM30: job 6479218 trains `20261113-2053-expricl` (10k steps, fp16, ~2 s/step), ends ~02:55 on 2026-11-14; quick
+  evals flat since 4-6k, so no resume. Read-outs queued after it: sc 6479915, bulk 6479916 → health 6479917
+  (200 shuffles), perturb 6479918.
 
 ## Results so far (details: `docs/experiments.md`, `data/output/summary/experiments.parquet`)
 - **RM32 (2026-11-13 22:00)**: per-cell clock on the RM28 mask encoder: attention ties mean pooling (+1.81 vs +1.78 y
