@@ -1083,7 +1083,7 @@ worse than the control runs'. Then `health-eval --permutations 200` on the best 
   `uv run --with tabicl rna-age expr-icl-prepare`, job 6472840 (CPU 8, 96 GB, 12 h limit, unmeasured). Training
   (`expr-icl-train --steps 20000`) waits for RM28's first arm's result, per the plan; first 500 steps get timed.
 
-### 2026-11-13 20:05 · RM27 result: the age-order term does not lift the gap to +2.9 (bar not met)
+### 2026-11-13 19:33 · RM27 result: the age-order term does not lift the gap to +2.9 (bar not met)
 Job 6470599 (58 min, CPU): runs `20261113-1848/1905/1931-health-mlp-rank1-head-agepair1-s0..s2`; control the RM12-table
 runs `20261111-0854/0908/0918-health-mlp-rank1-head-s0..s2`. `rna-age health-eval`, aging-linked within-study gap
 (33 held-out studies, 2,282 cases) and control test MAE:
