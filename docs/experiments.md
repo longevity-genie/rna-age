@@ -1146,3 +1146,21 @@ TabICL 9.13 y vs pseudobulk TabICLv2 6.92 y; CD4 T 8.39 vs 6.10.
 --cell-weight 0.1 --pseudocell 15` 6479294, (c) `--pool attn --cell-weight 0.1 --pseudocell 15` 6479295, (d) `--pool
 attn --cell-weight 0.5 --pseudocell 15` 6479296, chained on one GPU. Reference: the plain fine-tune (mean pool, no
 cell loss), 0 of 7, +1.78 y.
+
+### 2026-11-13 21:58 · RM31 result: several cell types per donor, best arm 3 of 7 (bar 4 of 7 not met)
+Job 6479183 (1 h 26 min, one GPU; e52b2ae's brain-cohort fix), `uv run --with tabicl rna-age sc-multitype`;
+`data/output/summary/sc_multitype{,_compare}.parquet`. Each arm against the whole-sample clock of the same model on the
+same donors, paired CI by person. Arms beating the whole-sample clock beyond the CI, of 7 cohorts:
+
+| model | concat (5 types side by side) | mean of the type clocks | mean of type + whole clocks |
+|---|---|---|---|
+| TabICLv2 | **3** (mean −0.31 y) | 1 (+0.53) | 1 (+0.32) |
+| ridge | 1 (+0.24) | 1 (+0.71) | 2 (+0.43) |
+
+TabICLv2 concat per cohort (MAE vs whole-sample): wins in 218acb0f 6.72 vs 7.44, 37a17b78 (brain) 5.99 vs 7.01,
+5c97eeeb (brain) 5.13 vs 5.97; ties in Terekhova (6.70 vs 7.28, CI to +0.15) and 5e57cd50; loses in c838aec3 (6.73 vs
+5.88) and 3faad104 (7.71 vs 7.46, tie). Single types: CD4 T beats the whole sample in c838aec3 and Terekhova (TabICLv2
+−0.45 and −1.58 y, as in D7), oligodendrocytes in 37a17b78 (−0.44), microglia in 5e57cd50 (ridge −0.75).
+- Bar (TabICLv2 beyond the CI in ≥ 4 of 7): not met; the concat arm is the closest (3 wins, 2 ties leaning its way).
+  By the plan the set-model follow-up does not start; reading is the lead's.
+- Caveat: 218acb0f's disease confound (D9) does not touch an age-only read-out; brain cohorts use their own 5 types.

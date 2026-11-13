@@ -61,10 +61,11 @@ stop before Anton is back; 07:00 report, then keep updating; one tabbed artifact
 
 ## Running (jobs carry seat / what / eta in their Slurm comment)
 - RM30: out of memory on the 11 GB cards even at micro-batch 1; waits on the lead (smaller episodes or checkpointing).
-- RM31 (several cell types per donor): 6479183 (rerun after the brain-cohort fix).
 - RM32 (per-cell clock, 2026-11-13 21:15): 4 arms chained on one GPU, 6479293-6479296.
 
 ## Results so far (details: `docs/experiments.md`, `data/output/summary/experiments.parquet`)
+- **RM31 (2026-11-13 21:58)**: five cell types per donor side by side (TabICLv2) beat the whole-sample clock in 3
+  of 7 cohorts (bar 4), mean −0.31 y; wins in two brain cohorts and one blood cohort.
 - **RM28 (2026-11-13 21:12)**: our own single-cell pretraining (mask, mask+perturb, universal; 30 epochs) gives
   donor-age clocks 1.3-2.0 y worse than pseudobulk in all 7 cohorts, frozen or fine-tuned; universal bulk MAE 18.7.
 - **RM27 (2026-11-13 19:33)**: a Pasta-style age-order term on same study × tissue pairs leaves the health MLP's
