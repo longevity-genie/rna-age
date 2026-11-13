@@ -300,3 +300,10 @@ both the slope (shrinkage, as Javanmard et al. predict: it penalises within-dono
 is not only a calibration loss. Reading: on this encoder, asking cells to agree with their donor's age removes the
 spread the donor clock needs; per-cell ages are not kept, and the pseudocell head without an encoder (the follow-up
 had either part helped) is not started. The encoder itself is the floor here (RM28: +1.78 against summed expression).
+
+**RM29 outcome (2026-11-14, lead; canceled on its gate):** RM29 (score a perturbation model on the Virtual Cell
+Challenge H1 set) was to start only if RM30's model predicted held-out knockdowns better than no change. On 24,422
+held-out knockdowns (12 donor × condition contexts, 100 read-out genes; runner's job 6479918) it ties the mean-change
+baseline: r 0.0488 vs 0.0502 (−0.0014 [−0.0021, −0.0006]), MAE 0.4931 vs 0.4939. Neither RM28's perturbation head
+(Δr 0.045) nor RM30 learned a knockdown-specific response, so there is nothing of ours to score; the VCC leaders'
+released code (PRiMeFlow, State) stays the reference if the challenge is taken up again.

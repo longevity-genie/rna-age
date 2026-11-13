@@ -85,18 +85,6 @@ bootstrap CI, in both cohorts. (2) CMV serostatus in Terekhova 2023, if its dono
 gap is higher in CMV+ beyond the CI and the monocyte gap is not. (3) GTEx per-donor tissue gaps from the bulk clock,
 descriptive (how much organ ages agree within a person). CPU only.
 
-## RM29 — Score a perturbation model on the Virtual Cell Challenge H1 set
-
-**State:** after RM30 (RM28's perturbation head failed its own check, 2026-11-13; retargeted to RM30's
-perturbation task, which must first beat the mean-change baseline on held-out knockdowns) · **Owner:** lead (code),
-runner (GPU runs)
-
-Anton (2026-11-13): "is our model compatible with virtual cell challenge, curious to score it". Train the
-perturbation model on the challenge's public H1 training perturbations, predict the held-out ones (cells sampled
-around the predicted mean for the cell-level format), score with Arc's public cell-eval. Bar: beat the mean baseline
-on PDS and DES on the held-out perturbations. Not started unless RM30's perturbation skill on held-out knockdowns is
-above 0.
-
 ## RM30 — An in-context tabular model pretrained on expression tables: age, health, perturbation
 
 **State:** building (job 6479218 training, 10,000 steps, due ~02:45 on 2026-11-14) · **Owner:** lead
