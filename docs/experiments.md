@@ -1103,3 +1103,11 @@ runs `20261111-0854/0908/0918-health-mlp-rank1-head-s0..s2`. `rna-age health-eva
 ### 2026-11-13 19:44 · RM31 submitted: several cell types per donor (the lead's fcdca9c; bar in ROADMAP RM31)
 Job 6474667 (one GPU, 64 GB, 10 h limit, unmeasured): `uv run --with tabicl rna-age sc-multitype` (7 D7 cohorts,
 ridge + TabICLv2, 5 classes, 5 folds × 7 representations). Writes sc_multitype.parquet and sc_multitype_compare.parquet.
+
+### 2026-11-13 19:52 · RM28 arms mask and mask+perturb trained; read-outs and RM30 training submitted
+- Trained in 5 and 6.5 min on one 2080 Ti each (30 epochs; the estimate was hours): runs
+  `20261113-1942-scpre-mask-s0`, `20261113-1942-scpre-mask-perturb-s0`; both pass the epoch-1 stop rule. Universal
+  (6472138) still training.
+- Read-outs: embed mask 6475125 (CPU, builds the cohort cache) → embed mask+perturb 6475126; clocks (`--with tabicl`,
+  CPU) 6475127, 6475128; fine-tunes (GPU, chained on one card) 6475129, 6475130.
+- RM30: `expr-icl-train --steps 20000` job 6475131 (GPU, 24 h limit until the first 500 steps are timed).
