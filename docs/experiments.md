@@ -1140,3 +1140,9 @@ TabICL 9.13 y vs pseudobulk TabICLv2 6.92 y; CD4 T 8.39 vs 6.10.
   above the no-change baseline).
 - Jobs: embeds 6475125/6475126/6475903; clocks first failed on CPU nodes (TabICL wants a GPU: 6475127/8, 6475904),
   rerun 6479150-6479152; fine-tunes 6475129/6475130/6475905; universal-eval 6475906.
+
+### 2026-11-13 21:15 · RM32 submitted: per-cell clock arms on the RM28 mask encoder (the lead's design; bar in ROADMAP RM32)
+`rna-age sc-pretrain-finetune 20261113-1942-scpre-mask-s0` with (a) `--pool attn` 6479293, (b) `--pool mean
+--cell-weight 0.1 --pseudocell 15` 6479294, (c) `--pool attn --cell-weight 0.1 --pseudocell 15` 6479295, (d) `--pool
+attn --cell-weight 0.5 --pseudocell 15` 6479296, chained on one GPU. Reference: the plain fine-tune (mean pool, no
+cell loss), 0 of 7, +1.78 y.

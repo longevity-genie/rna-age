@@ -61,7 +61,8 @@ stop before Anton is back; 07:00 report, then keep updating; one tabbed artifact
 
 ## Running (jobs carry seat / what / eta in their Slurm comment)
 - RM30: out of memory on the 11 GB cards even at micro-batch 1; waits on the lead (smaller episodes or checkpointing).
-- RM31 (several cell types per donor, 2026-11-13 19:44): job 6474667, one GPU.
+- RM31 (several cell types per donor): 6479183 (rerun after the brain-cohort fix).
+- RM32 (per-cell clock, 2026-11-13 21:15): 4 arms chained on one GPU, 6479293-6479296.
 
 ## Results so far (details: `docs/experiments.md`, `data/output/summary/experiments.parquet`)
 - **RM28 (2026-11-13 21:12)**: our own single-cell pretraining (mask, mask+perturb, universal; 30 epochs) gives
