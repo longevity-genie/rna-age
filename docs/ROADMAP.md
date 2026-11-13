@@ -24,7 +24,7 @@ gene set, so the comparison isolates the samples; plasma cell-free RNA (SRP22344
 
 ## RM27 — An age-shift ranking objective on bulk (after RM26)
 
-**State:** waits until RM26 is scored · **Owner:** lead (code), runner (GPU runs)
+**State:** after RM26 · **Owner:** lead (code), runner (GPU runs)
 
 Pasta-style (Salignon et al. 2025): same-tissue sample pairs far apart in age, the network trained to order them, as
 a second head beside age. Bar: a within-study aging-linked disease gap at least D6's +2.9 y on the same 33 unseen
