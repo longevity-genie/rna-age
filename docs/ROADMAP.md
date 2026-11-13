@@ -71,7 +71,11 @@ meant reusing tabicl2 weights, not using random, I meant that we do not fine tun
 our earlier clocks; no random-init arm.
 Bars, fixed now: (1) single-cell age on the 7 cohorts beats pretrained TabICLv2 beyond the paired CI in at least 4;
 (2) bulk test MAE within 1 y of the 20k-HVG MLP (RM25's bar, 9.1); (3) within-study health gap at least D6's +2.9 y on
-the same unseen studies; (4) perturbation scored as RM29. Reported per head; "universal" needs (1) or (2) and no head
+the same unseen studies; (4) perturbation scored as RM29. Code reviewed and on main 2026-11-13 (8232415, 81190c0):
+1,000-gene panel of 16,585 measured everywhere; training groups age 352, health 64, masked gene 410, perturbation 12
+donor × condition tables (2,370 of 11,929 knocked-down genes held out). First-run limits: a held-out knocked-down
+gene is described only by its own baseline expression and a hashed id (no gene embedding), and recount3 and the
+Virtual Cell Challenge data are not yet in the corpus. Reported per head; "universal" needs (1) or (2) and no head
 failing its reference by more than its CI.
 
 ## RM13 — A manuscript draft of the results (plan line 5)
