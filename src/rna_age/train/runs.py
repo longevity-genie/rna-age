@@ -77,3 +77,11 @@ def finish_run(run_dir: Path, predictions: pl.DataFrame, extra: dict | None = No
     EXPERIMENTS.parent.mkdir(parents=True, exist_ok=True)
     new.write_parquet(EXPERIMENTS)
     return row
+
+
+def has_native_bf16() -> bool:
+    """bf16 in hardware (compute capability 8.0+, A100 and newer). ``torch.cuda.is_bf16_supported()`` also says True
+    on a 2080 Ti (7.5) in recent torch, counting emulation, which is no faster and saves no memory."""
+    import torch
+
+    return torch.cuda.is_available() and torch.cuda.get_device_capability()[0] >= 8

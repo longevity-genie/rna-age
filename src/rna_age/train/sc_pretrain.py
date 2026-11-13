@@ -669,7 +669,9 @@ def pretrain(arm: str = "mask", epochs: int = 30, seed: int = 0, pool: str = "de
         opt, lambda s: min(1.0, (s + 1) / warm) * 0.5 * (1 + np.cos(np.pi * min(1.0, s / max(1, total))))
     )
     # bf16 only where the card has it (a 2080 Ti does not: fp32 there, never fp16 without a loss scaler)
-    bf16 = dev.type == "cuda" and torch.cuda.is_bf16_supported()
+    from rna_age.train.runs import has_native_bf16
+
+    bf16 = dev.type == "cuda" and has_native_bf16()
     amp = dict(device_type="cuda", dtype=torch.bfloat16) if bf16 else dict(device_type=dev.type, enabled=False)
     gval = torch.Generator(device=dev).manual_seed(seed + 12345)
     va_t = torch.from_numpy(va_idx).to(dev)

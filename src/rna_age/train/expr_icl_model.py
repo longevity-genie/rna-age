@@ -327,7 +327,9 @@ def train(
         opt.load_state_dict(ck["optimizer"])
     # bf16 where the card has it; a 2080 Ti has not: fp16 there, with a loss scaler against underflow
     amp = cfg.amp and dev.startswith("cuda")
-    amp_dtype = torch.bfloat16 if amp and torch.cuda.is_bf16_supported() else torch.float16
+    from rna_age.train.runs import has_native_bf16
+
+    amp_dtype = torch.bfloat16 if amp and has_native_bf16() else torch.float16
     scaler = torch.amp.GradScaler("cuda", enabled=amp and amp_dtype == torch.float16)
     rows: list[dict] = []
     rng = np.random.default_rng(cfg.seed)
