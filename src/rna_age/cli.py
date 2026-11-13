@@ -985,6 +985,19 @@ def sc_multitype_cmd(
         print(out.select("dataset_id", "model", "arm", "n", "mae", "ref_mae", "diff", "lo", "hi", "beats_ref"))
 
 
+@app.command("positive-controls-fetch")
+def positive_controls_fetch(
+    dataset_ids: list[str] = typer.Argument(..., help="CELLxGENE dataset ids (from positive_controls_usability)"),  # noqa: B008
+    connections: int = typer.Option(4, help="parallel range connections per file"),
+) -> None:
+    """RM34 step 2: download whole h5ads of chosen positive-control datasets (Census release, else Discover);
+    resumable and verified; then census-donor-obs / census-pseudobulk --by-cell-type as usual. Run as a job."""
+    from rna_age.positive_controls import fetch_h5ads
+
+    for p in fetch_h5ads(dataset_ids, connections=connections):
+        print(p.name, p.stat().st_size)
+
+
 @app.command("positive-controls-scan")
 def positive_controls_scan(
     seed: str = typer.Option(

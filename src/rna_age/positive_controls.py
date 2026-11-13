@@ -36,6 +36,7 @@ from pathlib import Path
 import numpy as np
 import polars as pl
 
+from rna_age.download import Remote
 from rna_age.paths import DOWNLOAD, INTERIM, OUTPUT
 from rna_age.sources.bgee import stage_age
 from rna_age.sources.census_pseudobulk import BUCKET_URL, CANCER, H5AD_PREFIX
@@ -640,6 +641,31 @@ def _h5ad_url(x: dict, census_ids: set[str]) -> str:
     if x["dataset_id"] in census_ids:
         return f"{BUCKET_URL}/{H5AD_PREFIX}{x['dataset_id']}.h5ad"
     return next(a["url"] for a in x["assets"] if a["filetype"] == "H5AD")
+
+
+def h5ad_remote(dataset_id: str, discover: list[dict], listing: dict[str, tuple[int, str]]) -> Remote:
+    """The full h5ad of one dataset: the pinned Census release when it holds it (size and etag checked), else the
+    current Discover asset (size from the listing)."""
+    if dataset_id in listing:
+        size, etag = listing[dataset_id]
+        return Remote(url=f"{BUCKET_URL}/{H5AD_PREFIX}{dataset_id}.h5ad", name=f"{dataset_id}.h5ad", size=size,
+                      checksum=f"s3etag:{etag}")  # fmt: skip
+    x = next((d for d in discover if d["dataset_id"] == dataset_id), None)
+    if x is None:
+        raise KeyError(f"{dataset_id}: neither in the Census release nor in the Discover listing")
+    a = next(a for a in x["assets"] if a["filetype"] == "H5AD")
+    return Remote(url=a["url"], name=f"{dataset_id}.h5ad", size=a.get("filesize"))
+
+
+def fetch_h5ads(dataset_ids: list[str], connections: int = 4) -> list[Path]:
+    """Download whole h5ads of positive-control datasets next to the Census ones (resumable, verified)."""
+    from rna_age.download import fetch as _fetch
+    from rna_age.sources.census_pseudobulk import _listing
+
+    discover = json.loads(DISCOVER_JSON.read_text())
+    listing = _listing()
+    dest = DOWNLOAD / "census_pseudobulk" / "h5ads"
+    return [_fetch(h5ad_remote(i, discover, listing), dest, connections=connections) for i in dataset_ids]
 
 
 _EMPTY_EXTRA = pl.DataFrame(schema={"donor_id": pl.String, "column": pl.String, "value": pl.String, "n_cells": pl.Int64})

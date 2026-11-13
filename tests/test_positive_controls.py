@@ -240,3 +240,18 @@ def test_size_skip_retried_with_larger_limit(tmp_path, monkeypatch):
     assert pc.cached_obs("d1", "u", max_bytes=10) == "obs too large, needs job"  # same limit: marker stands
     assert pc.cached_obs("d1", "u", max_bytes=100) == "obs too large, needs job"  # larger limit: read again
     assert calls == [10, 100]
+
+
+def test_h5ad_remote_prefers_census_then_discover():
+    import pytest
+
+    from rna_age import positive_controls as pc
+
+    discover = [{"dataset_id": "new", "assets": [{"filetype": "RDS", "url": "r"}, {"filetype": "H5AD", "url": "h",
+                                                                                  "filesize": 7}]}]
+    r = pc.h5ad_remote("old", discover, {"old": (5, "e")})
+    assert r.url.endswith("old.h5ad") and r.size == 5 and r.checksum == "s3etag:e"
+    r = pc.h5ad_remote("new", discover, {})
+    assert (r.url, r.size, r.name) == ("h", 7, "new.h5ad")
+    with pytest.raises(KeyError):
+        pc.h5ad_remote("gone", discover, {})
