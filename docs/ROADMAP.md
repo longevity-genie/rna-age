@@ -7,40 +7,17 @@ The lead (`docs/seats/LEAD.md`) keeps it. Seeded at the lead's first seating (20
 
 ## Items
 
-## RM28 — Our own single-cell pretraining: masked expression plus perturbations, then donor age
+## RM29 — Score a perturbation model on the Virtual Cell Challenge H1 set
 
-**State:** building (Anton, 2026-11-13, #rna-age > general chat: "single cell pretraining esp with masking part of
-expression and with perturbations is worth trying") · **Owner:** lead (design, code), runner (GPU runs)
+**State:** after RM30 (RM28's perturbation head failed its own check, 2026-11-13; retargeted to RM30's
+perturbation task, which must first beat the mean-change baseline on held-out knockdowns) · **Owner:** lead (code),
+runner (GPU runs)
 
-RM22 showed an off-the-shelf frozen embedding (Geneformer) loses to genes; this asks whether pretraining on our own
-terms does better. Encoder over the 2,000 most variable genes of a cell (log-normalised), trained on (a) masked
-expression: hide 15-30 % of a cell's genes, reconstruct them, on healthy adult cells from the pinned Census release
-**excluding every donor of the 7 evaluation cohorts**; (b) perturbation: on the Marson CD4 Perturb-seq pseudobulk,
-from the donor × condition non-targeting profile plus the knocked-down gene's token, predict the knockdown profile
-(DEG-weighted loss, held-out genes). Ablation arms: masking only, masking + perturbation. Read-out: per-donor mean of
-the cell embeddings, then ridge and TabICLv2, on the D7 folds, and fine-tuning the encoder on donor age.
-Third arm, `universal` (Anton, 2026-11-13: "make it universal ... predict virtual cell stuff, age and health
-conditions for which we have enough data, make an arm on that"): the same encoder with four heads, masked expression,
-perturbation (control profile + gene → profile, the shape RM29 scores), donor age (pretraining-pool donors with ages
-plus bulk train samples on the same panel) and health (D6's within-study ranking + case/control logit, bulk train
-studies). Its bars: each head within its single-task reference's CI or better (no negative transfer: age vs the
-`mask` arm's clock on the 7 cohorts; bulk test MAE no more than 1 y worse than the 20k-HVG MLP restricted to the panel;
-health gap at least D6's +2.9 y on the same unseen studies) and at least one head better beyond its CI.
-Bars, fixed now: (1) the age clock on the pretrained encoder beats TabICLv2 on genes beyond the paired CI in at least
-4 of 7 cohorts; (2) the perturbation arm adds to masking only if it raises (1) or D8's ρ on held-out knockdowns
-beyond its CI. Compute: a few A100-days at most; stopped if the masked loss has not beaten a mean-gene baseline after
-one epoch.
-
-## RM29 — Score RM28's perturbation head on the Virtual Cell Challenge H1 set
-
-**State:** after RM28 (proposed to Anton 2026-11-13 in #rna-age > general chat; default: queued after RM28's first
-result) · **Owner:** lead (code), runner (GPU runs)
-
-Anton (2026-11-13): "is our model compatible with virtual cell challenge, curious to score it". The age clocks are
-not (they map expression to age); RM28's perturbation head (control pseudobulk + knocked-down gene → knockdown
-profile) is. Train it on the challenge's public H1 training perturbations, predict the held-out ones (cells sampled
+Anton (2026-11-13): "is our model compatible with virtual cell challenge, curious to score it". Train the
+perturbation model on the challenge's public H1 training perturbations, predict the held-out ones (cells sampled
 around the predicted mean for the cell-level format), score with Arc's public cell-eval. Bar: beat the mean baseline
-on PDS and DES on the held-out perturbations.
+on PDS and DES on the held-out perturbations. Not started unless RM30's perturbation skill on held-out knockdowns is
+above 0.
 
 ## RM30 — An in-context tabular model pretrained on expression tables: age, health, perturbation
 

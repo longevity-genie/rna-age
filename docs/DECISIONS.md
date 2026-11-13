@@ -246,3 +246,22 @@ pairs ≥ 20 y apart) against the same recipe without it, 3 seeds each: aging-li
 9.12 vs 9.39, so the term costs nothing and may help accuracy slightly (not tested for significance). Best seed:
 200 within-study shuffles, null +0.01, p 0.005. Reading: ordering ages within a study does not sharpen the disease
 gap; the health clock stays D6's. The term may return as a cheap regulariser where accuracy is the aim.
+
+**RM28 outcome (2026-11-13, lead's code ee227b2, runner's jobs; read by the lead):** fails every bar. Our own
+single-cell encoder (a masked autoencoder over 2,000 genes, 15M parameters, pretrained on 696k healthy cells of 513
+donors outside the evaluation cohorts), in three arms, read out on the 7 cohorts against the best pseudobulk clock,
+mean MAE difference in years (0 of 7 cohorts better in every column):
+
+| arm | frozen + ridge | frozen + TabICLv2 | fine-tuned on donor age |
+|---|---|---|---|
+| masking | +1.71 | +1.41 | +1.78 |
+| masking + perturbation | +1.76 | +1.61 | +1.85 |
+| universal (+ age, health heads) | +1.83 | +1.25 | +1.97 |
+
+The universal arm's bulk test MAE is 18.7 y (bar: within 1 y of the MLP's 8.1), so its health gap (+6.0 y on a
+control MAE of 14.9) is not readable; its perturbation head is barely above no change (Δ r 0.045). The perturbation
+objective did not help the clock (masking + perturbation is worse than masking alone). Caveat: these ran in emulated
+bf16 (fixed in e25363a afterwards), which has bf16's precision, so the conclusion stands. Reading, with RM22: on
+these cohorts a cell representation learned without labels, ours or Geneformer's, carries less age than summed
+expression read by TabICLv2; the single-cell clock stays TabICLv2 on donor pseudobulk. RM29 is retargeted to RM30's
+perturbation task.
