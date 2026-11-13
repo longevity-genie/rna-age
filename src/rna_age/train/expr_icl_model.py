@@ -184,12 +184,12 @@ class ExprICLRegressor:
     is the given order)."""
 
     def __init__(self, model: ExprICL, device: str = "cpu", max_features: int = 500, n_estimators: int = 4,
-                 chunk: int = 512, seed: int = 0):  # fmt: skip
+                 chunk: int = 512, seed: int = 0, amp: bool = True):  # fmt: skip
         self.model, self.device, self.max_features = model, device, max_features
-        self.n_estimators, self.chunk, self.seed = n_estimators, chunk, seed
+        self.n_estimators, self.chunk, self.seed, self.amp = n_estimators, chunk, seed, amp
 
     def get_params(self, deep: bool = True) -> dict:
-        return {k: getattr(self, k) for k in ("model", "device", "max_features", "n_estimators", "chunk", "seed")}
+        return {k: getattr(self, k) for k in ("model", "device", "max_features", "n_estimators", "chunk", "seed", "amp")}
 
     def fit(self, X: np.ndarray, y: np.ndarray) -> ExprICLRegressor:
         X, y = np.asarray(X, dtype=np.float32), np.asarray(y, dtype=np.float64)
@@ -199,6 +199,14 @@ class ExprICLRegressor:
         self.X_, self.y_ = X, y
         self.n_features_in_ = X.shape[1]
         return self
+
+    def _autocast(self) -> dict:
+        """Half precision on a GPU at inference (bf16 where the card has it natively, else fp16), fp32 elsewhere."""
+        from rna_age.train.runs import has_native_bf16
+
+        cuda = str(self.device).startswith("cuda")
+        dtype = torch.bfloat16 if cuda and has_native_bf16() else torch.float16
+        return {"device_type": "cuda" if cuda else "cpu", "dtype": dtype, "enabled": bool(self.amp and cuda)}
 
     @torch.no_grad()
     def predict(self, X: np.ndarray) -> np.ndarray:
@@ -217,7 +225,8 @@ class ExprICLRegressor:
             perm = np.arange(Xc.shape[1]) if e == 0 else rng.permutation(Xc.shape[1])
             for a in range(0, len(X), self.chunk):
                 T = np.concatenate([Xc[:, perm], Xq[a : a + self.chunk][:, perm]])[None]
-                q = self.model(torch.from_numpy(T).to(self.device), yc)[0].float().mean(-1)
+                with torch.autocast(**self._autocast()):
+                    q = self.model(torch.from_numpy(T).to(self.device), yc)[0].float().mean(-1)
                 out[a : a + self.chunk] += q.cpu().numpy()
         return out / self.n_estimators * sd + mu
 

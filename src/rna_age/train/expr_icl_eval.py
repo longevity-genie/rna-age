@@ -95,6 +95,7 @@ def eval_bulk(
     device: str = "auto",
     seed: int = 0,
     cache: Path = CACHE,
+    chunk: int = 512,
 ) -> dict:
     """One prompt per query study from the nearest training studies (RM25), panel genes; returns the bulk run's
     ``finish_run`` row (its ``run_id`` is what ``health`` reads). Context: training samples, healthy or unknown,
@@ -131,7 +132,8 @@ def eval_bulk(
     for j, st in enumerate(studies):
         q = q_rows[study[q_rows] == st]
         c = nearest_study_context(Zc, study, pool, q, n_context, cap_per_study, seed)
-        est = ExprICLRegressor(model, dev, max_features=max_features, n_estimators=n_estimators, seed=seed)
+        est = ExprICLRegressor(model, dev, max_features=max_features, n_estimators=n_estimators, seed=seed,
+                                  chunk=chunk)
         out[q] = est.fit(X[c], y[c]).predict(X[q])
         if j % 20 == 0:
             log.info("study %d / %d (%s, %d queries)", j + 1, len(studies), st, len(q))

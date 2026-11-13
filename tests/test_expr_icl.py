@@ -290,3 +290,11 @@ def test_expression_target_scale_has_a_floor():
     assert np.abs(e.y_qry).max() < 10  # 0.2 log units off is 4 floors, not thousands of context SDs
     a = EpisodeSampler.episode(Xc, np.linspace(20, 80, 10), Xq, np.array([30.0, 50, 70]), "age", "bulk")
     assert np.isclose(a.y_sd, np.std(np.linspace(20, 80, 10)))  # age keeps its own scale
+
+
+def test_regressor_autocast_only_on_gpu():
+    from rna_age.train.expr_icl_model import ExprICLRegressor
+
+    r = ExprICLRegressor(model=None, device="cpu")
+    assert r._autocast()["enabled"] is False
+    assert ExprICLRegressor(model=None, device="cpu", amp=False).get_params()["amp"] is False

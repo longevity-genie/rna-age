@@ -934,6 +934,7 @@ def expr_icl_eval(
     bulk_run: str | None = typer.Option(None, help="health: the bulk run (default the one eval bulk wrote)"),
     splits: str = typer.Option("val,test", help="bulk: scored splits"),
     n_context: int = typer.Option(4000, help="bulk: prompt rows"),
+    chunk: int = typer.Option(512, help="bulk: query rows per forward (lower it on a small card)"),
     n_readouts: int = typer.Option(100, help="perturb: readout genes"),
     permutations: int = typer.Option(0, help="health: within-study label shuffles"),
     device: str = typer.Option("auto"),
@@ -951,8 +952,8 @@ def expr_icl_eval(
     if what == "sc":
         out = ev.eval_sc(run_id, cohorts=_csv(cohorts) or EVAL_COHORTS, n_genes=n_genes, device=device)
     elif what == "bulk":
-        row = ev.eval_bulk(run_id, splits=_csv(splits), n_context=n_context, max_features=n_genes, device=device,
-                           cache=d)  # fmt: skip
+        row = ev.eval_bulk(run_id, splits=_csv(splits), n_context=n_context, chunk=chunk, max_features=n_genes,
+                           device=device, cache=d)  # fmt: skip
         out = pl.DataFrame([{k: v for k, v in row.items() if k.startswith(("run_id", "val_exact", "test_exact"))}])
     elif what == "health":
         out = ev.eval_health(run_id, bulk_run, permutations=permutations)
