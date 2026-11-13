@@ -219,3 +219,24 @@ def test_batch_check_condition_derived_and_many_small_levels():
 
 def test_named_conditions_are_not_generic():
     assert not pc.is_generic("COVID-19") and not pc.is_generic("type 2 diabetes mellitus")
+
+
+def test_size_skip_retried_with_larger_limit(tmp_path, monkeypatch):
+    import json
+
+    from rna_age import positive_controls as pc
+
+    monkeypatch.setattr(pc, "CACHE", tmp_path)
+    monkeypatch.setattr(pc, "DOWNLOAD", tmp_path / "dl")
+    calls = []
+
+    def fake_read(url, max_bytes, local):
+        calls.append(max_bytes)
+        raise pc.ObsTooLarge("big")
+
+    monkeypatch.setattr(pc, "read_obs", fake_read)
+    assert pc.cached_obs("d1", "u", max_bytes=10) == "obs too large, needs job"
+    assert json.loads((tmp_path / "d1.meta.json").read_text())["max_bytes"] == 10
+    assert pc.cached_obs("d1", "u", max_bytes=10) == "obs too large, needs job"  # same limit: marker stands
+    assert pc.cached_obs("d1", "u", max_bytes=100) == "obs too large, needs job"  # larger limit: read again
+    assert calls == [10, 100]

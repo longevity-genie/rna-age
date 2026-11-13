@@ -579,7 +579,8 @@ def cached_obs(dataset_id: str, url: str, max_bytes: int = MAX_OBS_BYTES, fetch:
         return pl.read_parquet(gp), pl.read_parquet(ep)
     if mp.exists():
         meta = json.loads(mp.read_text())
-        if meta.get("skipped") and meta.get("extras") == "filtered":
+        # a size skip stands only for a limit at least as large as this run's (older markers carry none: retried)
+        if meta.get("skipped") and meta.get("extras") == "filtered" and meta.get("max_bytes", 0) >= max_bytes:
             return meta["skipped"]
     local = DOWNLOAD / "census_pseudobulk" / "h5ads" / f"{dataset_id}.h5ad"
     local = local if local.exists() else None
@@ -590,7 +591,7 @@ def cached_obs(dataset_id: str, url: str, max_bytes: int = MAX_OBS_BYTES, fetch:
         groups, extra, info = read_obs(url, max_bytes, local)
     except ObsTooLarge:
         mp.write_text(json.dumps({"url": url, "fetched_at": _now(), "skipped": "obs too large, needs job",
-                                  "extras": "filtered"}))  # fmt: skip
+                                  "extras": "filtered", "max_bytes": max_bytes}))  # fmt: skip
         return "obs too large, needs job"
     except Exception as e:  # network or format: retried on the next run (not written as skipped)
         log.warning("%s: obs read failed: %s", dataset_id[:8], e)
