@@ -1068,3 +1068,11 @@ Job 6470599 (CPU, 8 cores): `rna-age train-health --rank-weight 1 --disease-head
 RM12-table runs `20261111-0854/0908/0918-health-mlp-rank1-head-s0..s2` (same recipe without the term). Bar (the lead):
 aging-linked within-study gap (`health-eval`, mean of 3 seeds) ≥ +2.9 y, and control test MAE no more than 0.5 y
 worse than the control runs'. Then `health-eval --permutations 200` on the best seed.
+
+### 2026-11-13 19:14 · RM28 submitted: own single-cell pretraining (the lead's ee227b2; bars in ROADMAP RM28)
+- Pool: job 6472026 (CPU 8, 96 GB, 12 h limit; the lead's estimate 1-3 h, not measured), `rna-age sc-pretrain-pool`.
+- Arms after it (afterok), one GPU each, 30 epochs: `rna-age sc-pretrain --arm mask` 6472027, `--arm mask+perturb`
+  6472097, `--arm universal` 6472138 (96 GB). Estimates were for an A100; ours are 11 GB cards, so memory and time
+  are unmeasured; the built-in epoch-1 stop rule (masked MSE must beat the mean-gene baseline) applies.
+- Then per run: `sc-pretrain-embed` (first alone), `sc-pretrain-clock` (`--with tabicl`), `sc-pretrain-finetune`;
+  universal also `sc-pretrain-universal-eval`.

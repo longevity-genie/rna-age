@@ -61,6 +61,7 @@ stop before Anton is back; 07:00 report, then keep updating; one tabbed artifact
 
 ## Running (jobs carry seat / what / eta in their Slurm comment)
 - RM27 (age-order term, 2026-11-13 18:32): job 6470599, 3 health-MLP seeds on CPU, ~1 h.
+- RM28 (single-cell pretraining, 2026-11-13 19:14): pool 6472026, then arms mask 6472027, mask+perturb 6472097, universal 6472138.
 
 ## Results so far (details: `docs/experiments.md`, `data/output/summary/experiments.parquet`)
 - **RM26 (2026-11-13 17:50)**: adding 3,289 recount3 bulk samples (2,046 training rows) lowers the 3-seed MLP test MAE
