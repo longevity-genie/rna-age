@@ -238,3 +238,11 @@ samples of new test studies score 11.2 y, far worse than the old test: those stu
 noisier, and they are the honest estimate for studies outside ARCHS4. Reading: 3 % more samples buys at most ~0.2 y;
 the headline stays on the old table, no fine-tune retrain, and the recount3 source stays in the tree for later use
 (e.g. as an external test). More data of the same kind is not where the next year of error is.
+
+**RM27 outcome (2026-11-13, lead's code cefc4fc, runner's job 6470599; read by the lead):** fails its gap bar. The
+health MLP (within-study ranking + disease head) with a Pasta-style age-order term (81k same study × tissue control
+pairs ≥ 20 y apart) against the same recipe without it, 3 seeds each: aging-linked within-study gap 2.69 vs 2.55 y
+(seeds 2.71 / 2.95 / 2.40 vs 2.30 / 2.44 / 2.92), below the bar of 2.9 and inside the seed spread; control test MAE
+9.12 vs 9.39, so the term costs nothing and may help accuracy slightly (not tested for significance). Best seed:
+200 within-study shuffles, null +0.01, p 0.005. Reading: ordering ages within a study does not sharpen the disease
+gap; the health clock stays D6's. The term may return as a cheap regulariser where accuracy is the aim.

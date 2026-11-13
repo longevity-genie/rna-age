@@ -7,14 +7,6 @@ The lead (`docs/seats/LEAD.md`) keeps it. Seeded at the lead's first seating (20
 
 ## Items
 
-## RM27 — An age-shift ranking objective on bulk (after RM26)
-
-**State:** building (RM26 scored 2026-11-13) · **Owner:** lead (code), runner (GPU runs)
-
-Pasta-style (Salignon et al. 2025): same-tissue sample pairs far apart in age, the network trained to order them, as
-a second head beside age. Bar: a within-study aging-linked disease gap at least D6's +2.9 y on the same 33 unseen
-studies with test MAE no more than 0.5 y worse than the plain recipe.
-
 ## RM28 — Our own single-cell pretraining: masked expression plus perturbations, then donor age
 
 **State:** building (Anton, 2026-11-13, #rna-age > general chat: "single cell pretraining esp with masking part of
