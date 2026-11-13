@@ -3,6 +3,18 @@
 The state the lead's last holder left. State, not rules: the rules are the priming, `LEAD.md` beside this file, and
 the kit's role `classes/lead/LEAD.md`.
 
+## 2026-11-13 19:20
+
+- Plan: RM27 age-order loss on bulk (job 6470599, 3 seeds, 2 done), RM28 own single-cell pretraining, arms mask /
+  mask+perturb / universal (pool job 6472026, then 6472027/6472097/6472138 on 11 GB 2080 Ti cards, memory
+  unmeasured), RM29 Virtual Cell Challenge scoring (after RM28), RM30 TabICLv2-initialised model on expression
+  episodes (build agent writing the code in a worktree; review before merge), RM13 draft (outside git,
+  data/output/manuscript), RM5 desk #9, RM7 waits until 2026-11-17.
+- Closed today: RM18 (step 3 no data), RM22 fail, RM25 fail, RM26 fail narrowly (−0.17 y, CI crosses 0).
+- Duties held acting since 19:10 (L139): milestones (one post per landed result in #rna-age > milestones; the kept
+  `state` post stays the runner's, as Anton set via the secretary on 2026-11-12) and upstream-index (watcher over
+  tabicl, baseline 2.2.0, the version we use; `--upstream` waits for a kit with L143).
+
 ## 2026-11-13 00:05
 
 - Plan: RM25 TabICLv2 bulk clock (job 6439059 running; bar: test within 1 y of 8.1 earns fine-tuning, beat 7.46
