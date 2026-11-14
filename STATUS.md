@@ -60,8 +60,7 @@ stop before Anton is back; 07:00 report, then keep updating; one tabbed artifact
   rules: Census 2,356 healthy (3,815 any health), scBaseCount 492 (1,656), recount3 bulk 4,430 (6,380).
 
 ## Running (jobs carry seat / what / eta in their Slurm comment)
-- RM34 step 2: CELLxGENE positive-control downloads, a chain of CPU jobs: 7 of 8 done, PD 6480021 running,
-  then Allen aging 6480038 and ALTRA 6480039 (CMV).
+Nothing of ours (RM34 downloads done 2026-11-14 01:32).
 
 ## Results so far (details: `docs/experiments.md`, `data/output/summary/experiments.parquet`)
 - **RM30 (2026-11-14 00:53)**: our in-context tabular model pretrained on expression tables fails all four bars:

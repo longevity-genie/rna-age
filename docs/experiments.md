@@ -1200,3 +1200,20 @@ Run `20261113-2053-expricl`, 10k steps; read-outs with `expr-icl-eval` on one 20
   (6480006); after ea2b88f (half-precision inference, `--chunk 128`) it ran at the planned 4,000 rows. No deviation.
 - The sc model ties or slightly beats ridge/elastic net/boosted trees in most cohorts but not pretrained TabICLv2.
 - RM29 cancelled on its gate (lead, 2b84917).
+
+### 2026-11-14 01:41 · RM34 step 2: ten positive-control h5ads downloaded and pseudobulked
+`positive-controls-fetch`, then `census-donor-obs` and `census-pseudobulk --by-cell-type`, one CPU job each (4 cores),
+chained 6480014-6480021, 6480038, 6480039; no failures. 121.7 GB in all.
+
+| dataset | what | GB | donor × tissue × cell type groups |
+|---|---|---|---|
+| e51bae9a | islets, T2D | 5.9 | 553 |
+| cff99df2 | AD resilience | 6.5 | 504 |
+| c7775e88 | COVID multi-omics | 7.1 | 4,247 |
+| 4a5b00e0 | circulating HSPC | 1.7 | 882 |
+| df1edb87 | Sjögren | 0.4 | 437 |
+| 440da0a0 | microglia | 5.2 | 273 |
+| 24921392 | cerebellum eQTL | 6.2 | 1,415 |
+| d3cb449b | PD multi-region | 30.5 | 4,277 |
+| ff4235bb | Allen aging (CMV) | 40.1 | 7,926 |
+| 789ad837 | ALTRA (CMV, RA) | 18.1 | 3,277 |
