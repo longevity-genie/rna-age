@@ -79,6 +79,12 @@ candidates), so this guard has little power. Gene halves (5 splits × 2): the ba
 OPC is beyond the CI in all 10 (median 5.6 y, 4.8-6.5), astrocyte − oligodendrocyte in 6 (median 3.8, 1.5-5.8),
 microglia − oligodendrocyte in 1 (median 1.9, −0.5-4.1). Reading: astrocytes > OPC is robust, astrocytes >
 oligodendrocytes is not; the AD shift common to all types (5-11 y) dominates. Stage 0 bar: not robustly passed.
+Overall bar (Anton, 2026-11-14, #rna-age > general chat: "it is ok where majority of systems behave well while several
+fail reproducibly as our assumptions can be biased in some cases and in some cases it can be a finding rather than
+bug"): RM33 is judged across all positive controls, not on one contrast. It passes when most pre-registered
+condition × system predictions hold; a prediction that fails reproducibly (in every guard and replication) is reported
+as a finding about the assumption, not hidden. Next: CMV in the Allen aging cohort (ff4235bb, downloaded; condition from
+its CMV column, clocks on CMV-negative donors) with ALTRA (789ad837) as replication, then the other usable controls.
 
 Design (Anton, same topic: "we have to modify design to allow idea of seeing age difference per system"): his
 individual + group loss with the system (cell type; tissue in bulk) as the unit. (0) One clock per system on
