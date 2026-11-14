@@ -2,7 +2,9 @@ import numpy as np
 import polars as pl
 
 from rna_age.train.sys_gap import (
+    CaseDef,
     Cohort,
+    arms,
     assign_folds,
     bar_passes,
     coarse_type,
@@ -10,14 +12,19 @@ from rna_age.train.sys_gap import (
     contrast,
     de_rows,
     disattenuate,
+    first_visits,
     fit_fold,
     gaps,
     gene_halves,
     one_factor,
     oof_clock,
+    predictions_pass,
+    retest_reliability,
+    score_predictions,
     spearman_brown,
     thin_halves,
     top_de_genes,
+    verdict,
 )
 
 
@@ -195,3 +202,69 @@ def test_gene_halves_are_disjoint_cover_and_differ():
         assert abs(len(a) - len(b)) <= 1
     assert not np.array_equal(splits[0][0], splits[1][0])
     assert all(np.array_equal(x[0], y[0]) for x, y in zip(splits, gene_halves(1001, 5, seed=0), strict=True))
+
+
+def test_condition_from_a_metadata_column():
+    cmv = CaseDef("CMV", column="subject.cmv", positive=("Positive",), negative=("Negative",),
+                  label_rx=r"cytomegalovirus infection")  # fmt: skip
+    disease = ["cytomegalovirus infection", "normal", "normal", "cytomegalovirus infection || rheumatoid arthritis",
+               "rheumatoid arthritis", "normal", "normal"]  # fmt: skip
+    values = ["Positive", "Negative", "Equivocal", "Positive", "Negative", None, "Negative"]
+    case, ctrl = arms(cmv, disease, values)
+    assert case.tolist() == [True, False, False, False, False, False, False]  # RA donor leaves the contrast
+    assert ctrl.tolist() == [False, True, False, False, False, False, True]  # equivocal / missing: neither arm
+    # disease-label definitions are unchanged; no definition: controls are "normal", no cases
+    ad = CaseDef("AD", r"alzheimer disease")
+    case, ctrl = arms(ad, ["dementia || Alzheimer disease", "normal", "Lewy body dementia"])
+    assert case.tolist() == [True, False, False] and ctrl.tolist() == [False, True, False]
+    case, ctrl = arms(None, ["normal", "COVID-19"])
+    assert not case.any() and ctrl.tolist() == [True, False]
+
+
+def test_one_visit_per_subject_and_repeat_visits_share_the_fold():
+    person = np.array([0, 0, 1, 2, 2, 2, 3])
+    age = np.array([61.0, 60.0, 45.0, 70.0, 72.0, 70.0, 50.0])
+    first = first_visits(person, age)
+    assert first.tolist() == [False, True, True, True, False, False, True]  # lowest age; ties to the first row
+    # repeat visits (not controls) of a control's person take that person's fold, not a random one
+    rng = np.random.default_rng(0)
+    person = np.repeat(np.arange(60), 2)
+    age = np.tile([50.0, 53.0], 60) + np.repeat(np.arange(60), 2)
+    first = first_visits(person, age)
+    ctrl = first & (person < 45)
+    fold = assign_folds(person, ctrl, 5, rng)
+    for p in np.unique(person):
+        assert len(set(fold[person == p])) == 1
+
+
+def test_test_retest_recovers_a_stable_gap():
+    rng = np.random.default_rng(9)
+    n = 400
+    person = np.repeat(np.arange(n), 2)
+    age = np.repeat(rng.uniform(40, 80, n), 2) + np.tile([0.0, 1.5], n)
+    trait = np.repeat(rng.normal(size=n), 2)  # a person's stable gap; noise var 1/3 -> retest r = 0.75
+    gap = trait + rng.normal(0, np.sqrt(1 / 3), 2 * n)
+    ctrl = np.repeat(rng.random(n) < 0.7, 2) & first_visits(person, age)
+    gap[5] = np.nan  # a missing second visit drops that person
+    r, m = retest_reliability(gap, person, age, ctrl)
+    assert abs(r - 0.75) < 0.08
+    assert m == ctrl.sum() - (1 if ctrl[4] else 0)
+    r1, m1 = retest_reliability(gap[::2], person[::2], age[::2], ctrl[::2])  # one visit each: nothing to correlate
+    assert m1 == 0 and np.isnan(r1)
+
+
+def test_prediction_verdicts():
+    assert verdict("accelerates", 0.5, 6.0, 1.0, 5.5) == "hold"
+    assert verdict("accelerates", -6.0, -0.5, -5.5, -1.0) == "fail"
+    assert verdict("accelerates", -1.9, 1.9, -1.5, 1.5) == "fail"  # equivalent to no acceleration
+    assert verdict("accelerates", -1.0, 6.0, -0.5, 5.0) == "inconclusive"
+    assert verdict("no_acceleration", -1.5, 2.2, -1.2, 1.8) == "hold"
+    assert verdict("no_acceleration", 2.5, 8.0, 3.0, 7.0) == "fail"
+    assert verdict("no_acceleration", -1.0, 5.0, -0.5, 4.0) == "inconclusive"
+    assert verdict("no_acceleration", np.nan, 1.0, 0.0, 0.5) == "inconclusive"
+    cd = CaseDef("CMV", predictions=(("CD8 T", "accelerates"), ("B", "no_acceleration"), ("NK", "exploratory")))
+    rows = [{"type": "CD8 T", "delta_years": 3.0, "lo": 0.5, "hi": 6.0, "lo90": 1.0, "hi90": 5.5},
+            {"type": "B", "delta_years": 0.1, "lo": -1.5, "hi": 1.6, "lo90": -1.2, "hi90": 1.3}]  # fmt: skip
+    p = score_predictions(cd, rows)
+    assert [x["verdict"] for x in p] == ["hold", "hold", "inconclusive"]  # NK absent
+    assert predictions_pass(cd, rows)  # exploratory NK does not count

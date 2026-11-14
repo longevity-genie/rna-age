@@ -30,12 +30,22 @@ Per cohort and coarse cell type (blood: ``composition.broad_class``; brain: ``BR
    persons, who then leave that type's clock and contrast. *Gene halves*: the genes split at random into two disjoint
    halves (5 seeded splits), a clock per half per type (``gene_half_<split><a|b>``).
 
+7. **Case definitions** (``CONDITIONS``, one ``CaseDef`` per cohort): cases by a regex on the disease label with
+   controls ``normal`` (AD, SLE), or by a donor-metadata column (``donor_obs/<id>.parquet``, e.g. ``subject.cmv``
+   ``Positive`` vs ``Negative``), both arms healthy by the disease label once the condition's own term is ignored.
+   Without a case definition the controls are the ``normal`` donors. Clocks always train on the controls only.
+8. **Visits.** Where a cohort names a subject column (``PERSON_COLUMNS``), the subject is the person; a subject with
+   several samples enters clock and contrast with its first visit (lowest age), later visits are scored by the same
+   fold model and give the type's test-retest reliability (Pearson r of visit-1 and visit-2 gaps, controls only).
+
 Pre-registered go/no-go (ROADMAP RM33, stage 0): in PsychAD (37a17b78), microglia or astrocytes show a larger AD
 acceleration than both oligodendrocytes and OPCs, with the bootstrap CI of each difference above 0. RADC (5e57cd50)
 is replication only, SLE (218acb0f) descriptive.
+CMV (ROADMAP RM33, CMV pre-registration): Allen (ff4235bb) and ALTRA (789ad837, replication); predictions per type or
+pair scored hold / fail / inconclusive in ``sys_gap_predictions`` (per guard in Allen: gene halves only).
 Outputs (``data/output/summary/``): ``sys_gap_donor``, ``sys_gap_type``, ``sys_gap_contrast``, ``sys_gap_corr`` (a run on
 some cohorts replaces only those cohorts' rows); with guards ``sys_gap_guards`` (contrast rows with ``guard``) and
-``sys_gap_de`` (the DE table used: cohort, type, gene, t).
+``sys_gap_de`` (the DE table used: cohort, type, gene, t); with predictions ``sys_gap_predictions``.
 """
 
 from __future__ import annotations
@@ -75,23 +85,58 @@ BRAIN = [
     ("inhibitory neuron", r"gabaergic|interneuron"),
     ("vascular", r"endothelial|pericyte|smooth muscle|leptomeningeal"),
 ]
-# Case definitions per cohort: (condition name, regex on the disease label). Controls are ``normal``; donors with any
-# other label (other dementias, schizophrenia, ...) are left out of the contrast. A donor whose labels include
-# Alzheimer disease among others counts as AD.
-CONDITIONS = {
-    "37a17b78-4864-4a42-b67b-31c00962795a": ("Alzheimer disease", r"alzheimer disease"),
-    "5e57cd50-8e42-42d6-940d-5c1660d06864": ("Alzheimer disease", r"alzheimer disease"),
-    "218acb0f-9f2f-4f76-b90b-15a4b7c7f629": ("systemic lupus erythematosus", r"systemic lupus erythematosus"),
-}
-BAR_COHORT = "37a17b78-4864-4a42-b67b-31c00962795a"
 GLIA, REFS = ("microglia", "astrocyte"), ("oligodendrocyte", "OPC")
+EQUIV_MARGIN = 2.0  # years: equivalence band of a "does not accelerate" prediction (90 % CI inside +-margin)
+
+
+@dataclass(frozen=True)
+class CaseDef:
+    """A cohort's condition. With ``column`` unset: cases match ``disease_rx`` on the disease label, controls are
+    ``normal``. With ``column``: cases have a value in ``positive``, controls in ``negative``, and both must be healthy
+    by the disease label once terms matching ``label_rx`` (the condition's own term) are ignored. ``predictions``:
+    (type or "a - b", kind) with kind ``accelerates``, ``no_acceleration`` or ``exploratory`` (scored, not counted)."""
+
+    name: str
+    disease_rx: str | None = None
+    column: str | None = None
+    positive: tuple[str, ...] = ()
+    negative: tuple[str, ...] = ()
+    label_rx: str | None = None
+    pairs: tuple[tuple[str, str], ...] = tuple((g, r) for g in GLIA for r in REFS)
+    predictions: tuple[tuple[str, str], ...] = ()
+
+
+ALLEN = "ff4235bb-1cdf-4dcf-a13a-dc4f32244400"
+ALTRA = "789ad837-9bf5-436c-9b60-9f1153546e4c"
+CMV_COHORTS = (ALLEN, ALTRA)
+CMV = CaseDef(
+    "CMV seropositive", column="subject.cmv", positive=("Positive",), negative=("Negative",),
+    label_rx=r"cytomegalovirus infection",
+    pairs=(("CD8 T", "monocyte"), ("CD4 T", "monocyte"), ("CD8 T", "B"), ("CD4 T", "B"), ("NK", "monocyte")),
+    predictions=(("CD8 T", "accelerates"), ("CD4 T", "accelerates"), ("CD8 T - monocyte", "accelerates"),
+                 ("monocyte", "no_acceleration"), ("B", "no_acceleration"), ("NK", "exploratory")),
+)  # fmt: skip
+# Case definitions per cohort. Disease-label conditions: controls are ``normal``; donors with any other label (other
+# dementias, schizophrenia, ...) are left out of the contrast. A donor whose labels include Alzheimer disease among
+# others counts as AD.
+CONDITIONS = {
+    "37a17b78-4864-4a42-b67b-31c00962795a": CaseDef("Alzheimer disease", r"alzheimer disease"),
+    "5e57cd50-8e42-42d6-940d-5c1660d06864": CaseDef("Alzheimer disease", r"alzheimer disease"),
+    "218acb0f-9f2f-4f76-b90b-15a4b7c7f629": CaseDef("systemic lupus erythematosus", r"systemic lupus erythematosus"),
+    ALLEN: CMV,
+    ALTRA: CMV,
+}
+# Subject column in donor_obs/<id>.parquet: the person when a cohort has several samples (visits) per subject.
+PERSON_COLUMNS = {ALLEN: "subject.subjectGuid", ALTRA: "subject.subjectGuid"}
+BAR_COHORT = "37a17b78-4864-4a42-b67b-31c00962795a"
+GUARD_COHORTS = (BAR_COHORT, ALLEN)  # --guards runs here; leave-DE-genes-out only where DE_COHORTS names a source
 # Independent cohorts for the leave-DE-genes-out guard (same condition, never the bar cohort itself).
 DE_COHORTS = {
     BAR_COHORT: ("5e57cd50-8e42-42d6-940d-5c1660d06864", "cff99df2-4904-44f7-9173-ff837f95606e"),
 }
 DE_TOPS = (200, 500)
 N_GENE_SPLITS = 5
-BATCH_COLUMNS = ("Processing_Cohort",)  # donor-level batch read from donor_obs/<id>.mixed.parquet (D9)
+BATCH_COLUMNS = ("Processing_Cohort", "batch_id")  # donor-level batch read from donor_obs/<id>.mixed.parquet (D9)
 ALPHAS = np.logspace(-1, 5, 13)
 
 
@@ -121,6 +166,8 @@ class Cohort:
     types: dict[str, tuple[np.ndarray, np.ndarray, np.ndarray]] = field(default_factory=dict)  # idx, counts, n_cells
     genes: list[str] = field(default_factory=list)
     age_censored: np.ndarray | None = None  # True where the age is a censoring bound (e.g. "80 and over")
+    donor_ids: list[str] = field(default_factory=list)  # the dataset's donor_id behind each unit
+    obs: dict[str, list[str | None]] = field(default_factory=dict)  # donor_obs columns per unit (as strings)
 
 
 def _cohort_dir(dataset_id: str):
@@ -141,6 +188,21 @@ def donor_batch(dataset_id: str, donor_ids: list[str]) -> tuple[list[str] | None
             lookup = dict(zip(top["donor_id"].to_list(), top["value"].to_list(), strict=True))
             return [str(lookup.get(d, "NA")) for d in donor_ids], col
     return None, None
+
+
+def donor_obs(dataset_id: str, donor_ids: list[str], columns: list[str]) -> dict[str, list[str | None]]:
+    """Per donor, the values of ``columns`` in ``donor_obs/<id>.parquet`` (strings; None where absent)."""
+    p = INPUT / "census_pseudobulk" / "donor_obs" / f"{dataset_id}.parquet"
+    if not columns or not p.exists():
+        return {}
+    o = pl.read_parquet(p)
+    out = {}
+    for col in columns:
+        if col not in o.columns:
+            continue
+        lookup = dict(zip(o["donor_id"].cast(pl.Utf8).to_list(), o[col].cast(pl.Utf8).to_list(), strict=True))
+        out[col] = [lookup.get(d) for d in donor_ids]
+    return out
 
 
 def load_cohort(dataset_id: str, min_cells: int = 20, by_donor: bool = False, keep_censored: bool = False) -> Cohort:
@@ -164,6 +226,12 @@ def load_cohort(dataset_id: str, min_cells: int = 20, by_donor: bool = False, ke
         if by_donor
         else pl.col("donor_id").cast(pl.Utf8) + ":" + pl.col("tissue"),
     ).filter(pl.col("age").is_not_null())
+    if dataset_id in PERSON_COLUMNS:  # the subject is the person (several samples per subject share it)
+        ids = g["donor_id"].cast(pl.Utf8).unique().to_list()
+        subj = donor_obs(dataset_id, ids, [PERSON_COLUMNS[dataset_id]]).get(PERSON_COLUMNS[dataset_id])
+        if subj is not None:
+            lookup = {d: s if s is not None else d for d, s in zip(ids, subj, strict=True)}
+            g = g.with_columns(cv_group=pl.col("donor_id").cast(pl.Utf8).replace_strict(lookup))
     if "cv_group" not in g.columns:
         g = g.with_columns(cv_group=pl.col("donor"))
     meta = (
@@ -180,7 +248,9 @@ def load_cohort(dataset_id: str, min_cells: int = 20, by_donor: bool = False, ke
     )
     donors = meta["donor"].to_list()
     pid = {p: i for i, p in enumerate(sorted(set(meta["cv_group"].to_list())))}
-    batch, batch_name = donor_batch(dataset_id, [str(x) for x in meta["donor_id"].to_list()])
+    ids = [str(x) for x in meta["donor_id"].to_list()]
+    batch, batch_name = donor_batch(dataset_id, ids)
+    cd = CONDITIONS.get(dataset_id)
     co = Cohort(
         name=dataset_id,
         donors=donors,
@@ -192,6 +262,8 @@ def load_cohort(dataset_id: str, min_cells: int = 20, by_donor: bool = False, ke
         batch_name=batch_name,
         genes=pl.read_parquet(d / "counts.parquet", columns=["gene_id"])["gene_id"].to_list(),
         age_censored=meta["censored"].to_numpy(),
+        donor_ids=ids,
+        obs=donor_obs(dataset_id, ids, [cd.column] if cd is not None and cd.column else []),
     )
     dix = {x: i for i, x in enumerate(donors)}
     for t in sorted(set(g["ctype"].to_list()) - {"other"}):
@@ -215,6 +287,53 @@ def load_cohort(dataset_id: str, min_cells: int = 20, by_donor: bool = False, ke
     return co
 
 
+def arms(
+    cd: CaseDef | None, disease: list[str], values: list[str | None] | None = None
+) -> tuple[np.ndarray, np.ndarray]:
+    """(case, control) masks under a case definition (none: controls ``normal``, no cases)."""
+    dis = [d.lower() for d in disease]
+    if cd is None:
+        return np.zeros(len(dis), dtype=bool), np.array([d == "normal" for d in dis])
+    if cd.column is None:
+        return np.array([bool(re.search(cd.disease_rx, d)) for d in dis]), np.array([d == "normal" for d in dis])
+    if values is None:
+        raise ValueError(f"{cd.name}: column {cd.column} not in donor_obs")
+
+    def healthy(d: str) -> bool:
+        return all(p == "normal" or (cd.label_rx and re.search(cd.label_rx, p)) for p in map(str.strip, d.split("||")))
+
+    ok = np.array([healthy(d) for d in dis])
+    case = ok & np.array([v in cd.positive for v in values])
+    ctrl = ok & np.array([v in cd.negative for v in values])
+    return case, ctrl
+
+
+def first_visits(person: np.ndarray, age: np.ndarray) -> np.ndarray:
+    """True on each person's first visit: the lowest age, ties to the first row."""
+    out = np.zeros(len(person), dtype=bool)
+    order = np.lexsort((np.arange(len(person)), age, person))
+    _, first = np.unique(person[order], return_index=True)
+    out[order[first]] = True
+    return out
+
+
+def retest_reliability(
+    gap: np.ndarray, person: np.ndarray, age: np.ndarray, ctrl: np.ndarray, min_n: int = 5
+) -> tuple[float, int]:
+    """Pearson r between the gaps of visit 1 and visit 2 (the two lowest ages) of persons whose first visit is a
+    control and who have a second visit with a gap; (r, n persons). NaN below ``min_n`` persons."""
+    a, b = [], []
+    first = first_visits(person, age)
+    for i in np.flatnonzero(first & ctrl & ~np.isnan(gap)):
+        rest = np.flatnonzero((person == person[i]) & ~first & ~np.isnan(gap))
+        if len(rest):
+            j = rest[np.lexsort((rest, age[rest]))[0]]
+            a.append(gap[i])
+            b.append(gap[j])
+    n = len(a)
+    return (float(np.corrcoef(a, b)[0, 1]) if n >= min_n else float("nan")), n
+
+
 # ---------------------------------------------------------------- clock
 
 
@@ -229,13 +348,15 @@ def thin_halves(C: np.ndarray, rng: np.random.Generator, p: float = 0.5) -> tupl
 
 
 def assign_folds(person: np.ndarray, is_ctrl: np.ndarray, n_folds: int, rng: np.random.Generator) -> np.ndarray:
-    """D7 folds (GroupKFold by person) for the controls; cases' persons drawn uniformly at random into a fold."""
+    """D7 folds (GroupKFold by person) for the controls; other rows of a control's person (repeat visits) take its
+    fold; the remaining persons (cases, others) drawn uniformly at random into a fold."""
     fold = np.full(len(person), -1)
     ci = np.flatnonzero(is_ctrl)
     for k, (_, te) in enumerate(GroupKFold(n_splits=n_folds).split(ci, groups=person[ci])):
         fold[ci[te]] = k
-    case_persons = np.unique(person[~is_ctrl])
-    draw = dict(zip(case_persons, rng.integers(0, n_folds, len(case_persons)), strict=True))
+    ctrl_fold = dict(zip(person[ci], fold[ci], strict=True))
+    case_persons = np.array([p for p in np.unique(person[~is_ctrl]) if p not in ctrl_fold])
+    draw = {**dict(zip(case_persons, rng.integers(0, n_folds, len(case_persons)), strict=True)), **ctrl_fold}
     for i in np.flatnonzero(~is_ctrl):
         fold[i] = draw[person[i]]
     return fold
@@ -388,26 +509,29 @@ def contrast(
         boots.append(_deltas(preds, np.concatenate([rows_of[p] for p in pick]), age, sex, batch, case, ctrl, inside))
     out = []
 
-    def ci(v):
+    def ci(v, q=2.5):
         v = np.asarray(v, dtype=float)
         v = v[np.isfinite(v)]
-        return (float(np.percentile(v, 2.5)), float(np.percentile(v, 97.5))) if len(v) > 20 else (np.nan, np.nan)
+        return (float(np.percentile(v, q)), float(np.percentile(v, 100 - q))) if len(v) > 20 else (np.nan, np.nan)
 
     for t, p in preds.items():
         ok = inside & ~np.isnan(p)
         lo, hi = ci([b[t][0] for b in boots])
+        lo90, hi90 = ci([b[t][0] for b in boots], 5)
         lz, hz = ci([b[t][1] for b in boots])
         out.append({"kind": "type", "type": t, "delta_years": point[t][0], "lo": lo, "hi": hi,
-                    "delta_z": point[t][1], "lo_z": lz, "hi_z": hz,
+                    "delta_z": point[t][1], "lo_z": lz, "hi_z": hz, "lo90": lo90, "hi90": hi90,
                     "n_case": int((ok & case).sum()), "n_control": int((ok & ctrl).sum())})  # fmt: skip
     for a, b in pairs:
         if a not in preds or b not in preds:
             continue
         lo, hi = ci([x[a][0] - x[b][0] for x in boots])
+        lo90, hi90 = ci([x[a][0] - x[b][0] for x in boots], 5)
         lz, hz = ci([x[a][1] - x[b][1] for x in boots])
         ok = inside & ~np.isnan(preds[a]) & ~np.isnan(preds[b])
         out.append({"kind": "difference", "type": f"{a} - {b}", "delta_years": point[a][0] - point[b][0],
                     "lo": lo, "hi": hi, "delta_z": point[a][1] - point[b][1], "lo_z": lz, "hi_z": hz,
+                    "lo90": lo90, "hi90": hi90,
                     "n_case": int((ok & case).sum()), "n_control": int((ok & ctrl).sum())})  # fmt: skip
     for r in out:
         r["age_range"] = f"{lo_age:g}-{hi_age:g}"
@@ -418,6 +542,39 @@ def bar_passes(rows: list[dict]) -> bool:
     """Pre-registered: some glial type's difference to every reference type has its CI above 0 (years)."""
     diff = {r["type"]: r for r in rows if r["kind"] == "difference"}
     return any(all((d := diff.get(f"{g} - {r}")) is not None and d["lo"] > 0 for r in REFS) for g in GLIA)
+
+
+def verdict(kind: str, lo: float, hi: float, lo90: float, hi90: float, margin: float = EQUIV_MARGIN) -> str:
+    """Pre-registered scoring (ROADMAP RM33, CMV). ``accelerates`` / ``exploratory``: hold if the 95 % CI is above 0,
+    else fail if it is below 0 or the 90 % CI lies inside +-margin. ``no_acceleration``: hold if the 90 % CI lies
+    inside +-margin, fail if the 95 % CI lies wholly beyond it. Otherwise (or without a CI) inconclusive."""
+    if not all(np.isfinite([lo, hi, lo90, hi90])):
+        return "inconclusive"
+    equiv = lo90 > -margin and hi90 < margin
+    if kind in ("accelerates", "exploratory"):
+        return "hold" if lo > 0 else "fail" if hi < 0 or equiv else "inconclusive"
+    if kind == "no_acceleration":
+        return "hold" if equiv else "fail" if lo > margin or hi < -margin else "inconclusive"
+    raise ValueError(kind)
+
+
+def score_predictions(cd: CaseDef, rows: list[dict]) -> list[dict]:
+    """One row per pre-registered prediction from contrast rows (a missing type or pair is inconclusive)."""
+    by = {r["type"]: r for r in rows}
+    out = []
+    for target, kind in cd.predictions:
+        r = by.get(target, {})
+        v = [float(r.get(k, np.nan)) for k in ("delta_years", "lo", "hi", "lo90", "hi90")]
+        out.append({"condition": cd.name, "type": target, "prediction": kind, "counted": kind != "exploratory",
+                    "delta_years": v[0], "lo": v[1], "hi": v[2], "lo90": v[3], "hi90": v[4],
+                    "n_case": int(r.get("n_case", 0)), "n_control": int(r.get("n_control", 0)),
+                    "verdict": verdict(kind, *v[1:])})  # fmt: skip
+    return out
+
+
+def predictions_pass(cd: CaseDef, rows: list[dict]) -> bool:
+    """Every counted prediction holds."""
+    return all(p["verdict"] == "hold" for p in score_predictions(cd, rows) if p["counted"])
 
 
 # ---------------------------------------------------------------- guards
@@ -516,14 +673,16 @@ def run_guards(
     """Leave-DE-genes-out and gene-half clocks on the plain run's folds; each guard's contrast with the same seed."""
     tag = co.name[:8] if len(co.name) == 36 else co.name
     nd, types = len(co.donors), list(res)
-    _, rx = CONDITIONS[co.name]
-    de = independent_de(co.name, rx, min_cells)
+    cd = CONDITIONS[co.name]
+    with_de = co.name in DE_COHORTS
+    de = independent_de(co.name, cd.disease_rx, min_cells) if with_de else None
     have = set() if de is None else set(de.filter(pl.col("cohort") == "combined")["type"].to_list())
     source = {t: "combined" for t in types if t in have}
     no_drop = {t: np.zeros(len(co.types[t][0]), dtype=bool) for t in types}
     drop = dict(no_drop)
     missing = [t for t in types if t not in have]
-    if missing:  # fallback: DE on a held-out half of this cohort's persons, who then leave that type
+    rx = cd.disease_rx
+    if with_de and missing:  # fallback: DE on a held-out half of this cohort's persons, who then leave that type
         persons = np.unique(co.person)
         held = set(np.random.default_rng([seed, 4049]).choice(persons, len(persons) // 2, replace=False).tolist())
         held_mask = np.array([p in held for p in co.person])
@@ -539,7 +698,7 @@ def run_guards(
             de = pl.concat([de, pl.DataFrame(fb)]) if de is not None else pl.DataFrame(fb)
     gene_ix = {g: i for i, g in enumerate(co.genes)}
     specs: list[tuple[str, dict[str, np.ndarray], dict[str, np.ndarray]]] = []
-    for n in DE_TOPS:
+    for n in DE_TOPS if with_de else ():
         masks = {}
         for t in types:
             m = np.ones(len(co.genes), dtype=bool)
@@ -573,7 +732,7 @@ def run_guards(
                        "n_candidate_genes": int(masks[t].sum()), "n_dropped_donors": int(dr.sum()),
                        "de_source": source.get(t, "") if name.startswith("de_out") else ""}  # fmt: skip
         rows = contrast(preds, co.age, np.array(co.sex), batch, case, ctrl_all, co.person, pairs, seed=seed)
-        bar = bar_passes(rows)
+        bar = predictions_pass(cd, rows) if cd.predictions else bar_passes(rows)
         log.info("%s guard %s: bar %s", tag, name, "PASS" if bar else "FAIL")
         for r in rows:
             i = info.get(r["type"], {})
@@ -594,13 +753,19 @@ def run_cohort(
     guards: bool = False,
 ) -> dict[str, list[dict]]:  # fmt: skip
     co = load_cohort(dataset_id, min_cells)
-    ctrl_all = np.array([d == "normal" for d in co.disease])
+    cd = CONDITIONS.get(dataset_id)
+    case_all, ctrl_all = arms(cd, co.disease, co.obs.get(cd.column) if cd is not None and cd.column else None)
+    visits = dataset_id in PERSON_COLUMNS  # elsewhere a person's units are tissues or pooled samples: all kept
+    # repeat visits leave clock and contrast, kept for test-retest
+    primary = first_visits(co.person, co.age) if visits else np.ones(len(co.donors), dtype=bool)
+    case_all, ctrl_all = case_all & primary, ctrl_all & primary
     tag = dataset_id[:8] if len(dataset_id) == 36 else dataset_id
-    log.info("%s: %d donors (%d controls), types %s", tag, len(co.donors), ctrl_all.sum(), list(co.types))
+    log.info("%s: %d donors (%d persons, %d repeat visits; %d controls, %d cases), types %s", tag, len(co.donors),
+             len(np.unique(co.person)), (~primary).sum(), ctrl_all.sum(), case_all.sum(), list(co.types))  # fmt: skip
     rng = np.random.default_rng(seed)
     nd = len(co.donors)
     res: dict[str, dict] = {}
-    with_guards = guards and dataset_id in DE_COHORTS and dataset_id in CONDITIONS
+    with_guards = guards and dataset_id in GUARD_COHORTS and dataset_id in CONDITIONS
     logx: dict[str, np.ndarray] = {}
     for t, (idx, C, nc) in co.types.items():
         ctrl = ctrl_all[idx]
@@ -617,6 +782,7 @@ def run_cohort(
         g, ga, gb = gaps(pred, age, ctrl), gaps(pa, age, ctrl), gaps(pb, age, ctrl)
         r_half = float(np.corrcoef(ga["gap"][ctrl], gb["gap"][ctrl])[0, 1])
         rel = spearman_brown(r_half)
+        r_retest, n_retest = retest_reliability(g["gap"], person, age, ctrl) if visits else (np.nan, 0)
         status = "ok" if rel >= 0.5 and g["slope"] > 0 else ("unmeasured: slope <= 0" if g["slope"] <= 0
                                                               else "unmeasured: reliability < 0.5")  # fmt: skip
         full = {k: np.full(nd, np.nan) for k in ("pred", "gap_z", "accel", "n_cells")}
@@ -629,7 +795,8 @@ def run_cohort(
         fold_full = np.full(nd, -1)
         fold_full[idx] = fold
         res[t] = {**full, "fold": fold_full, "slope": g["slope"], "intercept": g["intercept"], "sd": g["sd"],
-                  "r_half": r_half, "rel": rel, "status": status, "n": len(idx), "n_ctrl": int(ctrl.sum()),
+                  "r_half": r_half, "rel": rel, "r_retest": r_retest, "n_retest": n_retest, "status": status,
+                  "n": len(idx), "n_ctrl": int(ctrl.sum()),
                   "r_age": float(np.corrcoef(pred[ctrl], age[ctrl])[0, 1]),
                   "mae": float(np.abs(pred[ctrl] - age[ctrl]).mean())}  # fmt: skip
         log.info("%s %-18s n=%d ctrl=%d slope %.2f sd %.1f r %.2f rel %.2f %s", tag, t, len(idx), ctrl.sum(),
@@ -653,13 +820,15 @@ def run_cohort(
         type_rows.append({"cohort": tag, "type": t, "n_donors": r["n"], "n_controls": r["n_ctrl"],
                           "slope": r["slope"], "intercept": r["intercept"], "resid_sd": r["sd"],
                           "sensitivity": r["slope"] / r["sd"], "r_age": r["r_age"], "mae_controls": r["mae"],
-                          "r_halves": r["r_half"], "reliability": r["rel"], "shared_share": load[t] ** 2,
+                          "r_halves": r["r_half"], "reliability": r["rel"], "test_retest_r": r["r_retest"],
+                          "n_test_retest": r["n_retest"], "shared_share": load[t] ** 2,
                           "shared_share_reliable": load[t] ** 2 / r["rel"] if r["rel"] > 0 else np.nan,
                           "status": r["status"]})  # fmt: skip
         for i in np.flatnonzero(~np.isnan(r["pred"])):
             donor_rows.append({"cohort": tag, "donor": co.donors[i], "person": int(co.person[i]), "type": t,
                                "age": float(co.age[i]), "disease": co.disease[i], "sex": co.sex[i],
-                               "is_control": bool(ctrl_all[i]), "fold": int(r["fold"][i]),
+                               "is_control": bool(ctrl_all[i]), "is_case": bool(case_all[i]),
+                               "first_visit": bool(primary[i]), "fold": int(r["fold"][i]),
                                "n_cells": float(r["n_cells"][i]), "pred": float(r["pred"][i]),
                                "gap_z": float(r["gap_z"][i]), "accel_years": float(r["accel"][i]),
                                "shared": float(shared[i, j]), "specific": float(specific[i, j])})  # fmt: skip
@@ -671,22 +840,30 @@ def run_cohort(
     contrast_rows: list[dict] = []
     guard_rows: list[dict] = []
     de_rows_used: list[dict] = []
-    if dataset_id in CONDITIONS:
-        cond, rx = CONDITIONS[dataset_id]
-        case = np.array([bool(re.search(rx, d.lower())) for d in co.disease])
+    pred_rows: list[dict] = []
+    if cd is not None:
+        cond, case = cd.name, case_all
         n_other = int((~case & ~ctrl_all).sum())
         preds = {t: res[t]["pred"] for t in types}
-        pairs = [(g, r) for g in GLIA for r in REFS]
+        pairs = list(cd.pairs)
         batch = None if co.batch is None else np.array(co.batch)
-        cov = "age+age2+sex" + (f"+batch:{co.batch_name}" if co.batch else " (no batch-like column with >1 level)")
+        cov = "age+age2+sex" + (f"+batch:{co.batch_name}" if co.batch and len(set(co.batch)) > 1
+                                 else " (no batch-like column with >1 level)")
         rows = contrast(preds, co.age, np.array(co.sex), batch, case, ctrl_all, co.person, pairs, seed=seed)
         for r in rows:
             st = res[r["type"]]["status"] if r["type"] in res else ""
             contrast_rows.append({"cohort": tag, "condition": cond, **r, "status": st, "covariates": cov,
                                   "n_other_excluded": n_other, "beyond_ci": bool(r["lo"] > 0 or r["hi"] < 0)})  # fmt: skip
-        bar = bar_passes(rows)
+        bar = predictions_pass(cd, rows) if cd.predictions else bar_passes(rows)
         if dataset_id == BAR_COHORT:
             log.info("%s go/no-go bar: %s", tag, "PASS" if bar else "FAIL")
+        status_of = {t: res[t]["status"] for t in types}
+
+        def scored(guard: str, rr: list[dict]) -> list[dict]:
+            return [{"cohort": tag, "guard": guard, **p, "status": " / ".join(status_of.get(x.strip(), "absent")
+                     for x in p["type"].split(" - "))} for p in score_predictions(cd, rr)]  # fmt: skip
+
+        pred_rows += scored("none", rows)
         if with_guards:
             plain = [{"guard": "none", **r, "r_age": res[r["type"]]["r_age"] if r["type"] in res else np.nan,
                       "slope": res[r["type"]]["slope"] if r["type"] in res else np.nan,
@@ -697,10 +874,13 @@ def run_cohort(
             for r in plain + more:
                 st = res[r["type"]]["status"] if r["type"] in res else ""
                 guard_rows.append({**extra, **r, "status": st, "beyond_ci": bool(r["lo"] > 0 or r["hi"] < 0)})
+            for gname in dict.fromkeys(r["guard"] for r in more):
+                pred_rows += scored(gname, [r for r in more if r["guard"] == gname])
             if de is not None:
                 de_rows_used = de.to_dicts()
     return {"donor": donor_rows, "type": type_rows, "contrast": contrast_rows, "corr": corr_rows,
-            "guards": guard_rows, "de": de_rows_used}  # fmt: skip
+            "guards": guard_rows, "de": de_rows_used,
+            "predictions": pred_rows if cd and cd.predictions else []}  # fmt: skip
 
 
 def _merge_write(k: str, new: pl.DataFrame) -> pl.DataFrame:
@@ -720,7 +900,7 @@ def run(
     guards: bool = False,
 ) -> dict[str, pl.DataFrame]:  # fmt: skip
     SUMMARY.mkdir(parents=True, exist_ok=True)
-    acc: dict[str, list[dict]] = {k: [] for k in ("donor", "type", "contrast", "corr", "guards", "de")}
+    acc: dict[str, list[dict]] = {k: [] for k in ("donor", "type", "contrast", "corr", "guards", "de", "predictions")}
     out: dict[str, pl.DataFrame] = {}
     for c in cohorts:
         part = run_cohort(c, n_genes, min_cells, min_controls, seed, guards=guards)

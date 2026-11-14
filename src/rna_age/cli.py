@@ -988,29 +988,33 @@ def sc_multitype_cmd(
 
 @app.command("sys-gap")
 def sys_gap_cmd(
-    cohorts: str = typer.Option("", help="comma-separated cohorts (default: the 7 of D7)"),
+    cohorts: str = typer.Option("", help="comma-separated cohorts (default: the 7 of D7; 'cmv': Allen + ALTRA)"),
     n_genes: int = typer.Option(2000, help="most variable genes per type, picked on the training fold"),
     min_cells: int = typer.Option(20, help="cells a donor needs in a type"),
     min_controls: int = typer.Option(20, help="control donors a type needs for its clock"),
     seed: int = typer.Option(0),
     guards: bool = typer.Option(
-        False, help="bar cohort: leave-DE-genes-out (independent cohorts) and gene-half clocks"
+        False, help="PsychAD: leave-DE-genes-out (independent cohorts) and gene-half clocks; Allen (CMV): gene halves"
     ),
 ) -> None:
     """RM33 stage 0: per-type ridge clocks on controls, gaps, split-half reliability, shared vs specific, AD contrast."""
     import polars as pl
 
-    from rna_age.train.sys_gap import COHORTS, run
+    from rna_age.train.sys_gap import CMV_COHORTS, COHORTS, run
 
-    out = run(_csv(cohorts) or COHORTS, n_genes=n_genes, min_cells=min_cells, min_controls=min_controls, seed=seed,
+    chosen = CMV_COHORTS if cohorts == "cmv" else (_csv(cohorts) or COHORTS)
+    out = run(chosen, n_genes=n_genes, min_cells=min_cells, min_controls=min_controls, seed=seed,
               guards=guards)  # fmt: skip
     with pl.Config(tbl_rows=-1, tbl_cols=-1, tbl_width_chars=220):
-        print(out["type"].select("cohort", "type", "n_controls", "slope", "sensitivity", "reliability",
+        print(out["type"].select("cohort", "type", "n_controls", "slope", "sensitivity", "reliability", "test_retest_r",
                                  "shared_share", "status"))  # fmt: skip
         if "contrast" in out:
             print(out["contrast"].select("cohort", "kind", "type", "delta_years", "lo", "hi", "n_case", "n_control"))
         if "guards" in out:
             print(out["guards"].select("cohort", "guard", "type", "delta_years", "lo", "hi", "r_age", "bar_pass"))
+        if "predictions" in out:
+            print(out["predictions"].filter(pl.col("guard") == "none")
+                  .select("cohort", "type", "prediction", "delta_years", "lo", "hi", "lo90", "hi90", "verdict"))  # fmt: skip
 
 
 @app.command("positive-controls-fetch")
