@@ -22,17 +22,27 @@ Per cohort and coarse cell type (blood: ``composition.broad_class``; brain: ``BR
    by OLS on the donors inside the arms' common age range; a donor bootstrap (persons resampled, the control bias
    line refitted in each draw) gives the CI; paired differences between types use the same draws.
 
+6. **Guards** (``guards=True``, the bar cohort only; same folds, case assignment and bootstrap draws as the plain run):
+   *leave-DE-genes-out*: per type, the condition's top ``N`` genes by |t| in an independent cohort (AD vs control on
+   donor pseudobulk log-CPM, ``gene ~ case + age + sex [+ censored-age flag]``; cohorts combined by a sqrt(n)-weighted
+   Stouffer sum) are removed from the clock's candidate genes and the clocks retrained (``de_out_200``,
+   ``de_out_500``); a type no independent cohort can give falls back to DE on a held-out half of the bar cohort's
+   persons, who then leave that type's clock and contrast. *Gene halves*: the genes split at random into two disjoint
+   halves (5 seeded splits), a clock per half per type (``gene_half_<split><a|b>``).
+
 Pre-registered go/no-go (ROADMAP RM33, stage 0): in PsychAD (37a17b78), microglia or astrocytes show a larger AD
 acceleration than both oligodendrocytes and OPCs, with the bootstrap CI of each difference above 0. RADC (5e57cd50)
 is replication only, SLE (218acb0f) descriptive.
-Outputs (``data/output/summary/``): ``sys_gap_donor``, ``sys_gap_type``, ``sys_gap_contrast``, ``sys_gap_corr``.
+Outputs (``data/output/summary/``): ``sys_gap_donor``, ``sys_gap_type``, ``sys_gap_contrast``, ``sys_gap_corr`` (a run on
+some cohorts replaces only those cohorts' rows); with guards ``sys_gap_guards`` (contrast rows with ``guard``) and
+``sys_gap_de`` (the DE table used: cohort, type, gene, t).
 """
 
 from __future__ import annotations
 
 import logging
 import re
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 
 import numpy as np
 import polars as pl
@@ -75,6 +85,12 @@ CONDITIONS = {
 }
 BAR_COHORT = "37a17b78-4864-4a42-b67b-31c00962795a"
 GLIA, REFS = ("microglia", "astrocyte"), ("oligodendrocyte", "OPC")
+# Independent cohorts for the leave-DE-genes-out guard (same condition, never the bar cohort itself).
+DE_COHORTS = {
+    BAR_COHORT: ("5e57cd50-8e42-42d6-940d-5c1660d06864", "cff99df2-4904-44f7-9173-ff837f95606e"),
+}
+DE_TOPS = (200, 500)
+N_GENE_SPLITS = 5
 BATCH_COLUMNS = ("Processing_Cohort",)  # donor-level batch read from donor_obs/<id>.mixed.parquet (D9)
 ALPHAS = np.logspace(-1, 5, 13)
 
@@ -103,6 +119,8 @@ class Cohort:
     batch: list[str] | None
     batch_name: str | None
     types: dict[str, tuple[np.ndarray, np.ndarray, np.ndarray]] = field(default_factory=dict)  # idx, counts, n_cells
+    genes: list[str] = field(default_factory=list)
+    age_censored: np.ndarray | None = None  # True where the age is a censoring bound (e.g. "80 and over")
 
 
 def _cohort_dir(dataset_id: str):
@@ -125,17 +143,26 @@ def donor_batch(dataset_id: str, donor_ids: list[str]) -> tuple[list[str] | None
     return None, None
 
 
-def load_cohort(dataset_id: str, min_cells: int = 20) -> Cohort:
-    """Donor metadata and, per coarse type, the summed counts of donors with at least ``min_cells`` cells."""
+def load_cohort(dataset_id: str, min_cells: int = 20, by_donor: bool = False, keep_censored: bool = False) -> Cohort:
+    """Donor metadata and, per coarse type, the summed counts of donors with at least ``min_cells`` cells.
+    ``by_donor`` sums a donor's tissues (default: one unit per donor × tissue); ``keep_censored`` keeps donors whose
+    age is only a bound (age = the bound, flagged in ``age_censored``); used for DE, never for clocks."""
     d = _cohort_dir(dataset_id)
     g = pl.read_parquet(d / "groups.parquet")
     if "sex" not in g.columns and "Sex" in g.columns:
         g = g.with_columns(sex=pl.col("Sex").cast(pl.Utf8))
     ages = [stage_age(s) for s in g["development_stage"].to_list()]
+    if keep_censored:
+        age_v = [(a[1] if a[1] is not None else a[2]) if a else None for a in ages]
+    else:
+        age_v = [a[1] if a else None for a in ages]
     g = g.with_columns(
-        age=pl.Series([a[1] if a else None for a in ages], dtype=pl.Float64),
+        age=pl.Series(age_v, dtype=pl.Float64),
+        censored=pl.Series([bool(a) and a[0] != "exact" for a in ages], dtype=pl.Boolean),
         ctype=pl.Series([coarse_type(c) for c in g["cell_type"].to_list()]),
-        donor=pl.col("donor_id").cast(pl.Utf8) + ":" + pl.col("tissue"),
+        donor=pl.col("donor_id").cast(pl.Utf8)
+        if by_donor
+        else pl.col("donor_id").cast(pl.Utf8) + ":" + pl.col("tissue"),
     ).filter(pl.col("age").is_not_null())
     if "cv_group" not in g.columns:
         g = g.with_columns(cv_group=pl.col("donor"))
@@ -147,6 +174,7 @@ def load_cohort(dataset_id: str, min_cells: int = 20) -> Cohort:
             pl.col("disease").first(),
             pl.col("sex").first().cast(pl.Utf8),
             pl.col("cv_group").first().cast(pl.Utf8),
+            pl.col("censored").any(),
         )  # fmt: skip
         .sort("donor")
     )
@@ -162,6 +190,8 @@ def load_cohort(dataset_id: str, min_cells: int = 20) -> Cohort:
         sex=[str(x) for x in meta["sex"].to_list()],
         batch=batch,
         batch_name=batch_name,
+        genes=pl.read_parquet(d / "counts.parquet", columns=["gene_id"])["gene_id"].to_list(),
+        age_censored=meta["censored"].to_numpy(),
     )
     dix = {x: i for i, x in enumerate(donors)}
     for t in sorted(set(g["ctype"].to_list()) - {"other"}):
@@ -390,12 +420,179 @@ def bar_passes(rows: list[dict]) -> bool:
     return any(all((d := diff.get(f"{g} - {r}")) is not None and d["lo"] > 0 for r in REFS) for g in GLIA)
 
 
+# ---------------------------------------------------------------- guards
+
+
+def de_t(X: np.ndarray, case: np.ndarray, covars: list[np.ndarray]) -> np.ndarray:
+    """Per column of ``X`` (donors × genes), the OLS t of ``case`` in ``x ~ 1 + case + covars``."""
+    D = np.column_stack([np.ones(len(case)), case.astype(float), *covars])
+    keep = [0, 1] + [j for j in range(2, D.shape[1]) if D[:, j].std() > 0]  # drop constant covariates
+    D = D[:, keep]
+    beta, *_ = np.linalg.lstsq(D, X, rcond=None)
+    resid = X - D @ beta
+    dof = len(case) - D.shape[1]
+    s2 = (resid**2).sum(0) / dof
+    v = np.linalg.pinv(D.T @ D)[1, 1]
+    se = np.sqrt(s2 * v)
+    return np.where(se > 0, beta[1] / np.where(se > 0, se, 1), np.nan)
+
+
+def de_rows(
+    co: Cohort, rx: str, tag: str, min_arm: int = 8, min_frac: float = 0.25, keep: dict | None = None
+) -> list[dict]:
+    """AD (``rx``) vs control DE per type on donor pseudobulk log-CPM, ``gene ~ case + age + sex [+ censored]``; genes
+    with CPM >= 1 in at least ``min_frac`` of the type's donors. ``keep`` (type -> donor mask) restricts the donors."""
+    case_all = np.array([bool(re.search(rx, d.lower())) for d in co.disease])
+    ctrl_all = np.array([d == "normal" for d in co.disease])
+    rows = []
+    for t, (idx, C, _) in co.types.items():
+        use = (case_all[idx] | ctrl_all[idx]) & (keep[t] if keep and t in keep else True)
+        case, ctrl = case_all[idx][use], ctrl_all[idx][use]
+        if case.sum() < min_arm or ctrl.sum() < min_arm:
+            log.info("DE %s %s: %d cases, %d controls < %d; no DE", tag, t, case.sum(), ctrl.sum(), min_arm)
+            continue
+        cpm = _cpm(np.asarray(C[use], dtype=np.float64))
+        ok = (cpm >= 1).mean(0) >= min_frac
+        X = np.log1p(cpm[:, ok])
+        age = co.age[idx][use]
+        cov = [age - age.mean(), (np.array(co.sex)[idx][use] == "male").astype(float)]
+        if co.age_censored is not None:
+            cov.append(co.age_censored[idx][use].astype(float))
+        tv = de_t(X, case, cov)
+        n_case, n_ctrl = int(case.sum()), int(ctrl.sum())
+        rows += [{"cohort": tag, "type": t, "gene": g, "t": float(v), "n_case": n_case, "n_control": n_ctrl}
+                 for g, v in zip(np.asarray(co.genes)[ok], tv, strict=True) if np.isfinite(v)]  # fmt: skip
+    return rows
+
+
+def combine_de(de: pl.DataFrame) -> pl.DataFrame:
+    """Per type and gene, a sqrt(n)-weighted Stouffer sum of the cohorts' t (cohort ``combined``)."""
+    w = (pl.col("n_case") + pl.col("n_control")).sqrt()
+    return (
+        de.group_by("type", "gene")
+        .agg(
+            t=(w * pl.col("t")).sum() / (w**2).sum().sqrt(),
+            n_case=pl.col("n_case").sum(),
+            n_control=pl.col("n_control").sum(),
+        )  # fmt: skip
+        .with_columns(cohort=pl.lit("combined"))
+        .select(de.columns)
+    )
+
+
+def top_de_genes(de: pl.DataFrame, cohort: str, cell_type: str, n: int) -> list[str]:
+    """The ``n`` genes with the largest |t| for one cohort (or ``combined``) and type; ties broken by gene id."""
+    d = de.filter((pl.col("cohort") == cohort) & (pl.col("type") == cell_type))
+    return d.with_columns(a=pl.col("t").abs()).sort(["a", "gene"], descending=[True, False]).head(n)["gene"].to_list()
+
+
+def gene_halves(n_genes: int, n_splits: int, seed: int) -> list[tuple[np.ndarray, np.ndarray]]:
+    """``n_splits`` seeded random splits of ``range(n_genes)`` into two disjoint halves that cover it."""
+    out = []
+    for k in range(n_splits):
+        perm = np.random.default_rng([seed, 7919, k]).permutation(n_genes)
+        out.append((np.sort(perm[: n_genes // 2]), np.sort(perm[n_genes // 2 :])))
+    return out
+
+
+def independent_de(dataset_id: str, rx: str, min_cells: int) -> pl.DataFrame | None:
+    """DE rows from the condition's independent cohorts, per cohort and combined."""
+    rows: list[dict] = []
+    for c in DE_COHORTS.get(dataset_id, ()):
+        if not _cohort_dir(c).exists():
+            log.info("DE cohort %s not on disk; skipped", c[:8])
+            continue
+        rows += de_rows(load_cohort(c, min_cells, by_donor=True, keep_censored=True), rx, c[:8])
+    if not rows:
+        return None
+    de = pl.DataFrame(rows)
+    return pl.concat([de, combine_de(de)])
+
+
+def run_guards(
+    co: Cohort, res: dict, logx: dict[str, np.ndarray], case: np.ndarray, ctrl_all: np.ndarray,
+    batch: np.ndarray | None, pairs: list[tuple[str, str]], n_genes: int, min_cells: int, seed: int,
+) -> tuple[list[dict], pl.DataFrame | None]:  # fmt: skip
+    """Leave-DE-genes-out and gene-half clocks on the plain run's folds; each guard's contrast with the same seed."""
+    tag = co.name[:8] if len(co.name) == 36 else co.name
+    nd, types = len(co.donors), list(res)
+    _, rx = CONDITIONS[co.name]
+    de = independent_de(co.name, rx, min_cells)
+    have = set() if de is None else set(de.filter(pl.col("cohort") == "combined")["type"].to_list())
+    source = {t: "combined" for t in types if t in have}
+    no_drop = {t: np.zeros(len(co.types[t][0]), dtype=bool) for t in types}
+    drop = dict(no_drop)
+    missing = [t for t in types if t not in have]
+    if missing:  # fallback: DE on a held-out half of this cohort's persons, who then leave that type
+        persons = np.unique(co.person)
+        held = set(np.random.default_rng([seed, 4049]).choice(persons, len(persons) // 2, replace=False).tolist())
+        held_mask = np.array([p in held for p in co.person])
+        keep = {t: held_mask[co.types[t][0]] for t in missing}
+        sub = replace(co, types={t: co.types[t] for t in missing})
+        fb = de_rows(sub, rx, f"{tag}-heldout", keep=keep)
+        for t in missing:
+            if any(r["type"] == t for r in fb):
+                source[t] = f"{tag}-heldout"
+                drop[t] = keep[t]
+        log.info("%s: DE fallback (held-out half) for %s", tag, [t for t in missing if t in source])
+        if fb:
+            de = pl.concat([de, pl.DataFrame(fb)]) if de is not None else pl.DataFrame(fb)
+    gene_ix = {g: i for i, g in enumerate(co.genes)}
+    specs: list[tuple[str, dict[str, np.ndarray], dict[str, np.ndarray]]] = []
+    for n in DE_TOPS:
+        masks = {}
+        for t in types:
+            m = np.ones(len(co.genes), dtype=bool)
+            if t in source:
+                m[[gene_ix[g] for g in top_de_genes(de, source[t], t, n) if g in gene_ix]] = False
+            masks[t] = m
+        specs.append((f"de_out_{n}", masks, drop))
+    for k, halves in enumerate(gene_halves(len(co.genes), N_GENE_SPLITS, seed)):
+        for h, cols in zip("ab", halves, strict=True):
+            m = np.zeros(len(co.genes), dtype=bool)
+            m[cols] = True
+            specs.append((f"gene_half_{k}{h}", dict.fromkeys(types, m), no_drop))
+    out = []
+    for name, masks, drops in specs:
+        preds, info = {}, {}
+        for t in types:
+            idx = co.types[t][0]
+            age, ctrl, dr = co.age[idx], ctrl_all[idx], drops[t]
+            if t in source or not name.startswith("de_out"):
+                (pred,) = oof_clock([logx[t][:, masks[t]]], age, ctrl & ~dr, res[t]["fold"][idx], n_genes)
+                pred[dr] = np.nan
+            else:  # no DE for this type at all: no guarded clock
+                pred = np.full(len(idx), np.nan)
+            full = np.full(nd, np.nan)
+            full[idx] = pred
+            preds[t] = full
+            c = ctrl & ~np.isnan(pred)
+            ok = c.sum() >= 10
+            info[t] = {"r_age": float(np.corrcoef(pred[c], age[c])[0, 1]) if ok else np.nan,
+                       "slope": float(np.polyfit(age[c], pred[c], 1)[0]) if ok else np.nan,
+                       "n_candidate_genes": int(masks[t].sum()), "n_dropped_donors": int(dr.sum()),
+                       "de_source": source.get(t, "") if name.startswith("de_out") else ""}  # fmt: skip
+        rows = contrast(preds, co.age, np.array(co.sex), batch, case, ctrl_all, co.person, pairs, seed=seed)
+        bar = bar_passes(rows)
+        log.info("%s guard %s: bar %s", tag, name, "PASS" if bar else "FAIL")
+        for r in rows:
+            i = info.get(r["type"], {})
+            out.append({"guard": name, **r, "r_age": i.get("r_age", np.nan), "slope": i.get("slope", np.nan),
+                        "n_candidate_genes": i.get("n_candidate_genes", -1),
+                        "n_dropped_donors": i.get("n_dropped_donors", 0), "de_source": i.get("de_source", ""),
+                        "bar_pass": bar})  # fmt: skip
+    if de is not None:
+        de = de.with_columns(for_cohort=pl.lit(tag))
+    return out, de
+
+
 # ---------------------------------------------------------------- per cohort
 
 
 def run_cohort(
-    dataset_id: str, n_genes: int = 2000, min_cells: int = 20, min_controls: int = 20, seed: int = 0
-) -> dict[str, list[dict]]:
+    dataset_id: str, n_genes: int = 2000, min_cells: int = 20, min_controls: int = 20, seed: int = 0,
+    guards: bool = False,
+) -> dict[str, list[dict]]:  # fmt: skip
     co = load_cohort(dataset_id, min_cells)
     ctrl_all = np.array([d == "normal" for d in co.disease])
     tag = dataset_id[:8] if len(dataset_id) == 36 else dataset_id
@@ -403,6 +600,8 @@ def run_cohort(
     rng = np.random.default_rng(seed)
     nd = len(co.donors)
     res: dict[str, dict] = {}
+    with_guards = guards and dataset_id in DE_COHORTS and dataset_id in CONDITIONS
+    logx: dict[str, np.ndarray] = {}
     for t, (idx, C, nc) in co.types.items():
         ctrl = ctrl_all[idx]
         if ctrl.sum() < min_controls:
@@ -411,7 +610,10 @@ def run_cohort(
         age, person = co.age[idx], co.person[idx]
         fold = assign_folds(person, ctrl, 5, rng)
         A, B = thin_halves(C, rng)
-        pred, pa, pb = oof_clock([log_cpm(C), log_cpm(A), log_cpm(B)], age, ctrl, fold, n_genes)
+        X = log_cpm(C)
+        if with_guards:
+            logx[t] = X
+        pred, pa, pb = oof_clock([X, log_cpm(A), log_cpm(B)], age, ctrl, fold, n_genes)
         g, ga, gb = gaps(pred, age, ctrl), gaps(pa, age, ctrl), gaps(pb, age, ctrl)
         r_half = float(np.corrcoef(ga["gap"][ctrl], gb["gap"][ctrl])[0, 1])
         rel = spearman_brown(r_half)
@@ -466,7 +668,9 @@ def run_cohort(
             corr_rows.append({"cohort": tag, "type_a": t, "type_b": u, "n": int(N[j, k]), "r_raw": float(R[j, k]),
                               "r_disattenuated": disattenuate(R[j, k], r["rel"], res[u]["rel"]),
                               "both_measured": t in measured and u in measured})  # fmt: skip
-    contrast_rows = []
+    contrast_rows: list[dict] = []
+    guard_rows: list[dict] = []
+    de_rows_used: list[dict] = []
     if dataset_id in CONDITIONS:
         cond, rx = CONDITIONS[dataset_id]
         case = np.array([bool(re.search(rx, d.lower())) for d in co.disease])
@@ -480,23 +684,49 @@ def run_cohort(
             st = res[r["type"]]["status"] if r["type"] in res else ""
             contrast_rows.append({"cohort": tag, "condition": cond, **r, "status": st, "covariates": cov,
                                   "n_other_excluded": n_other, "beyond_ci": bool(r["lo"] > 0 or r["hi"] < 0)})  # fmt: skip
+        bar = bar_passes(rows)
         if dataset_id == BAR_COHORT:
-            log.info("%s go/no-go bar: %s", tag, "PASS" if bar_passes(rows) else "FAIL")
-    return {"donor": donor_rows, "type": type_rows, "contrast": contrast_rows, "corr": corr_rows}
+            log.info("%s go/no-go bar: %s", tag, "PASS" if bar else "FAIL")
+        if with_guards:
+            plain = [{"guard": "none", **r, "r_age": res[r["type"]]["r_age"] if r["type"] in res else np.nan,
+                      "slope": res[r["type"]]["slope"] if r["type"] in res else np.nan,
+                      "n_candidate_genes": len(co.genes) if r["type"] in res else -1, "n_dropped_donors": 0,
+                      "de_source": "", "bar_pass": bar} for r in rows]  # fmt: skip
+            more, de = run_guards(co, res, logx, case, ctrl_all, batch, pairs, n_genes, min_cells, seed)
+            extra = {"cohort": tag, "condition": cond, "covariates": cov, "n_other_excluded": n_other}
+            for r in plain + more:
+                st = res[r["type"]]["status"] if r["type"] in res else ""
+                guard_rows.append({**extra, **r, "status": st, "beyond_ci": bool(r["lo"] > 0 or r["hi"] < 0)})
+            if de is not None:
+                de_rows_used = de.to_dicts()
+    return {"donor": donor_rows, "type": type_rows, "contrast": contrast_rows, "corr": corr_rows,
+            "guards": guard_rows, "de": de_rows_used}  # fmt: skip
+
+
+def _merge_write(k: str, new: pl.DataFrame) -> pl.DataFrame:
+    """Replace the rows of the cohorts in ``new`` in ``sys_gap_<k>.parquet``; other cohorts' rows stay."""
+    path = SUMMARY / f"sys_gap_{k}.parquet"
+    key = "for_cohort" if k == "de" else "cohort"
+    if path.exists():
+        old = pl.read_parquet(path)
+        if key in old.columns:
+            new = pl.concat([old.filter(~pl.col(key).is_in(new[key].unique().to_list())), new], how="diagonal_relaxed")
+    new.write_parquet(path, compression="zstd")
+    return new
 
 
 def run(
-    cohorts: tuple[str, ...] = COHORTS, n_genes: int = 2000, min_cells: int = 20, min_controls: int = 20, seed: int = 0
-) -> dict[str, pl.DataFrame]:
+    cohorts: tuple[str, ...] = COHORTS, n_genes: int = 2000, min_cells: int = 20, min_controls: int = 20, seed: int = 0,
+    guards: bool = False,
+) -> dict[str, pl.DataFrame]:  # fmt: skip
     SUMMARY.mkdir(parents=True, exist_ok=True)
-    acc: dict[str, list[dict]] = {k: [] for k in ("donor", "type", "contrast", "corr")}
+    acc: dict[str, list[dict]] = {k: [] for k in ("donor", "type", "contrast", "corr", "guards", "de")}
     out: dict[str, pl.DataFrame] = {}
     for c in cohorts:
-        part = run_cohort(c, n_genes, min_cells, min_controls, seed)
+        part = run_cohort(c, n_genes, min_cells, min_controls, seed, guards=guards)
         for k, v in part.items():
             acc[k] += v
         for k, v in acc.items():  # after every cohort: a crash keeps the rest
             if v:
-                out[k] = pl.DataFrame(v, infer_schema_length=None)
-                out[k].write_parquet(SUMMARY / f"sys_gap_{k}.parquet", compression="zstd")
+                out[k] = _merge_write(k, pl.DataFrame(v, infer_schema_length=None))
     return out

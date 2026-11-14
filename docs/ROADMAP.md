@@ -50,7 +50,7 @@ GSE114007 (OA: 5 pairs, controls young), GSE135251 (MASLD: no ages in GEO, NCBI 
 
 ## RM33 — System-level age gaps: which cell types or tissues make a person look older
 
-**State:** building (design A; stage 0 run, a601870; its two guards next, then AD replication and CMV) · **Owner:** lead
+**State:** building (design A; stage 0 run, a601870; its two guards run 2026-11-14, `sys-gap --guards`; AD replication and CMV next) · **Owner:** lead
 
 Review (2026-11-13; a design agent wrote three designs, two separate reviewers judged them on our data and cluster):
 A labelled cell types 6/10 validity, 8/10 feasibility; B label-free groups on our encoder 4/4 (encoder never saw brain,
@@ -68,6 +68,17 @@ OPC +5.4, excitatory neurons +3.0; bar passes through astrocytes only (− oligo
 [0.6, 7.3]); microglia not beyond the CI. Provisional: every type is older in AD, and the leave-DE-genes-out and
 gene-half clocks are not in yet; RADC unmeasurable (18 controls with exact ages). Next: those two guards, AD
 replication on cff99df2 and the microglia atlas, then CMV on Allen.
+Guards (2026-11-14, `rna-age sys-gap --guards`, `sys_gap_guards.parquet`, DE in `sys_gap_de.parquet`; same folds,
+case assignment and bootstrap draws as stage 0, which the run reproduces exactly). Leave-DE-genes-out, DE from RADC
+5e57cd50 and cff99df2 (AD vs control per type, `gene ~ case + age + sex [+ age-censored flag]`, Stouffer-combined;
+every type had independent DE, no fallback used): the bar holds with 200 genes out (astrocyte − oligodendrocyte 3.1 y
+[0.2, 6.2], − OPC 3.6 [0.3, 6.9]) and, barely, with 500 (2.9 [0.1, 6.0]; 3.3 [0.0, 6.7]); every type still older in
+AD (astrocyte 8.7-9.0 y, microglia 7.6-8.0, oligodendrocyte 5.8, OPC 5.3). But the independent DE is weak (max |t|
+4-5 per type, near the null maximum over ~22k genes; 10-19 of the 200 removed genes were among a clock's 2,000
+candidates), so this guard has little power. Gene halves (5 splits × 2): the bar holds in 6 of 10 halves; astrocyte −
+OPC is beyond the CI in all 10 (median 5.6 y, 4.8-6.5), astrocyte − oligodendrocyte in 6 (median 3.8, 1.5-5.8),
+microglia − oligodendrocyte in 1 (median 1.9, −0.5-4.1). Reading: astrocytes > OPC is robust, astrocytes >
+oligodendrocytes is not; the AD shift common to all types (5-11 y) dominates. Stage 0 bar: not robustly passed.
 
 Design (Anton, same topic: "we have to modify design to allow idea of seeing age difference per system"): his
 individual + group loss with the system (cell type; tissue in bulk) as the unit. (0) One clock per system on

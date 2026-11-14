@@ -1,17 +1,23 @@
 import numpy as np
+import polars as pl
 
 from rna_age.train.sys_gap import (
+    Cohort,
     assign_folds,
     bar_passes,
     coarse_type,
+    combine_de,
     contrast,
+    de_rows,
     disattenuate,
     fit_fold,
     gaps,
+    gene_halves,
     one_factor,
     oof_clock,
     spearman_brown,
     thin_halves,
+    top_de_genes,
 )
 
 
@@ -141,3 +147,51 @@ def test_contrast_recovers_planted_acceleration():
     assert by["microglia - oligodendrocyte"]["lo"] > 0 and by["microglia - OPC"]["lo"] > 0
     assert bar_passes(rows)
     assert not bar_passes([r for r in rows if not r["type"].startswith("microglia")])
+
+
+def _de_cohort(rng: np.random.Generator, n: int, planted: np.ndarray, genes: int = 300, name: str = "x") -> Cohort:
+    age = rng.uniform(60, 95, n)
+    disease = np.where(rng.random(n) < 0.6, "dementia || Alzheimer disease", "normal")
+    sex = np.where(rng.random(n) < 0.5, "male", "female")
+    base = rng.uniform(20, 200, genes)
+    eff = np.zeros(genes)
+    eff[planted] = np.where(np.arange(len(planted)) % 2 == 0, 1.0, -1.0)  # same direction in every cohort
+    age_eff = np.zeros(genes)
+    age_eff[-20:] = 0.02  # age genes: must not rank as DE, age is a covariate
+    case = disease != "normal"
+    mu = base * np.exp(np.outer(case, eff) + np.outer(age - 75, age_eff))
+    C = rng.poisson(mu * rng.uniform(0.5, 2, n)[:, None])
+    co = Cohort(name=name, donors=[f"d{i}" for i in range(n)], person=np.arange(n), age=age,
+                disease=list(disease), sex=list(sex), batch=None, batch_name=None,
+                genes=[f"G{j}" for j in range(genes)], age_censored=age > 90)  # fmt: skip
+    co.types["astrocyte"] = (np.arange(n), C, np.full(n, 100.0))
+    return co
+
+
+def test_de_out_removes_the_planted_genes():
+    rng = np.random.default_rng(8)
+    planted = rng.choice(np.arange(200), 15, replace=False)
+    a = de_rows(_de_cohort(rng, 80, planted, name="a"), r"alzheimer disease", "a")
+    b = de_rows(_de_cohort(rng, 40, planted, name="b"), r"alzheimer disease", "b")
+    de = pl.DataFrame(a + b)
+    de = pl.concat([de, combine_de(de)])
+    assert set(de["cohort"].unique().to_list()) == {"a", "b", "combined"}
+    top = top_de_genes(de, "combined", "astrocyte", 15)
+    assert set(top) == {f"G{j}" for j in planted}
+    # the candidate mask built from them leaves none of the planted genes and keeps the rest
+    genes = [f"G{j}" for j in range(300)]
+    mask = ~np.isin(genes, top_de_genes(de, "combined", "astrocyte", 50))
+    assert not mask[planted].any() and mask.sum() == 250
+    # too few donors in an arm: no DE for that type
+    assert de_rows(_de_cohort(rng, 10, planted), r"alzheimer disease", "c", min_arm=8) == []
+
+
+def test_gene_halves_are_disjoint_cover_and_differ():
+    splits = gene_halves(1001, 5, seed=0)
+    assert len(splits) == 5
+    for a, b in splits:
+        assert len(np.intersect1d(a, b)) == 0
+        assert np.array_equal(np.sort(np.concatenate([a, b])), np.arange(1001))
+        assert abs(len(a) - len(b)) <= 1
+    assert not np.array_equal(splits[0][0], splits[1][0])
+    assert all(np.array_equal(x[0], y[0]) for x, y in zip(splits, gene_halves(1001, 5, seed=0), strict=True))
