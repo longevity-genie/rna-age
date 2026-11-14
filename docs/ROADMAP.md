@@ -85,6 +85,20 @@ bug"): RM33 is judged across all positive controls, not on one contrast. It pass
 condition × system predictions hold; a prediction that fails reproducibly (in every guard and replication) is reported
 as a finding about the assumption, not hidden. Next: CMV in the Allen aging cohort (ff4235bb, downloaded; condition from
 its CMV column, clocks on CMV-negative donors) with ALTRA (789ad837) as replication, then the other usable controls.
+CMV pre-registration (2026-11-14, written before any CMV run). Condition from the donor metadata column `subject.cmv`:
+cases `Positive`, controls `Negative`, both healthy by the disease label (the label minus "cytomegalovirus infection"
+is `normal`; ALTRA's RA donors, and donors with CMV `Equivocal` or missing, leave the contrast). The person is the
+subject (`subject.subjectGuid`); a subject with several samples enters clock and contrast with its first visit (lowest
+age at draw), the later visits are scored by the same fold model and give each type's test-retest reliability
+(Pearson r of the gaps of visits 1 and 2, CMV-negative subjects), beside the split-half reliability. Stage 0 as for AD:
+per-type ridge clocks on CMV-negative donors, same fold and case-assignment rules, gaps in years, CMV+ − CMV− with
+age, age², sex (+ `batch_id` in Allen; ALTRA has no batch-like column). Predictions, scored in Allen (ff4235bb), then
+ALTRA as replication, and per gene-half guard in Allen: (1) CD8 T and (2) CD4 T accelerate in CMV+ — hold if the 95 %
+CI is above 0, fail if it is below 0 or the 90 % CI lies inside ±2 y, else inconclusive; (3) CD8 T − monocyte > 0,
+same rule; (4) monocytes and (5) B do not accelerate — hold if the 90 % CI lies inside ±2 y (equivalence), fail if
+the 95 % CI lies wholly above 2 or below −2, else inconclusive; NK may accelerate: exploratory, scored by rule (1) but
+not counted. CMV passes when (1)-(5) hold in Allen and none fails in ALTRA (ALTRA's ~23 CMV-negative controls make
+inconclusive likely there). Output `sys_gap_predictions.parquet`.
 
 Design (Anton, same topic: "we have to modify design to allow idea of seeing age difference per system"): his
 individual + group loss with the system (cell type; tissue in bulk) as the unit. (0) One clock per system on
