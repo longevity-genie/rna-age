@@ -50,7 +50,7 @@ GSE114007 (OA: 5 pairs, controls young), GSE135251 (MASLD: no ages in GEO, NCBI 
 
 ## RM33 — System-level age gaps: which cell types or tissues make a person look older
 
-**State:** building (design A; stage 0 run, a601870; its two guards run 2026-11-14, `sys-gap --guards`; AD replication and CMV next) · **Owner:** lead
+**State:** building (design A; stage 0 run, a601870; its two guards run 2026-11-14, `sys-gap --guards`; CMV run 2026-11-14: CD8 T holds, B fails reproducibly; AD replication next) · **Owner:** lead
 
 Review (2026-11-13; a design agent wrote three designs, two separate reviewers judged them on our data and cluster):
 A labelled cell types 6/10 validity, 8/10 feasibility; B label-free groups on our encoder 4/4 (encoder never saw brain,
@@ -99,6 +99,21 @@ same rule; (4) monocytes and (5) B do not accelerate — hold if the 90 % CI lie
 the 95 % CI lies wholly above 2 or below −2, else inconclusive; NK may accelerate: exploratory, scored by rule (1) but
 not counted. CMV passes when (1)-(5) hold in Allen and none fails in ALTRA (ALTRA's ~23 CMV-negative controls make
 inconclusive likely there). Output `sys_gap_predictions.parquet`.
+CMV results (2026-11-14, `rna-age sys-gap --cohorts cmv --guards`). Allen: 225 subjects with exact ages (9 aged
+"80 and over" leave; ages 40-89), 127 CMV+ / 96 CMV−, one sample per subject in this Census release (no repeat
+visits, so no test-retest; split-half 0.81-0.99), batch_id (17 levels) as covariate. CMV+ − CMV− in years [95 % CI]:
+CD8 T +4.9 [1.0, 9.1], CD4 T −1.2 [−3.9, 1.6], NK −5.4 [−10.1, −1.6], monocyte −6.7 [−25.5, 3.1] (slope 0.15: the
+years scale is wide; −0.16 z [−0.39, 0.08]), B −8.7 [−18.1, −2.7], other T −0.5, DC −8.0 [−24.4, 1.1]; CD8 T −
+monocyte +11.6 [2.5, 29.7], CD8 T − B +13.6 [6.6, 23.0]. Verdicts: (1) CD8 T hold, (2) CD4 T inconclusive (neither
+above 0 nor inside ±2 y), (3) CD8 T − monocyte hold, (4) monocyte inconclusive (90 % CI −21.2-1.3), (5) B fail (B
+look *younger* in CMV+), NK (exploratory) younger, fail. Gene halves (10): CD8 T holds in 9, CD8 T − monocyte in 10,
+NK younger in 10, B younger beyond the CI in 8, CD4 T never above 0: the CD8 T signal and the B / NK shifts are
+reproducible. ALTRA: 23 CMV-negative controls (25 healthy controls have no CMV status) give no usable clocks (B and
+monocyte slopes ≤ 0, CD8 T r 0.44, CIs tens of years wide): every prediction inconclusive, none fails, so it neither
+replicates nor contradicts. CMV not passed: 2 of 5 hold, B fails reproducibly — reported as a finding about the
+assumption (CMV shifts the B and NK compartments, e.g. adaptive NK and memory-B composition within the coarse class,
+the opposite way to the age trend), not hidden. Doubts: Allen is 10x Flex (probe-based) and ages 40+ only; ALTRA
+pools a donor's visits into one pseudobulk; ALTRA's "healthy" include ACPA+ at-risk donors.
 
 Design (Anton, same topic: "we have to modify design to allow idea of seeing age difference per system"): his
 individual + group loss with the system (cell type; tissue in bulk) as the unit. (0) One clock per system on
