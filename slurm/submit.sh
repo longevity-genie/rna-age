@@ -21,6 +21,8 @@ else
   [ -n "$RNA_AGE_ACCOUNT" ] && flags+=(--account="$RNA_AGE_ACCOUNT")
   [ -n "$RNA_AGE_CPU_PARTITION" ] || { echo "set RNA_AGE_CPU_PARTITION in slurm/env.local.sh" >&2; exit 2; }
   flags+=(--partition="$RNA_AGE_CPU_PARTITION" --cpus-per-task="${CPUS:-$RNA_AGE_CPU_CPUS}" --mem="${MEM:-$RNA_AGE_CPU_MEM}")
+  # CPU-only jobs yield to GPU jobs' few cores under the shared CPU cap (account rule, 2026-11-18); GPU jobs never.
+  flags+=(--nice=100)
 fi
 # The job comment every seat on the account submits with (the rigger's rule, 2026-11-10): who runs it, what it is,
 # its estimate and its card (filled in by job.sbatch once it picks one). WHAT= and ETA= (ISO-8601 with offset) set it;
