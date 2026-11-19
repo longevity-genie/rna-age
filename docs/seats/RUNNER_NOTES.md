@@ -48,3 +48,7 @@ Nothing. RM1 finished (75f72cd); both GPU slots left free on the lead's word unt
   source text kept in the session's scratchpad, rebuilt from STATUS.md); milestones are the lead's.
 - Note: from e1e09bd until 84883c4 this file named cluster nodes and the account's data path (removed; history not
   rewritten, a maintainers' call).
+- Rule (Anton, 2026-11-19): a model we publish or hand over ships as ONNX (`model.onnx` plus a meta file of its
+  inputs, outputs and the checks run, at least ONNX Runtime vs PyTorch), next to safetensors weights and config.
+  rna-age has published no model yet (checked 2026-11-20); the first one follows this.
+- CPU-only jobs carry `--nice=100` (account rule 2026-11-18), set by `slurm/submit.sh` since d334c82.
