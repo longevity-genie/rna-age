@@ -129,6 +129,23 @@ classical monocytes within ±2 y. Exploratory, not counted: every other fine typ
 share of its coarse class, CMV+ − CMV−, adjusted for age, age², sex and batch (difference in share with a person-
 bootstrap CI), to show which shifts drive the coarse results. Outputs: `level` column (coarse / fine) in
 `sys_gap_type`, `sys_gap_contrast`, `sys_gap_predictions`; `sys_gap_composition.parquet`.
+CMV fine-type results (2026-11-20, `rna-age sys-gap --cohorts ff4235bb… --level both --guards`; the coarse Allen rows
+reproduce the committed ones exactly). All 14 fine clocks measured (reliability 0.78-0.98, slopes 0.15-0.54). CMV+ −
+CMV− in years [95 % CI]: EM CD8 T +5.7 [−0.0, 11.8], naive CD8 T −1.9 [−6.4, 3.7], naive CD4 T −1.0 [−3.8, 1.7], CM
+CD4 T −4.1 [−7.6, −0.9], EM CD4 T +0.2 [−2.6, 3.2], memory Treg −3.2 [−7.7, 0.4], MAIT +2.7 [−1.1, 7.7], gd T +3.1
+[−1.8, 8.5], CD56dim NK −5.5 [−10.2, −1.6], CD56bright NK −9.0 [−17.1, −2.7], naive B −4.3 [−12.5, 1.7], memory B
+−10.4 [−18.6, −4.7], classical monocyte −6.5 [−17.7, 0.5], CD16 monocyte −2.9 [−12.2, 4.8]; EM CD8 T − naive CD8 T
++7.5 [1.3, 13.7]. Verdicts (gene halves, 10): P1 EM CD8 T inconclusive (95 % CI touches 0; halves 0 hold, median
++0.2 y), P2 naive B inconclusive (10 inconclusive, median −5.4), P3 memory B fail (8 fail), P4 CD56dim NK
+inconclusive (90 % CI −9.5 to −2.1; 10 inconclusive, median −4.5), P5 classical monocyte inconclusive (10). 0 of 5
+hold, 1 fails. Composition (share of the coarse class, percentage points): CD8 T EM +15.2 [10.6, 19.7], naive −12.9
+[−17.3, −8.4]; other T gd +15.3 [9.3, 21.1], MAIT −12.9 [−18.7, −7.2]; naive CD4 −4.5 [−8.7, −0.2], "CD4 memory T"
++6.1 [4.7, 7.7]; but B (memory +0.2 [−4.1, 5.1]), NK (CD56dim +0.9 [−0.8, 2.6]) and monocytes (classical −0.9)
+do not shift. Reading: the hypothesis fails for B and NK: their labelled subsets do not move with CMV, and every B and
+NK subset reads younger by itself (memory B reproducibly), so the coarse B / NK "younger" is not composition at this
+label resolution (it may be a state inside a label, e.g. NKG2C+ adaptive NK within CD56dim, which Allen does not
+label, or CMV programs that run against the age trend). For CD8 the composition story holds: the EM shift is large and
+EM CD8 by itself is only weakly older (not robust to gene halves), so the coarse CD8 +4.9 y is partly composition.
 
 Design (Anton, same topic: "we have to modify design to allow idea of seeing age difference per system"): his
 individual + group loss with the system (cell type; tissue in bulk) as the unit. (0) One clock per system on
