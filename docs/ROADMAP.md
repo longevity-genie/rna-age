@@ -114,6 +114,21 @@ replicates nor contradicts. CMV not passed: 2 of 5 hold, B fails reproducibly �
 assumption (CMV shifts the B and NK compartments, e.g. adaptive NK and memory-B composition within the coarse class,
 the opposite way to the age trend), not hidden. Doubts: Allen is 10x Flex (probe-based) and ages 40+ only; ALTRA
 pools a donor's visits into one pseudobulk; ALTRA's "healthy" include ACPA+ at-risk donors.
+CMV fine-type pre-registration (2026-11-20, written before any fine-type run). Hypothesis: CMV shifts subset
+composition inside a coarse class (more effector-memory CD8, adaptive NK, memory B), and a coarse clock reads that
+shift as age. Test: the same pipeline in Allen (ff4235bb) with the dataset's own fine `cell_type` labels (uniform
+within this cohort) as systems (`--level fine`), each its own system: naive CD8 T, effector memory CD8 T, naive CD4 T,
+central memory CD4 T, effector memory CD4 T, memory Treg, MAIT, gamma-delta T, CD16+ CD56-dim NK, CD56-bright NK,
+naive B, memory B, classical (CD14+) monocyte, CD16+ monocyte (≥ 20 cells in most donors). Same case definition,
+clocks on CMV-negative donors only, same fold and case-assignment rules, age, age², sex, `batch_id`; gene-half guard
+(5 splits × 2) on the counted predictions. Scoring as in the CMV pre-registration: "accelerates" holds if the 95 % CI
+is above 0; "within ±2 y" holds if the 90 % CI lies inside ±2 y and fails if the 95 % CI lies wholly beyond it.
+Predictions: (P1) effector memory CD8 T accelerates in CMV+; (P2) naive B and (P3) memory B within ±2 y (the coarse
+B "younger" is composition); (P4) CD16+ CD56-dim NK within ±2 y (the coarse NK "younger" is composition); (P5)
+classical monocytes within ±2 y. Exploratory, not counted: every other fine type, and composition: each fine type's
+share of its coarse class, CMV+ − CMV−, adjusted for age, age², sex and batch (difference in share with a person-
+bootstrap CI), to show which shifts drive the coarse results. Outputs: `level` column (coarse / fine) in
+`sys_gap_type`, `sys_gap_contrast`, `sys_gap_predictions`; `sys_gap_composition.parquet`.
 
 Design (Anton, same topic: "we have to modify design to allow idea of seeing age difference per system"): his
 individual + group loss with the system (cell type; tissue in bulk) as the unit. (0) One clock per system on
