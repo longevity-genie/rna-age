@@ -1,6 +1,7 @@
 import numpy as np
 import polars as pl
 
+from rna_age.train import sys_gap
 from rna_age.train.sys_gap import (
     CaseDef,
     Cohort,
@@ -9,18 +10,22 @@ from rna_age.train.sys_gap import (
     bar_passes,
     coarse_type,
     combine_de,
+    composition_rows,
     contrast,
     de_rows,
     disattenuate,
+    fine_type,
     first_visits,
     fit_fold,
     gaps,
     gene_halves,
+    load_cohort,
     one_factor,
     oof_clock,
     predictions_pass,
     retest_reliability,
     score_predictions,
+    share_contrast,
     spearman_brown,
     thin_halves,
     top_de_genes,
@@ -268,3 +273,65 @@ def test_prediction_verdicts():
     p = score_predictions(cd, rows)
     assert [x["verdict"] for x in p] == ["hold", "hold", "inconclusive"]  # NK absent
     assert predictions_pass(cd, rows)  # exploratory NK does not count
+
+
+def _fake_cohort(tmp_path, monkeypatch, labels: dict[str, int], n_donors: int = 6) -> None:
+    """A one-tissue cohort on disk: every donor has every label with the given cell count, 5 genes."""
+    monkeypatch.setattr(sys_gap, "INPUT", tmp_path)
+    d = tmp_path / "census_pseudobulk" / "by_dataset_celltype" / "toy"
+    d.mkdir(parents=True)
+    rows, counts = [], {"gene_id": [f"G{i}" for i in range(5)]}
+    for k in range(n_donors):
+        for lab, n in labels.items():
+            sid = f"D{k}:{lab}"
+            rows.append({"donor_id": f"D{k}", "tissue": "blood", "cell_type": lab, "n_cells": n, "sample_id": sid,
+                         "development_stage": f"{40 + k}-year-old stage", "disease": "normal",
+                         "sex": "female"})  # fmt: skip
+            counts[sid] = [n] * 5
+    pl.DataFrame(rows).write_parquet(d / "groups.parquet")
+    pl.DataFrame(counts).write_parquet(d / "counts.parquet")
+
+
+def test_fine_level_systems_from_labels(tmp_path, monkeypatch):
+    labels = {"naive B cell": 30, "memory B cell": 25, "transitional stage B cell": 40,
+              "effector memory CD8-positive, alpha-beta T cell": 50, "CD16-positive, CD56-dim natural killer cell, "
+              "human": 10}  # fmt: skip
+    _fake_cohort(tmp_path, monkeypatch, labels)
+    assert fine_type("Memory B cell") == "memory B" and fine_type("transitional stage B cell") == "other"
+    fine = load_cohort("toy", min_cells=20, level="fine")
+    assert sorted(fine.types) == ["EM CD8 T", "memory B", "naive B"]  # NK below min_cells; unnamed labels: other
+    assert (fine.types["memory B"][2] == 25).all() and (fine.types["memory B"][1] == 25).all()
+    coarse = load_cohort("toy", min_cells=20)  # coarse sums the B labels and keeps NK out
+    assert sorted(coarse.types) == ["B", "CD8 T"] and (coarse.types["B"][2] == 95).all()
+    assert coarse.age.tolist() == fine.age.tolist() and coarse.donors == fine.donors
+    # composition: shares of the B labels within B sum to 1; EM CD8 is all of CD8 here
+    case = np.array([True, False] * 3)
+    rows = composition_rows(fine, case, ~case, None, seed=0)
+    by = {r["label"]: r for r in rows}
+    assert set(by) == set(labels)  # composition counts every cell, even of a system below min_cells
+    assert by["CD16-positive, CD56-dim natural killer cell, human"]["n_control"] == 0  # its class < 20 cells
+    assert abs(sum(by[x]["share_control"] for x in by if by[x]["coarse"] == "B") - 1) < 1e-9
+    assert by["memory B cell"]["is_system"] and not by["transitional stage B cell"]["is_system"]
+
+
+def test_share_contrast_recovers_a_planted_shift():
+    rng = np.random.default_rng(5)
+    n = 300
+    age = rng.uniform(40, 85, n)
+    sex = rng.choice(["male", "female"], n)
+    case = rng.random(n) < 0.5
+    person = np.arange(n)
+    # memory B share rises with age and by 0.10 in cases; naive B takes the rest; an unrelated NK pair unchanged
+    p_mem = np.clip(0.3 + 0.004 * (age - 60) + 0.10 * case + rng.normal(0, 0.05, n), 0.02, 0.98)
+    tot_b, tot_nk = rng.integers(400, 900, n), rng.integers(400, 900, n)
+    mem = rng.binomial(tot_b, p_mem)
+    dim = rng.binomial(tot_nk, 0.9)
+    cells = np.column_stack([mem, tot_b - mem, dim, tot_nk - dim])
+    rows = share_contrast(cells, ["B", "B", "NK", "NK"], age, sex, None, case, ~case, person, n_boot=300, seed=1)
+    mem_r, naive_r, dim_r = rows[0], rows[1], rows[2]
+    assert mem_r["lo"] > 0 and abs(mem_r["delta_share"] - 0.10) < 0.03
+    assert mem_r["lo"] < 0.10 < mem_r["hi"]
+    assert np.isclose(naive_r["delta_share"], -mem_r["delta_share"])  # shares within a class sum to 1
+    assert dim_r["lo"] < 0 < dim_r["hi"]
+    lo, hi = max(age[case].min(), age[~case].min()), min(age[case].max(), age[~case].max())
+    assert mem_r["n_case"] == (case & (age >= lo) & (age <= hi)).sum()  # the arms' common age range

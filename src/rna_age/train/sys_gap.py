@@ -43,8 +43,12 @@ acceleration than both oligodendrocytes and OPCs, with the bootstrap CI of each 
 is replication only, SLE (218acb0f) descriptive.
 CMV (ROADMAP RM33, CMV pre-registration): Allen (ff4235bb) and ALTRA (789ad837, replication); predictions per type or
 pair scored hold / fail / inconclusive in ``sys_gap_predictions`` (per guard in Allen: gene halves only).
+Levels (``level``): ``coarse`` (the classes above) or ``fine`` (the dataset's own labels named in ``FINE``, each its
+own system; case definitions in ``CONDITIONS_FINE``; gene-half guard only). Every table carries ``level``; at the fine
+level ``sys_gap_composition`` gives each label's share of its coarse class, case minus control, adjusted like the
+contrast (``share_contrast``).
 Outputs (``data/output/summary/``): ``sys_gap_donor``, ``sys_gap_type``, ``sys_gap_contrast``, ``sys_gap_corr`` (a run on
-some cohorts replaces only those cohorts' rows); with guards ``sys_gap_guards`` (contrast rows with ``guard``) and
+some cohorts and levels replaces only those rows); with guards ``sys_gap_guards`` (contrast rows with ``guard``) and
 ``sys_gap_de`` (the DE table used: cohort, type, gene, t); with predictions ``sys_gap_predictions``.
 """
 
@@ -150,6 +154,56 @@ def coarse_type(cell_type: str | None) -> str:
     return broad_class(cell_type)
 
 
+# Fine systems (``level="fine"``): a dataset's own Cell Ontology labels, exact match (lower case), short names without
+# " - " (the pair separator). Only labels named here become fine systems; every other label is "other".
+FINE = {
+    "naive thymus-derived cd8-positive, alpha-beta t cell": "naive CD8 T",
+    "effector memory cd8-positive, alpha-beta t cell": "EM CD8 T",
+    "naive thymus-derived cd4-positive, alpha-beta t cell": "naive CD4 T",
+    "central memory cd4-positive, alpha-beta t cell": "CM CD4 T",
+    "effector memory cd4-positive, alpha-beta t cell": "EM CD4 T",
+    "memory regulatory t cell": "memory Treg",
+    "mucosal-associated invariant t cell": "MAIT",
+    "mature gamma-delta t cell": "gd T",
+    "cd16-positive, cd56-dim natural killer cell, human": "CD56dim NK",
+    "cd16-negative, cd56-bright natural killer cell, human": "CD56bright NK",
+    "naive b cell": "naive B",
+    "memory b cell": "memory B",
+    "cd14-positive, cd16-negative classical monocyte": "classical monocyte",
+    "cd14-low, cd16-positive monocyte": "CD16 monocyte",
+}
+LEVELS = ("coarse", "fine")
+
+
+def fine_type(cell_type: str | None) -> str:
+    return FINE.get((cell_type or "").strip().lower(), "other")
+
+
+def system_of(cell_type: str | None, level: str) -> str:
+    if level == "coarse":
+        return coarse_type(cell_type)
+    if level == "fine":
+        return fine_type(cell_type)
+    raise ValueError(f"level {level!r} not in {LEVELS}")
+
+
+# CMV at the fine level (ROADMAP RM33, CMV fine-type pre-registration, 2026-11-20): P1-P5 counted, the rest exploratory.
+_CMV_FINE_COUNTED = (("EM CD8 T", "accelerates"), ("naive B", "no_acceleration"), ("memory B", "no_acceleration"),
+                     ("CD56dim NK", "no_acceleration"), ("classical monocyte", "no_acceleration"))  # fmt: skip
+CMV_FINE = replace(
+    CMV,
+    pairs=(("EM CD8 T", "classical monocyte"), ("EM CD8 T", "naive CD8 T"), ("memory B", "naive B"),
+           ("CD56dim NK", "CD56bright NK")),
+    predictions=_CMV_FINE_COUNTED + tuple((t, "exploratory") for t in dict.fromkeys(FINE.values())
+                                          if t not in {x for x, _ in _CMV_FINE_COUNTED}),
+)  # fmt: skip
+CONDITIONS_FINE = {ALLEN: CMV_FINE}  # level "fine": a cohort without an entry has no case definition there
+
+
+def case_def(dataset_id: str, level: str = "coarse") -> CaseDef | None:
+    return (CONDITIONS if level == "coarse" else CONDITIONS_FINE).get(dataset_id)
+
+
 # ---------------------------------------------------------------- data
 
 
@@ -168,6 +222,7 @@ class Cohort:
     age_censored: np.ndarray | None = None  # True where the age is a censoring bound (e.g. "80 and over")
     donor_ids: list[str] = field(default_factory=list)  # the dataset's donor_id behind each unit
     obs: dict[str, list[str | None]] = field(default_factory=dict)  # donor_obs columns per unit (as strings)
+    label_cells: pl.DataFrame | None = None  # donor, cell_type, n_cells: every label's cells per unit (composition)
 
 
 def _cohort_dir(dataset_id: str):
@@ -205,10 +260,13 @@ def donor_obs(dataset_id: str, donor_ids: list[str], columns: list[str]) -> dict
     return out
 
 
-def load_cohort(dataset_id: str, min_cells: int = 20, by_donor: bool = False, keep_censored: bool = False) -> Cohort:
-    """Donor metadata and, per coarse type, the summed counts of donors with at least ``min_cells`` cells.
-    ``by_donor`` sums a donor's tissues (default: one unit per donor × tissue); ``keep_censored`` keeps donors whose
-    age is only a bound (age = the bound, flagged in ``age_censored``); used for DE, never for clocks."""
+def load_cohort(
+    dataset_id: str, min_cells: int = 20, by_donor: bool = False, keep_censored: bool = False, level: str = "coarse"
+) -> Cohort:
+    """Donor metadata and, per system (``level`` coarse: ``coarse_type``; fine: ``fine_type``), the summed counts of
+    donors with at least ``min_cells`` cells. ``by_donor`` sums a donor's tissues (default: one unit per donor ×
+    tissue); ``keep_censored`` keeps donors whose age is only a bound (age = the bound, flagged in ``age_censored``);
+    used for DE, never for clocks."""
     d = _cohort_dir(dataset_id)
     g = pl.read_parquet(d / "groups.parquet")
     if "sex" not in g.columns and "Sex" in g.columns:
@@ -221,7 +279,7 @@ def load_cohort(dataset_id: str, min_cells: int = 20, by_donor: bool = False, ke
     g = g.with_columns(
         age=pl.Series(age_v, dtype=pl.Float64),
         censored=pl.Series([bool(a) and a[0] != "exact" for a in ages], dtype=pl.Boolean),
-        ctype=pl.Series([coarse_type(c) for c in g["cell_type"].to_list()]),
+        ctype=pl.Series([system_of(c, level) for c in g["cell_type"].to_list()], dtype=pl.Utf8),
         donor=pl.col("donor_id").cast(pl.Utf8)
         if by_donor
         else pl.col("donor_id").cast(pl.Utf8) + ":" + pl.col("tissue"),
@@ -250,7 +308,7 @@ def load_cohort(dataset_id: str, min_cells: int = 20, by_donor: bool = False, ke
     pid = {p: i for i, p in enumerate(sorted(set(meta["cv_group"].to_list())))}
     ids = [str(x) for x in meta["donor_id"].to_list()]
     batch, batch_name = donor_batch(dataset_id, ids)
-    cd = CONDITIONS.get(dataset_id)
+    cd = case_def(dataset_id, level)
     co = Cohort(
         name=dataset_id,
         donors=donors,
@@ -264,6 +322,7 @@ def load_cohort(dataset_id: str, min_cells: int = 20, by_donor: bool = False, ke
         age_censored=meta["censored"].to_numpy(),
         donor_ids=ids,
         obs=donor_obs(dataset_id, ids, [cd.column] if cd is not None and cd.column else []),
+        label_cells=g.group_by("donor", "cell_type").agg(pl.col("n_cells").sum()),
     )
     dix = {x: i for i, x in enumerate(donors)}
     for t in sorted(set(g["ctype"].to_list()) - {"other"}):
@@ -538,6 +597,91 @@ def contrast(
     return out
 
 
+def share_contrast(
+    cells: np.ndarray,
+    parent: list[str],
+    age: np.ndarray,
+    sex: np.ndarray,
+    batch: np.ndarray | None,
+    case: np.ndarray,
+    ctrl: np.ndarray,
+    person: np.ndarray,
+    min_parent: int = 20,
+    n_boot: int = 2000,
+    seed: int = 0,
+) -> list[dict]:
+    """Composition: each column's share of its parent class (``cells``: units × labels, ``parent`` the label's coarse
+    class), ``share ~ case + age + age² + sex [+ batch]`` by OLS on the units inside the arms' common age range whose
+    parent class has at least ``min_parent`` cells; a person bootstrap (same draws as ``contrast`` with the same seed)
+    gives 95 % and 90 % CIs. ``delta_share`` is case minus control in share units (0-1)."""
+    cells = np.asarray(cells, dtype=float)
+    par = np.asarray(parent)
+    tot = np.zeros_like(cells)
+    for p in np.unique(par):
+        m = par == p
+        tot[:, m] = cells[:, m].sum(1, keepdims=True)
+    share = np.where(tot >= min_parent, cells / np.where(tot > 0, tot, 1), np.nan)
+    use = case | ctrl
+    lo_age, hi_age = max(age[case].min(), age[ctrl].min()), min(age[case].max(), age[ctrl].max())
+    inside = use & (age >= lo_age) & (age <= hi_age)
+
+    def effects(rows: np.ndarray) -> np.ndarray:
+        out = np.full(cells.shape[1], np.nan)
+        for p in np.unique(par):
+            cols = np.flatnonzero(par == p)
+            r = rows[~np.isnan(share[rows, cols[0]])]
+            if case[r].sum() < 3 or ctrl[r].sum() < 3:
+                continue
+            X = design(age[r], sex[r], None if batch is None else batch[r], case[r])
+            out[cols] = np.linalg.lstsq(X, share[np.ix_(r, cols)], rcond=None)[0][1]
+        return out
+
+    idx = np.flatnonzero(use)
+    point = effects(idx[inside[idx]])
+    persons = np.unique(person[idx])
+    rows_of = {p: idx[person[idx] == p] for p in persons}
+    rng = np.random.default_rng(seed)
+    boots = []
+    for _ in range(n_boot):
+        r = np.concatenate([rows_of[p] for p in rng.choice(persons, len(persons))])
+        boots.append(effects(r[inside[r]]))
+    B = np.array(boots)
+    out = []
+    for j in range(cells.shape[1]):
+        v = B[:, j][np.isfinite(B[:, j])]
+        q = np.percentile(v, [2.5, 97.5, 5, 95]) if len(v) > 20 else np.full(4, np.nan)
+        ok = inside & ~np.isnan(share[:, j])
+        out.append({"j": j, "share_control": float(np.mean(share[ok & ctrl, j])) if (ok & ctrl).any() else np.nan,
+                    "share_case": float(np.mean(share[ok & case, j])) if (ok & case).any() else np.nan,
+                    "delta_share": float(point[j]), "lo": float(q[0]), "hi": float(q[1]), "lo90": float(q[2]),
+                    "hi90": float(q[3]), "n_case": int((ok & case).sum()), "n_control": int((ok & ctrl).sum()),
+                    "beyond_ci": bool(q[0] > 0 or q[1] < 0), "age_range": f"{lo_age:g}-{hi_age:g}"})  # fmt: skip
+    return out
+
+
+def composition_rows(
+    co: Cohort, case: np.ndarray, ctrl: np.ndarray, batch: np.ndarray | None, seed: int, min_parent: int = 20
+) -> list[dict]:
+    """``share_contrast`` for every label whose coarse class holds a fine system (one unit per row of ``co``)."""
+    if co.label_cells is None:
+        return []
+    labels = sorted(co.label_cells["cell_type"].unique().to_list())
+    classes = {coarse_type(lab) for lab in labels if fine_type(lab) != "other"}
+    labels = [lab for lab in labels if coarse_type(lab) in classes]
+    if not labels:
+        return []
+    dix, lix = {d: i for i, d in enumerate(co.donors)}, {lab: j for j, lab in enumerate(labels)}
+    M = np.zeros((len(co.donors), len(labels)))
+    for d, lab, n in co.label_cells.iter_rows():
+        if d in dix and lab in lix:
+            M[dix[d], lix[lab]] += n
+    parent = [coarse_type(lab) for lab in labels]
+    rows = share_contrast(M, parent, co.age, np.array(co.sex), batch, case, ctrl, co.person, min_parent, seed=seed)
+    return [{"label": labels[r["j"]], "type": fine_type(labels[r["j"]]), "coarse": parent[r["j"]],
+             "is_system": fine_type(labels[r["j"]]) != "other", **{k: v for k, v in r.items() if k != "j"}}
+            for r in rows]  # fmt: skip
+
+
 def bar_passes(rows: list[dict]) -> bool:
     """Pre-registered: some glial type's difference to every reference type has its CI above 0 (years)."""
     diff = {r["type"]: r for r in rows if r["kind"] == "difference"}
@@ -669,11 +813,12 @@ def independent_de(dataset_id: str, rx: str, min_cells: int) -> pl.DataFrame | N
 def run_guards(
     co: Cohort, res: dict, logx: dict[str, np.ndarray], case: np.ndarray, ctrl_all: np.ndarray,
     batch: np.ndarray | None, pairs: list[tuple[str, str]], n_genes: int, min_cells: int, seed: int,
+    cd: CaseDef | None = None,
 ) -> tuple[list[dict], pl.DataFrame | None]:  # fmt: skip
     """Leave-DE-genes-out and gene-half clocks on the plain run's folds; each guard's contrast with the same seed."""
     tag = co.name[:8] if len(co.name) == 36 else co.name
     nd, types = len(co.donors), list(res)
-    cd = CONDITIONS[co.name]
+    cd = cd if cd is not None else CONDITIONS[co.name]
     with_de = co.name in DE_COHORTS
     de = independent_de(co.name, cd.disease_rx, min_cells) if with_de else None
     have = set() if de is None else set(de.filter(pl.col("cohort") == "combined")["type"].to_list())
@@ -750,10 +895,10 @@ def run_guards(
 
 def run_cohort(
     dataset_id: str, n_genes: int = 2000, min_cells: int = 20, min_controls: int = 20, seed: int = 0,
-    guards: bool = False,
+    guards: bool = False, level: str = "coarse",
 ) -> dict[str, list[dict]]:  # fmt: skip
-    co = load_cohort(dataset_id, min_cells)
-    cd = CONDITIONS.get(dataset_id)
+    co = load_cohort(dataset_id, min_cells, level=level)
+    cd = case_def(dataset_id, level)
     case_all, ctrl_all = arms(cd, co.disease, co.obs.get(cd.column) if cd is not None and cd.column else None)
     visits = dataset_id in PERSON_COLUMNS  # elsewhere a person's units are tissues or pooled samples: all kept
     # repeat visits leave clock and contrast, kept for test-retest
@@ -765,7 +910,7 @@ def run_cohort(
     rng = np.random.default_rng(seed)
     nd = len(co.donors)
     res: dict[str, dict] = {}
-    with_guards = guards and dataset_id in GUARD_COHORTS and dataset_id in CONDITIONS
+    with_guards = guards and dataset_id in GUARD_COHORTS and cd is not None
     logx: dict[str, np.ndarray] = {}
     for t, (idx, C, nc) in co.types.items():
         ctrl = ctrl_all[idx]
@@ -841,6 +986,7 @@ def run_cohort(
     guard_rows: list[dict] = []
     de_rows_used: list[dict] = []
     pred_rows: list[dict] = []
+    comp_rows: list[dict] = []
     if cd is not None:
         cond, case = cd.name, case_all
         n_other = int((~case & ~ctrl_all).sum())
@@ -869,7 +1015,9 @@ def run_cohort(
                       "slope": res[r["type"]]["slope"] if r["type"] in res else np.nan,
                       "n_candidate_genes": len(co.genes) if r["type"] in res else -1, "n_dropped_donors": 0,
                       "de_source": "", "bar_pass": bar} for r in rows]  # fmt: skip
-            more, de = run_guards(co, res, logx, case, ctrl_all, batch, pairs, n_genes, min_cells, seed)
+            if level != "coarse" and dataset_id in DE_COHORTS:  # DE per system comes from coarse cohorts only
+                raise NotImplementedError("leave-DE-genes-out guard at the fine level")
+            more, de = run_guards(co, res, logx, case, ctrl_all, batch, pairs, n_genes, min_cells, seed, cd)
             extra = {"cohort": tag, "condition": cond, "covariates": cov, "n_other_excluded": n_other}
             for r in plain + more:
                 st = res[r["type"]]["status"] if r["type"] in res else ""
@@ -878,32 +1026,46 @@ def run_cohort(
                 pred_rows += scored(gname, [r for r in more if r["guard"] == gname])
             if de is not None:
                 de_rows_used = de.to_dicts()
-    return {"donor": donor_rows, "type": type_rows, "contrast": contrast_rows, "corr": corr_rows,
-            "guards": guard_rows, "de": de_rows_used,
-            "predictions": pred_rows if cd and cd.predictions else []}  # fmt: skip
+        if level == "fine":
+            comp_rows = [{"cohort": tag, "condition": cond, "covariates": cov, **r}
+                         for r in composition_rows(co, case, ctrl_all, batch, seed)]  # fmt: skip
+    out = {"donor": donor_rows, "type": type_rows, "contrast": contrast_rows, "corr": corr_rows,
+           "guards": guard_rows, "de": de_rows_used,
+           "predictions": pred_rows if cd and cd.predictions else [], "composition": comp_rows}  # fmt: skip
+    for k in ("donor", "type", "contrast", "corr", "guards", "predictions"):
+        out[k] = [{**r, "level": level} for r in out[k]]
+    return out
 
 
 def _merge_write(k: str, new: pl.DataFrame) -> pl.DataFrame:
-    """Replace the rows of the cohorts in ``new`` in ``sys_gap_<k>.parquet``; other cohorts' rows stay."""
+    """Replace the rows of the (cohort, level) pairs in ``new`` in ``sys_gap_<k>.parquet``; other rows stay. Rows
+    written before levels existed are coarse."""
     path = SUMMARY / f"sys_gap_{k}.parquet"
     key = "for_cohort" if k == "de" else "cohort"
     if path.exists():
         old = pl.read_parquet(path)
         if key in old.columns:
-            new = pl.concat([old.filter(~pl.col(key).is_in(new[key].unique().to_list())), new], how="diagonal_relaxed")
+            keys = [key]
+            if "level" in new.columns:
+                keys.append("level")
+                old = old.with_columns(pl.col("level").fill_null("coarse")) if "level" in old.columns else (
+                    old.with_columns(level=pl.lit("coarse")))  # fmt: skip
+            drop = new.select(keys).unique()
+            new = pl.concat([old.join(drop, on=keys, how="anti"), new], how="diagonal_relaxed")
     new.write_parquet(path, compression="zstd")
     return new
 
 
 def run(
     cohorts: tuple[str, ...] = COHORTS, n_genes: int = 2000, min_cells: int = 20, min_controls: int = 20, seed: int = 0,
-    guards: bool = False,
+    guards: bool = False, levels: tuple[str, ...] = ("coarse",),
 ) -> dict[str, pl.DataFrame]:  # fmt: skip
     SUMMARY.mkdir(parents=True, exist_ok=True)
-    acc: dict[str, list[dict]] = {k: [] for k in ("donor", "type", "contrast", "corr", "guards", "de", "predictions")}
+    acc: dict[str, list[dict]] = {k: [] for k in ("donor", "type", "contrast", "corr", "guards", "de", "predictions",
+                                                  "composition")}  # fmt: skip
     out: dict[str, pl.DataFrame] = {}
-    for c in cohorts:
-        part = run_cohort(c, n_genes, min_cells, min_controls, seed, guards=guards)
+    for c, level in ((c, lv) for lv in levels for c in cohorts):
+        part = run_cohort(c, n_genes, min_cells, min_controls, seed, guards=guards, level=level)
         for k, v in part.items():
             acc[k] += v
         for k, v in acc.items():  # after every cohort: a crash keeps the rest

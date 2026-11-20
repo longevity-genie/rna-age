@@ -996,25 +996,31 @@ def sys_gap_cmd(
     guards: bool = typer.Option(
         False, help="PsychAD: leave-DE-genes-out (independent cohorts) and gene-half clocks; Allen (CMV): gene halves"
     ),
+    level: str = typer.Option("coarse", help="systems: coarse classes, fine (the dataset's own labels), or both"),
 ) -> None:
     """RM33 stage 0: per-type ridge clocks on controls, gaps, split-half reliability, shared vs specific, AD contrast."""
     import polars as pl
 
-    from rna_age.train.sys_gap import CMV_COHORTS, COHORTS, run
+    from rna_age.train.sys_gap import CMV_COHORTS, COHORTS, LEVELS, run
 
     chosen = CMV_COHORTS if cohorts == "cmv" else (_csv(cohorts) or COHORTS)
+    levels = LEVELS if level == "both" else (level,)
+    if any(lv not in LEVELS for lv in levels):
+        raise typer.BadParameter(f"level must be one of {LEVELS} or both")
     out = run(chosen, n_genes=n_genes, min_cells=min_cells, min_controls=min_controls, seed=seed,
-              guards=guards)  # fmt: skip
+              guards=guards, levels=levels)  # fmt: skip
     with pl.Config(tbl_rows=-1, tbl_cols=-1, tbl_width_chars=220):
-        print(out["type"].select("cohort", "type", "n_controls", "slope", "sensitivity", "reliability", "test_retest_r",
+        print(out["type"].select("cohort", "level", "type", "n_controls", "slope", "sensitivity", "reliability", "test_retest_r",
                                  "shared_share", "status"))  # fmt: skip
         if "contrast" in out:
-            print(out["contrast"].select("cohort", "kind", "type", "delta_years", "lo", "hi", "n_case", "n_control"))
+            print(out["contrast"].select("cohort", "level", "kind", "type", "delta_years", "lo", "hi", "n_case", "n_control"))
         if "guards" in out:
-            print(out["guards"].select("cohort", "guard", "type", "delta_years", "lo", "hi", "r_age", "bar_pass"))
+            print(out["guards"].select("cohort", "level", "guard", "type", "delta_years", "lo", "hi", "r_age", "bar_pass"))
         if "predictions" in out:
             print(out["predictions"].filter(pl.col("guard") == "none")
-                  .select("cohort", "type", "prediction", "delta_years", "lo", "hi", "lo90", "hi90", "verdict"))  # fmt: skip
+                  .select("cohort", "level", "type", "prediction", "delta_years", "lo", "hi", "lo90", "hi90", "verdict"))  # fmt: skip
+        if "composition" in out:
+            print(out["composition"].select("cohort", "coarse", "label", "share_control", "delta_share", "lo", "hi"))
 
 
 @app.command("positive-controls-fetch")
