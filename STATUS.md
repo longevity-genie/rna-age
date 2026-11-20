@@ -60,7 +60,7 @@ stop before Anton is back; 07:00 report, then keep updating; one tabbed artifact
   rules: Census 2,356 healthy (3,815 any health), scBaseCount 492 (1,656), recount3 bulk 4,430 (6,380).
 
 ## Running (jobs carry seat / what / eta in their Slurm comment)
-Nothing of ours (RM34 downloads done 2026-11-14 01:32).
+- 6552049 RM7 NCBI GEO (submitted 2026-11-20 13:21, nice 100): select targets, fetch one connection up to 400 new files, parse; pending on the group CPU cap.
 
 ## Results so far (details: `docs/experiments.md`, `data/output/summary/experiments.parquet`)
 - **RM30 (2026-11-14 00:53)**: our in-context tabular model pretrained on expression tables fails all four bars:
