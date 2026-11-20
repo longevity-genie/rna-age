@@ -149,3 +149,10 @@ def test_merge_keeps_own_rows_and_adds_clock(tmp_path, monkeypatch):
     assert kept.drop("clock").equals(old.drop("clock")) and kept["clock"].to_list() == ["own", "own", "m1"]
     again = _merge_write("type", new.with_columns(x=pl.lit(7.0)))  # a rerun replaces only its own clock's rows
     assert again.height == 4 and again.filter(pl.col("clock") == "external:blood")["x"].to_list() == [7.0]
+
+
+def test_symbols_to_ensembl_only_when_unique():
+    from rna_age.train.sys_gap_ext import to_ensembl
+
+    table = pl.DataFrame({"gene_id": ["E1", "E2", "E3", "E4"], "symbol": ["A", "B", "B", "C"]})
+    assert to_ensembl(["A", "B", "C", "X", "A"], table) == ["E1", "B", "E4", "X", "A"]

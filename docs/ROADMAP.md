@@ -50,7 +50,7 @@ GSE114007 (OA: 5 pairs, controls young), GSE135251 (MASLD: no ages in GEO, NCBI 
 
 ## RM33 — System-level age gaps: which cell types or tissues make a person look older
 
-**State:** building (design A; stage 0 run, a601870; its two guards run 2026-11-14, `sys-gap --guards`; CMV run 2026-11-14: CD8 T holds, B fails reproducibly; four more controls run 2026-11-20: T2D, PD, sarcopenia inconclusive, Down syndrome awaits a GPU job) · **Owner:** lead
+**State:** building (design A; stage 0 run, a601870; its two guards run 2026-11-14, `sys-gap --guards`; CMV run 2026-11-14: CD8 T holds, B fails reproducibly; four more controls run 2026-11-20: T2D, PD, sarcopenia inconclusive, Down syndrome awaits a GPU job; external clocks run 2026-11-20: all 9 counted inconclusive, Allen's B / NK findings clock-dependent) · **Owner:** lead
 
 Review (2026-11-13; a design agent wrote three designs, two separate reviewers judged them on our data and cluster):
 A labelled cell types 6/10 validity, 8/10 feasibility; B label-free groups on our encoder 4/4 (encoder never saw brain,
@@ -243,6 +243,43 @@ reproducible failure is a finding). Exploratory: CD4 T, monocyte, NK.
 (acute infection). (X6) Allen ff4235bb with the external blood clock: the CMV coarse predictions scored but not
 counted (robustness: does CD8 T hold with a clock never trained on Allen?).
 T2D islets e51bae9a stays inconclusive: no second islet cohort is on disk (not downloaded in this step).
+External clocks: results (2026-11-20, `rna-age sys-gap-external`, rows with `clock` `external:brain` /
+`external:blood` in `sys_gap_type`, `_contrast`, `_guards`, `_predictions`; every earlier row unchanged, its clock now
+`own`). Pools: brain 271-305 healthy adults per type (PsychAD 214 + HBCC), blood 1,497-1,912 (OneK1K 981 + AIDA 625 +
+Terekhova 317; Terekhova's gene symbols mapped to Ensembl through the ARCHS4 gene table, 21.6k of 36.6k); 16.5k-34k
+common genes. The external clocks read age where the targets' own controls could not: PD controls now give slopes
+0.15-0.51 (r 0.13-0.69, reliability 0.77-0.98, every type measurable; own clocks had slope ≤ 0 in all but OPC). But 17-24
+controls still make the years scale wide. Case − control, years [95 % CI]:
+(X1) PD (70 PD / 21-24 controls, ages 64-101, `Brain_bank`): microglia +4.9 [−22.3, 61.4] (z +0.12 [−0.60, 0.60]),
+microglia − OPC +0.3 [−47.9, 55.7]: both inconclusive, in all 10 gene halves too (medians +3.7 and −1.2).
+Exploratory: excitatory neurons +7.2 [1.5, 16.9], oligodendrocytes +16 [2, 171] older in PD; astrocytes +4.8, OPC
++4.7 inside the CI. (X2) RADC (42 AD / 17 controls, 65-89; vascular unmeasurable, slope ≤ 0): astrocyte +4.6 [−1.3,
+18.9] (z +0.48 [−0.16, 1.29]): inconclusive in the plain run, but beyond the CI in 9 of 10 gene halves (median +7.8 y,
+6.7-12.6); astrocyte − OPC −9.1 [−105, 11.9]: inconclusive (10 of 10 halves; median −4.7), because OPC are older in AD
+here (+13.6 [1.2, 109]); microglia +5.6 [−2.5, 38]. As in PsychAD, the glia point older in AD; astrocytes ahead of OPC
+does not replicate. (X3) cff99df2, area 9: only 7-9 controls have ≥ 20 cells of a glial type in that region, so every
+glial type is unmeasurable (< 10 controls) and both predictions are inconclusive (unmeasurable; summing the regions
+would give up to 15 controls but was not pre-registered). (X4) ALTRA (28 CMV+ / 23 CMV−; CD4 T, CD8 T, NK, B, monocyte
+measurable, B and monocyte slopes 0.05-0.06): CD8 T +2.4 [−6.9, 16.8], CD8 T − monocyte +6.1 [−43.7, 37.9], B −14.7
+[−91.7, 11.9] (90 % CI −60 to 5): all inconclusive (gene halves: CD8 T 0 of 10 hold, median +4.0; CD8 T − monocyte 1 of
+10; B 0 fail, median −13.7). Neither replicates nor contradicts Allen. (X5) COVID-19 (156 / 25 blood units; B, NK, DC
+unmeasurable, slope ≤ 0): CD8 T −3.7 [−15.1, 10.6], monocyte +4.1 [−37, 66], other T −7.9 [−84, 53]: nothing beyond
+the CI. (X6) Allen with the external blood clock (127 / 96, `batch_id`; robustness, not counted): CD8 T +11.4 [7.3,
+17.2] holds, but so do CD4 T +4.7 [2.1, 7.5], NK +12.6 [7.3, 19.5] and other T +19.7 [12.2, 34.4]; monocyte +7.3 [−1.2,
+19.4], B −2.1 [−7.8, 3.4] (90 % CI −6.9 to 2.5: inconclusive, no longer a fail); CD8 T − monocyte +4.1 [−8.0, 14.1]
+inconclusive (own clock: +11.6, hold); CD8 T − B +13.5 [7.3, 21.1]. Reading: CD8 T older in CMV+ holds with a clock
+never trained on Allen; the CD8-specific contrast against monocytes does not, and the own-clock "B and NK younger in
+CMV+" reverses or vanishes with the external clock (NK −5.4 → +12.6). So the B / NK failures are clock-dependent, not
+reproducible across clocks; they stay counted as failed under the own-clock pre-registration but are no longer read as
+findings about CMV biology. The external clock sees a broad CMV+ shift in every lymphoid type.
+Overall tally (counted predictions; external-clock ones listed apart, replications apart): own clocks 16 scored + 1
+pending as before (hold 3, fail 2, inconclusive 11; Down syndrome D1 pending). External clocks 9 scored: first tests 2
+(PD P1 microglia, PD microglia − OPC) both inconclusive; replications 7 (RADC astrocyte, astrocyte − OPC; cff99df2 the
+same two; ALTRA CD8 T, CD8 T − monocyte, B) all inconclusive, none failed. All told 25 scored: hold 3, fail 2,
+inconclusive 20, pending 1. RM33 does not pass; external clocks make small cohorts measurable (slopes > 0) but do not
+narrow their CIs enough to decide, since the years scale is still fitted on 17-24 controls. Next: the Down syndrome GPU
+job; a pre-registered pooled-regions rerun of cff99df2; and reading contrasts in z (CI widths here are set by small
+slopes) as a pre-registered alternative scale.
 
 Design (Anton, same topic: "we have to modify design to allow idea of seeing age difference per system"): his
 individual + group loss with the system (cell type; tissue in bulk) as the unit. (0) One clock per system on
@@ -271,7 +308,7 @@ at least one glial type (microglia, astrocyte) shows a larger AD gap than OPCs a
 bootstrap CI, in both cohorts. (2) CMV serostatus in Terekhova 2023, if its donor metadata carries it. Bar: the CD8 T
 gap is higher in CMV+ beyond the CI and the monocyte gap is not. (3) GTEx per-donor tissue gaps from the bulk clock,
 descriptive (how much organ ages agree within a person). CPU only.
-Next (proposed to Anton 2026-11-20 in #rna-age > per-cell clock, built unless he objects): for cohorts too small for
+Next (proposed to Anton 2026-11-20 in #rna-age > per-cell clock; built and run 2026-11-20, see "External clocks"): for cohorts too small for
 own-control clocks, each cell type's clock is trained on other cohorts' healthy donors of the same tissue (pancreas:
 islet atlases; brain: PsychAD and HBCC controls; blood: OneK1K, AIDA, Terekhova), the small cohort's cases and controls
 scored with it and contrasted within study; its predictions pre-registered before the run. Down syndrome (D1) waits

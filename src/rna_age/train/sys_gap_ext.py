@@ -28,6 +28,7 @@ from dataclasses import dataclass, replace
 import numpy as np
 import polars as pl
 
+from rna_age.paths import INPUT
 from rna_age.train.sys_gap import (
     ALLEN,
     ALTRA,
@@ -67,6 +68,9 @@ AD_RESILIENCE = "cff99df2-4904-44f7-9173-ff837f95606e"
 COVID_PBMC = "9dbab10c-118d-496b-966a-67f1763a6b7d"
 POOLS = {"brain": (PSYCHAD, HBCC), "blood": (ONEK1K, AIDA, TEREKHOVA)}
 MIN_TRAIN_AGE = 18.0
+# Cohorts whose counts name genes by symbol: mapped to Ensembl through a symbol table (symbols naming one gene only).
+SYMBOL_COHORTS = (TEREKHOVA,)
+SYMBOL_TABLE = INPUT / "archs4" / "genes.parquet"
 
 _BRAIN_TYPES = (
     "astrocyte",
@@ -136,9 +140,30 @@ def pool_cohorts(pool: str, target: str) -> tuple[str, ...]:
     return tuple(c for c in POOLS[pool] if c != target)
 
 
+def to_ensembl(genes: list[str], table: pl.DataFrame) -> list[str]:
+    """Symbols to Ensembl ids by ``table`` (gene_id, symbol); a symbol naming several genes, an unknown symbol, or a
+    second symbol landing on an id already taken keeps its own name (then it matches no Ensembl id)."""
+    u = table.drop_nulls("symbol").group_by("symbol").agg(pl.col("gene_id").first(), pl.len().alias("k"))
+    sym2ens = dict(zip(*u.filter(pl.col("k") == 1).select("symbol", "gene_id"), strict=True))
+    out, taken = [], set()
+    for g in genes:
+        e = sym2ens.get(g)
+        if e is None or e in taken:
+            out.append(g)
+        else:
+            taken.add(e)
+            out.append(e)
+    return out
+
+
 def load_pool(dataset_id: str, min_cells: int = 20) -> Cohort:
-    """A pool cohort's healthy adults with exact ages."""
-    return load_cohort(dataset_id, min_cells, where=(pl.col("disease") == "normal") & (pl.col("age") >= MIN_TRAIN_AGE))
+    """A pool cohort's healthy adults with exact ages (genes as Ensembl ids)."""
+    co = load_cohort(dataset_id, min_cells, where=(pl.col("disease") == "normal") & (pl.col("age") >= MIN_TRAIN_AGE))
+    if dataset_id in SYMBOL_COHORTS:
+        co.genes = to_ensembl(co.genes, pl.read_parquet(SYMBOL_TABLE, columns=["gene_id", "symbol"]))
+        log.info("%s: %d of %d symbols mapped to Ensembl", _tag(dataset_id), sum(g.startswith("ENSG") for g in co.genes),
+                 len(co.genes))  # fmt: skip
+    return co
 
 
 def common_genes(genes: list[list[str]]) -> list[str]:
@@ -218,6 +243,8 @@ def run_target(
     case_all, ctrl_all = case_all & primary, ctrl_all & primary
     tag, clock = _tag(t.dataset_id), f"external:{t.pool}"
     genes = common_genes([co.genes] + [p.genes for p in pool])
+    if len(genes) < n_genes:
+        raise ValueError(f"{t.dataset_id}: {len(genes)} genes common to target and pool (< {n_genes}); ids differ?")
     tgi = {g: i for i, g in enumerate(co.genes)}
     tcols = np.array([tgi[g] for g in genes])
     log.info("%s (%s): %d units (%d controls, %d cases), %d common genes; pool %s", tag, clock, len(co.donors),
