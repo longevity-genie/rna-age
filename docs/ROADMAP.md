@@ -146,6 +146,47 @@ NK subset reads younger by itself (memory B reproducibly), so the coarse B / NK 
 label resolution (it may be a state inside a label, e.g. NKG2C+ adaptive NK within CD56dim, which Allen does not
 label, or CMV programs that run against the age trend). For CD8 the composition story holds: the EM shift is large and
 EM CD8 by itself is only weakly older (not robust to gene halves), so the coarse CD8 +4.9 y is partly composition.
+Four more controls: pre-registration (2026-11-20, written before any run on these cohorts; only donors per arm and
+which labels exist were looked at). Scoring as in the CMV pre-registration: "accelerates" holds if the 95 % CI is
+above 0, fails if it is below 0 or the 90 % CI lies inside ±2 y, else inconclusive; "exploratory" is scored the same
+way and not counted. Single cell (`sys-gap`, stage-0 rules unchanged: per-type ridge clocks on the cohort's own
+controls, `min_controls` 20, ≥ 20 cells per donor and type, 5 folds by person, cases scored by their fold's model,
+`accel ~ case + age + age² + sex [+ batch]` inside the arms' common age range, 2,000-draw person bootstrap; gene-half
+guard, 5 splits × 2, on the counted predictions):
+(A) Type 2 diabetes, islets (e51bae9a): cases "type 2 diabetes mellitus", controls `normal`, prediabetes donors out
+of the counted contrast. Systems (dataset labels): beta, alpha, delta, PP, ductal, acinar, stellate, vascular
+(endothelial). (T1) beta accelerates in T2D; (T2) beta − acinar > 0. Exploratory: every other type; prediabetes vs
+normal. The cohort has 17 control donors, below `min_controls` (20): under the stage-0 rules no type gets a clock, so
+T1 and T2 are scored inconclusive ("unmeasurable: 17 controls") and the bar is not lowered.
+(B) Parkinson disease, five brain regions (d3cb449b: prefrontal, primary motor and visual cortex, medial globus
+pallidus, dorsal motor nucleus of the vagus; 73 PD, 24 controls, 84-92 donors per region). Regions: one unit per
+donor, each type's counts summed over all of the donor's regions (no region covariate; the regions a donor lacks
+differ a little between donors). Systems: the PsychAD coarse classes; the dataset has no microglia label, its
+"central nervous system macrophage" counts as microglia; "central nervous system neuron", ependymal, mural and
+leukocyte are "other". Batch: `Brain_bank` (donor metadata; UD holds PD donors only) as covariate. (P1) microglia
+accelerate in PD (counted). Exploratory: oligodendrocyte − OPC, microglia − oligodendrocyte, microglia − OPC, every
+other type. Dopaminergic neurons are not labelled and the substantia nigra is not sampled: the DA-neuron prediction
+is not measurable and not registered.
+Bulk (whole tissue as one system, existing bulk clocks, no retraining). Gap: prediction minus the bias line of
+prediction on age fitted on the study's own controls, in predicted years (one clock in one tissue: not divided by
+the line's slope, which a narrow age range makes unstable; the slope is reported); case − control by OLS `gap ~ case
++ age + age² + sex [+ batch]` on the donors inside the arms' common age range, 2,000-draw donor bootstrap with the
+control line refitted in every draw (the single-cell `contrast`).
+(C) Down syndrome, whole blood (GSE190125, NCBI counts; Entrez → Ensembl by NCBI's annotation as `ncbi_geo.parse`;
+never in a training table). The headline ensemble `20261111-0747-ens-mlp3t2-plus-atlasft2` cannot score new samples:
+its three MLP members kept no weights, and refitting them is retraining. The clock here is its other half, the
+Atlas fine-tune pair `20261110-1329-ens-atlasft-u4u6` (mean of `20261110-0555-atlas-ft-u4-all` and
+`20261110-0533-atlas-ft-u6-all`, saved best checkpoints, test MAE 10.1 y against the headline's 7.5), applied as
+trained (GPU). Batch: GEO's processing batch (A-D) as covariate. (D1) adults (≥ 18 y, line on adult controls):
+trisomy-21 blood reads older (counted). Exploratory: children (< 18 y, line on child controls).
+(D) Sarcopenia, skeletal muscle (GSE111016, GSE167186; ARCHS4 counts, labels in `bulk_labels.parquet`): the headline
+ensemble's own predictions (`20261111-0747-ens-mlp3t2-plus-atlasft2`, commit d025d51), reused as they are. Every
+labelled sample of both series is in the val split (none in train; val served early stopping and ensemble choice
+only), so neither series counts as contaminated. No batch (one platform per series). (S1) GSE111016 and (S2)
+GSE167186: sarcopenic muscle reads older than age-matched healthy muscle (counted, each). Exploratory: the same with
+the Atlas fine-tune pair's predictions.
+The overall tally after these runs counts every pre-registered counted prediction so far: AD stage 0 (the glia bar as
+one prediction), CMV coarse (5), CMV fine (5), T2D (2), PD (1), Down syndrome (1), sarcopenia (2).
 
 Design (Anton, same topic: "we have to modify design to allow idea of seeing age difference per system"): his
 individual + group loss with the system (cell type; tissue in bulk) as the unit. (0) One clock per system on
