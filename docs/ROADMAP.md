@@ -240,6 +240,11 @@ at least one glial type (microglia, astrocyte) shows a larger AD gap than OPCs a
 bootstrap CI, in both cohorts. (2) CMV serostatus in Terekhova 2023, if its donor metadata carries it. Bar: the CD8 T
 gap is higher in CMV+ beyond the CI and the monocyte gap is not. (3) GTEx per-donor tissue gaps from the bulk clock,
 descriptive (how much organ ages agree within a person). CPU only.
+Next (proposed to Anton 2026-11-20 in #rna-age > per-cell clock, built unless he objects): for cohorts too small for
+own-control clocks, each cell type's clock is trained on other cohorts' healthy donors of the same tissue (pancreas:
+islet atlases; brain: PsychAD and HBCC controls; blood: OneK1K, AIDA, Terekhova), the small cohort's cases and controls
+scored with it and contrasted within study; its predictions pre-registered before the run. Down syndrome (D1) waits
+on the runner's GPU job.
 
 ## RM13 — A manuscript draft of the results (plan line 5)
 
