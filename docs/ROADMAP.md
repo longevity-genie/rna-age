@@ -212,6 +212,37 @@ common age range with CIs of ±2-3 y). RM33 does not pass on this count; the lim
 not a contrary result. Next: the Down syndrome GPU job (96 adult pairs, the best-powered bulk control); for small
 single-cell cohorts, a clock trained on other cohorts' healthy donors of the same tissue (a design change, to be
 pre-registered before use) instead of the cohort's own controls.
+External clocks: design and pre-registration (2026-11-20, written before any run with them; only donors per arm,
+regions and labels were looked at). For a target cohort, each coarse type's ridge clock is trained on the healthy
+(`normal`) donors of *other* cohorts of the same tissue, never on a donor of the target: brain pool PsychAD 37a17b78 +
+HBCC 5c97eeeb (for a target that is one of them, the other only); blood pool OneK1K 3faad104 + AIDA c838aec3 +
+Terekhova 2023 (loaded as stage 0 loads it). Training donors: exact ages, adults (≥ 18 y; HBCC's controls reach down
+to infancy and every target but COVID is adult), ≥ 20 cells of the type. Genes: the intersection of the pool cohorts'
+and the target's genes; log-CPM per unit over that intersection; the 2,000 most variable genes chosen and
+standardised on the training donors; RidgeCV on age (stage-0 alphas). One clock per type and target scores every
+target unit, cases and controls alike (no folds: nothing of the target is in training). Bias line and years scale
+(slope) on the target's own controls, so platform, region and batch offsets are absorbed within study; contrast as
+stage 0 (`accel ~ case + age + age² + sex [+ batch]`, arms' common age range, 2,000-draw person bootstrap with the line
+refitted per draw). A type is measurable only if, in the target's controls (≥ 10 with the type), the line's slope is
+> 0 and the reliability (binomial thinning of the target's counts, both halves scored by the same external clock,
+Spearman-Brown) is ≥ 0.5; a counted prediction touching an unmeasured type is inconclusive whatever its CI. Gene-half
+guard (5 splits × 2 of the common genes, each half its own external clock) on the counted predictions. Scoring as in
+the CMV pre-registration. Rows carry `clock` (`own` for every earlier row, `external:brain` / `external:blood`).
+Targets and predictions (counted unless marked; replications counted separately from first tests):
+(X1) PD brain d3cb449b, regions summed per donor and `Brain_bank` as batch as before: microglia accelerate in PD
+(P1, now measured with an external clock) and microglia − OPC > 0 (new, counted). First tests.
+(X2) AD replication in RADC 5e57cd50 (exact ages only: 18 controls; donors aged "90 and over" leave clock line and
+contrast) and (X3) in cff99df2 (Brodmann area 9 only, 14 controls / 28 AD: the region the DLPFC pool was trained on;
+areas 17 and 7 left out rather than summed, since donors have 1-3 regions; cff99df2 gave DE genes for the PsychAD
+guard, which does not touch this contrast): astrocytes accelerate in AD and astrocyte − OPC > 0, in each cohort
+(4 replication predictions; the PsychAD stage-0 result).
+(X4) CMV replication in ALTRA 789ad837 (case definition, first visits and persons as in the CMV run): CD8 T
+accelerates, CD8 T − monocyte > 0, B within ±2 y (3 replication predictions; B is expected to fail as in Allen: a
+reproducible failure is a finding). Exploratory: CD4 T, monocyte, NK.
+(X5) COVID-19 9dbab10c, blood units only (157 cases, 25 controls): exploratory, per-type deltas, nothing counted
+(acute infection). (X6) Allen ff4235bb with the external blood clock: the CMV coarse predictions scored but not
+counted (robustness: does CD8 T hold with a clock never trained on Allen?).
+T2D islets e51bae9a stays inconclusive: no second islet cohort is on disk (not downloaded in this step).
 
 Design (Anton, same topic: "we have to modify design to allow idea of seeing age difference per system"): his
 individual + group loss with the system (cell type; tissue in bulk) as the unit. (0) One clock per system on
