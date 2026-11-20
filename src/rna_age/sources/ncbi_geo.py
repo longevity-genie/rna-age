@@ -250,6 +250,27 @@ def _annotation() -> pl.DataFrame:
     ).filter(pl.col("gene_id").is_not_null() & (pl.col("gene_id") != ""))
 
 
+def ensure_annotation() -> Path | None:
+    """NCBI's GeneID → Ensembl annotation on disk (fetched politely once)."""
+    return _polite_fetch(Remote(url=ANNOT_URL, name=ANNOT), download_dir(NAME))
+
+
+def read_counts(path: Path) -> pl.DataFrame:
+    """An NCBI counts table (``geneid`` + one column per GSM)."""
+    with gzip.open(path, "rb") as f:
+        counts = pl.read_csv(io.BytesIO(f.read()), separator="\t")
+    return counts.rename({counts.columns[0]: "geneid"}).with_columns(pl.col("geneid").cast(pl.Int64))
+
+
+def map_counts(counts: pl.DataFrame, ann: pl.DataFrame, gene_ids: list[str]) -> pl.DataFrame:
+    """GeneID counts → ``gene_id`` (Ensembl) rows in the order of ``gene_ids``: GeneIDs without an Ensembl ID are
+    dropped, several GeneIDs on one Ensembl ID are summed, Ensembl IDs without counts are 0."""
+    mapped = (
+        counts.join(ann.select("geneid", "gene_id"), on="geneid", how="inner").drop("geneid").group_by("gene_id").sum()
+    )
+    return pl.DataFrame({"gene_id": gene_ids}).join(mapped, on="gene_id", how="left").fill_null(0)
+
+
 def parse() -> None:
     out = input_dir(NAME)
     d = download_dir(NAME)
@@ -267,16 +288,7 @@ def parse() -> None:
         cpath = d / "counts" / counts_name(gse)
         if not cpath.exists():
             continue
-        with gzip.open(cpath, "rb") as f:
-            counts = pl.read_csv(io.BytesIO(f.read()), separator="\t")
-        counts = counts.rename({counts.columns[0]: "geneid"}).with_columns(pl.col("geneid").cast(pl.Int64))
-        mapped = (
-            counts.join(ann.select("geneid", "gene_id"), on="geneid", how="inner")
-            .drop("geneid")
-            .group_by("gene_id")
-            .sum()
-        )
-        mapped = pl.DataFrame({"gene_id": gene_ids}).join(mapped, on="gene_id", how="left").fill_null(0)
+        mapped = map_counts(read_counts(cpath), ann, gene_ids)
         gsms = [c for c in mapped.columns if c != "gene_id"]
         if reason == "crosscheck" and a4 is not None:
             meta = a4.filter(pl.col("sample_id").is_in(gsms))

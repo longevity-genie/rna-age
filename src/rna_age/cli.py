@@ -988,7 +988,9 @@ def sc_multitype_cmd(
 
 @app.command("sys-gap")
 def sys_gap_cmd(
-    cohorts: str = typer.Option("", help="comma-separated cohorts (default: the 7 of D7; 'cmv': Allen + ALTRA)"),
+    cohorts: str = typer.Option(
+        "", help="comma-separated cohorts (default: the 7 of D7; 'cmv': Allen + ALTRA; 'more': T2D islets + PD brain)"
+    ),
     n_genes: int = typer.Option(2000, help="most variable genes per type, picked on the training fold"),
     min_cells: int = typer.Option(20, help="cells a donor needs in a type"),
     min_controls: int = typer.Option(20, help="control donors a type needs for its clock"),
@@ -1001,9 +1003,10 @@ def sys_gap_cmd(
     """RM33 stage 0: per-type ridge clocks on controls, gaps, split-half reliability, shared vs specific, AD contrast."""
     import polars as pl
 
-    from rna_age.train.sys_gap import CMV_COHORTS, COHORTS, LEVELS, run
+    from rna_age.train.sys_gap import CMV_COHORTS, COHORTS, LEVELS, MORE_COHORTS, run
 
-    chosen = CMV_COHORTS if cohorts == "cmv" else (_csv(cohorts) or COHORTS)
+    named = {"cmv": CMV_COHORTS, "more": MORE_COHORTS}
+    chosen = named.get(cohorts) or _csv(cohorts) or COHORTS
     levels = LEVELS if level == "both" else (level,)
     if any(lv not in LEVELS for lv in levels):
         raise typer.BadParameter(f"level must be one of {LEVELS} or both")
@@ -1021,6 +1024,32 @@ def sys_gap_cmd(
                   .select("cohort", "level", "type", "prediction", "delta_years", "lo", "hi", "lo90", "hi90", "verdict"))  # fmt: skip
         if "composition" in out:
             print(out["composition"].select("cohort", "coarse", "label", "share_control", "delta_share", "lo", "hi"))
+
+
+@app.command("bulk-controls-score")
+def bulk_controls_score(seed: int = typer.Option(0)) -> None:
+    """RM33 bulk positive controls (whole tissue as one system): gap on an existing clock's predictions, case vs
+    control with a donor bootstrap; rows in the sys_gap tables (level bulk). CPU, minutes."""
+    import polars as pl
+
+    from rna_age.train.bulk_controls import run
+
+    out = run(seed=seed)
+    with pl.Config(tbl_rows=-1, tbl_cols=-1, tbl_width_chars=220):
+        for k in ("type", "predictions"):
+            if k in out:
+                print(out[k].filter(pl.col("level") == "bulk"))
+
+
+@app.command("bulk-controls-predict")
+def bulk_controls_predict(
+    gse: str = typer.Argument(..., help="a positive-control series kept out of the table (e.g. GSE190125)"),
+) -> None:
+    """RM33: score a held-out series with the saved Atlas fine-tune pair (GPU; NCBI counts, annotation fetched
+    once). Then run bulk-controls-score."""
+    from rna_age.train.bulk_controls import predict_series
+
+    print(predict_series(gse).group_by("run").len())
 
 
 @app.command("positive-controls-fetch")

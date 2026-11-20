@@ -335,3 +335,29 @@ def test_share_contrast_recovers_a_planted_shift():
     assert dim_r["lo"] < 0 < dim_r["hi"]
     lo, hi = max(age[case].min(), age[~case].min()), min(age[case].max(), age[~case].max())
     assert mem_r["n_case"] == (case & (age >= lo) & (age <= hi)).sum()  # the arms' common age range
+
+
+def test_islet_and_pd_classes():
+    assert coarse_type("type B pancreatic cell") == "beta"
+    assert coarse_type("pancreatic A cell") == "alpha"
+    assert coarse_type("pancreatic D cell") == "delta"
+    assert coarse_type("pancreatic acinar cell") == "acinar"
+    assert coarse_type("pancreatic ductal cell") == "ductal"
+    assert coarse_type("pancreatic stellate cell") == "stellate"
+    assert coarse_type("endothelial cell") == "vascular"
+    assert coarse_type("central nervous system macrophage") == "microglia"
+    assert coarse_type("central nervous system neuron") == "other"
+    assert coarse_type("perivascular macrophage") == "other"
+
+
+def test_contrast_in_predicted_years_without_slope():
+    rng = np.random.default_rng(3)
+    n = 400
+    case = rng.random(n) < 0.5
+    age = rng.uniform(40, 80, n)
+    sex = np.where(rng.random(n) < 0.5, "male", "female")
+    pred = 30 + 0.25 * age + 2.0 * case + rng.normal(0, 1, n)  # flat clock: 2 predicted years = 8 years of slope
+    raw = contrast({"blood": pred}, age, sex, None, case, ~case, np.arange(n), [], n_boot=200, per_slope=False)[0]
+    acc = contrast({"blood": pred}, age, sex, None, case, ~case, np.arange(n), [], n_boot=200)[0]
+    assert raw["lo"] > 1.0 and raw["hi"] < 3.0 and abs(raw["delta_years"] - 2.0) < 0.4
+    assert abs(acc["delta_years"] - 8.0) < 2.0

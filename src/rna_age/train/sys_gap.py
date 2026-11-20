@@ -43,6 +43,9 @@ acceleration than both oligodendrocytes and OPCs, with the bootstrap CI of each 
 is replication only, SLE (218acb0f) descriptive.
 CMV (ROADMAP RM33, CMV pre-registration): Allen (ff4235bb) and ALTRA (789ad837, replication); predictions per type or
 pair scored hold / fail / inconclusive in ``sys_gap_predictions`` (per guard in Allen: gene halves only).
+More controls (ROADMAP RM33, pre-registration of 2026-11-20): T2D islets (e51bae9a; islet classes in ``PANCREAS``) and
+Parkinson disease (d3cb449b; five regions per donor summed into one unit, ``POOL_TISSUES``; ``Brain_bank`` from the
+donor metadata as batch, ``DONOR_BATCH``); bulk controls in ``rna_age.train.bulk_controls``.
 Levels (``level``): ``coarse`` (the classes above) or ``fine`` (the dataset's own labels named in ``FINE``, each its
 own system; case definitions in ``CONDITIONS_FINE``; gene-half guard only). Every table carries ``level``; at the fine
 level ``sys_gap_composition`` gives each label's share of its coarse class, case minus control, adjusted like the
@@ -84,10 +87,20 @@ BRAIN = [
     ("OPC", r"oligodendrocyte precursor"),
     ("oligodendrocyte", r"oligodendrocyte"),
     ("astrocyte", r"astrocyte"),
-    ("microglia", r"microglial"),
+    ("microglia", r"microglial|central nervous system macrophage"),  # d3cb449b (PD) has no microglia label
     ("excitatory neuron", r"glutamatergic"),
     ("inhibitory neuron", r"gabaergic|interneuron"),
     ("vascular", r"endothelial|pericyte|smooth muscle|leptomeningeal"),
+]
+# Coarse islet classes (e51bae9a), checked before BRAIN; endothelial cells fall to BRAIN's "vascular".
+PANCREAS = [
+    ("beta", r"type b pancreatic"),
+    ("alpha", r"pancreatic a cell"),
+    ("delta", r"pancreatic d cell"),
+    ("PP", r"pancreatic pp cell"),
+    ("ductal", r"pancreatic ductal"),
+    ("acinar", r"pancreatic acinar"),
+    ("stellate", r"pancreatic stellate"),
 ]
 GLIA, REFS = ("microglia", "astrocyte"), ("oligodendrocyte", "OPC")
 EQUIV_MARGIN = 2.0  # years: equivalence band of a "does not accelerate" prediction (90 % CI inside +-margin)
@@ -120,6 +133,24 @@ CMV = CaseDef(
     predictions=(("CD8 T", "accelerates"), ("CD4 T", "accelerates"), ("CD8 T - monocyte", "accelerates"),
                  ("monocyte", "no_acceleration"), ("B", "no_acceleration"), ("NK", "exploratory")),
 )  # fmt: skip
+# More positive controls (ROADMAP RM33, pre-registration of 2026-11-20).
+T2D_ISLETS = "e51bae9a-c747-4b64-904a-4da7cda218ab"
+PD_BRAIN = "d3cb449b-c2b1-4b50-a7f1-21203535fe61"
+MORE_COHORTS = (T2D_ISLETS, PD_BRAIN)
+T2D = CaseDef(
+    "type 2 diabetes", r"type 2 diabetes",
+    pairs=(("beta", "acinar"), ("beta", "ductal"), ("alpha", "acinar")),
+    predictions=(("beta", "accelerates"), ("beta - acinar", "accelerates"),
+                 *((t, "exploratory") for t in ("alpha", "delta", "PP", "ductal", "acinar", "stellate", "vascular"))),
+)  # fmt: skip
+PD = CaseDef(
+    "Parkinson disease", r"parkinson disease",
+    pairs=(("microglia", "oligodendrocyte"), ("microglia", "OPC"), ("oligodendrocyte", "OPC")),
+    predictions=(("microglia", "accelerates"), ("oligodendrocyte - OPC", "exploratory"),
+                 ("microglia - oligodendrocyte", "exploratory"), ("microglia - OPC", "exploratory"),
+                 *((t, "exploratory") for t in ("astrocyte", "oligodendrocyte", "OPC", "excitatory neuron",
+                                                "inhibitory neuron", "vascular"))),
+)  # fmt: skip
 # Case definitions per cohort. Disease-label conditions: controls are ``normal``; donors with any other label (other
 # dementias, schizophrenia, ...) are left out of the contrast. A donor whose labels include Alzheimer disease among
 # others counts as AD.
@@ -129,11 +160,18 @@ CONDITIONS = {
     "218acb0f-9f2f-4f76-b90b-15a4b7c7f629": CaseDef("systemic lupus erythematosus", r"systemic lupus erythematosus"),
     ALLEN: CMV,
     ALTRA: CMV,
+    T2D_ISLETS: T2D,
+    PD_BRAIN: PD,
 }
+# Cohorts whose units are a donor's regions pooled: each type's counts summed over the donor's tissues.
+POOL_TISSUES = (PD_BRAIN,)
+# Donor-level batch from donor_obs/<id>.parquet where the mixed table has none of BATCH_COLUMNS.
+DONOR_BATCH = {PD_BRAIN: "Brain_bank"}
 # Subject column in donor_obs/<id>.parquet: the person when a cohort has several samples (visits) per subject.
 PERSON_COLUMNS = {ALLEN: "subject.subjectGuid", ALTRA: "subject.subjectGuid"}
 BAR_COHORT = "37a17b78-4864-4a42-b67b-31c00962795a"
-GUARD_COHORTS = (BAR_COHORT, ALLEN)  # --guards runs here; leave-DE-genes-out only where DE_COHORTS names a source
+# --guards runs here; leave-DE-genes-out only where DE_COHORTS names a source
+GUARD_COHORTS = (BAR_COHORT, ALLEN, PD_BRAIN)
 # Independent cohorts for the leave-DE-genes-out guard (same condition, never the bar cohort itself).
 DE_COHORTS = {
     BAR_COHORT: ("5e57cd50-8e42-42d6-940d-5c1660d06864", "cff99df2-4904-44f7-9173-ff837f95606e"),
@@ -146,7 +184,7 @@ ALPHAS = np.logspace(-1, 5, 13)
 
 def coarse_type(cell_type: str | None) -> str:
     s = (cell_type or "").lower()
-    for name, rx in BRAIN:
+    for name, rx in PANCREAS + BRAIN:
         if re.search(rx, s):
             return name
     if re.search(r"myeloid", s):  # Terekhova's "Myeloid cells" (mostly monocytes)
@@ -308,6 +346,11 @@ def load_cohort(
     pid = {p: i for i, p in enumerate(sorted(set(meta["cv_group"].to_list())))}
     ids = [str(x) for x in meta["donor_id"].to_list()]
     batch, batch_name = donor_batch(dataset_id, ids)
+    if batch is None and dataset_id in DONOR_BATCH:
+        col = DONOR_BATCH[dataset_id]
+        vals = donor_obs(dataset_id, ids, [col]).get(col)
+        if vals is not None:
+            batch, batch_name = [str(v) for v in vals], col
     cd = case_def(dataset_id, level)
     co = Cohort(
         name=dataset_id,
@@ -520,9 +563,10 @@ def case_effect(y: np.ndarray, X: np.ndarray) -> float:
 
 
 def _deltas(
-    preds: dict[str, np.ndarray], idx: np.ndarray, age, sex, batch, case, ctrl, inside
+    preds: dict[str, np.ndarray], idx: np.ndarray, age, sex, batch, case, ctrl, inside, per_slope: bool = True
 ) -> dict[str, tuple[float, float]]:
-    """Per type, on the rows ``idx`` (a person resample): (delta years, delta z) with the control line refitted."""
+    """Per type, on the rows ``idx`` (a person resample): (delta years, delta z) with the control line refitted.
+    ``per_slope``: years of acceleration (gap / slope); else the gap itself, in predicted years."""
     out = {}
     for t, p in preds.items():
         r = idx[~np.isnan(p[idx])]
@@ -536,7 +580,10 @@ def _deltas(
         gap = p[rr] - a - b * age[rr]
         X = design(age[rr], sex[rr], None if batch is None else batch[rr], case[rr])
         dz = case_effect(gap / sd, X)
-        out[t] = (case_effect(gap / b, X) if b > 0 else np.nan, dz)
+        if per_slope:
+            out[t] = (case_effect(gap / b, X) if b > 0 else np.nan, dz)
+        else:
+            out[t] = (case_effect(gap, X), dz)
     return out
 
 
@@ -551,21 +598,24 @@ def contrast(
     pairs: list[tuple[str, str]],
     n_boot: int = 2000,
     seed: int = 0,
+    per_slope: bool = True,
 ) -> list[dict]:
     """Case minus control acceleration per type (and per pair of types: first minus second) with a person-bootstrap
-    95 % CI. Rows outside the arms' common age range are kept for the control line but not in the regression."""
+    95 % CI. Rows outside the arms' common age range are kept for the control line but not in the regression.
+    ``per_slope=False`` (bulk): the gap in predicted years, not divided by the control line's slope."""
     use = case | ctrl
     lo_age, hi_age = max(age[case].min(), age[ctrl].min()), min(age[case].max(), age[ctrl].max())
     inside = use & (age >= lo_age) & (age <= hi_age)
     idx = np.flatnonzero(use)
-    point = _deltas(preds, idx, age, sex, batch, case, ctrl, inside)
+    point = _deltas(preds, idx, age, sex, batch, case, ctrl, inside, per_slope)
     persons = np.unique(person[idx])
     rows_of = {p: idx[person[idx] == p] for p in persons}
     rng = np.random.default_rng(seed)
     boots = []
     for _ in range(n_boot):
         pick = rng.choice(persons, len(persons))
-        boots.append(_deltas(preds, np.concatenate([rows_of[p] for p in pick]), age, sex, batch, case, ctrl, inside))
+        rows = np.concatenate([rows_of[p] for p in pick])
+        boots.append(_deltas(preds, rows, age, sex, batch, case, ctrl, inside, per_slope))
     out = []
 
     def ci(v, q=2.5):
@@ -897,7 +947,7 @@ def run_cohort(
     dataset_id: str, n_genes: int = 2000, min_cells: int = 20, min_controls: int = 20, seed: int = 0,
     guards: bool = False, level: str = "coarse",
 ) -> dict[str, list[dict]]:  # fmt: skip
-    co = load_cohort(dataset_id, min_cells, level=level)
+    co = load_cohort(dataset_id, min_cells, by_donor=dataset_id in POOL_TISSUES, level=level)
     cd = case_def(dataset_id, level)
     case_all, ctrl_all = arms(cd, co.disease, co.obs.get(cd.column) if cd is not None and cd.column else None)
     visits = dataset_id in PERSON_COLUMNS  # elsewhere a person's units are tissues or pooled samples: all kept

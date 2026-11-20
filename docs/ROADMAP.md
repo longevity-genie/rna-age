@@ -50,7 +50,7 @@ GSE114007 (OA: 5 pairs, controls young), GSE135251 (MASLD: no ages in GEO, NCBI 
 
 ## RM33 — System-level age gaps: which cell types or tissues make a person look older
 
-**State:** building (design A; stage 0 run, a601870; its two guards run 2026-11-14, `sys-gap --guards`; CMV run 2026-11-14: CD8 T holds, B fails reproducibly; AD replication next) · **Owner:** lead
+**State:** building (design A; stage 0 run, a601870; its two guards run 2026-11-14, `sys-gap --guards`; CMV run 2026-11-14: CD8 T holds, B fails reproducibly; four more controls run 2026-11-20: T2D, PD, sarcopenia inconclusive, Down syndrome awaits a GPU job) · **Owner:** lead
 
 Review (2026-11-13; a design agent wrote three designs, two separate reviewers judged them on our data and cluster):
 A labelled cell types 6/10 validity, 8/10 feasibility; B label-free groups on our encoder 4/4 (encoder never saw brain,
@@ -187,6 +187,31 @@ GSE167186: sarcopenic muscle reads older than age-matched healthy muscle (counte
 the Atlas fine-tune pair's predictions.
 The overall tally after these runs counts every pre-registered counted prediction so far: AD stage 0 (the glia bar as
 one prediction), CMV coarse (5), CMV fine (5), T2D (2), PD (1), Down syndrome (1), sarcopenia (2).
+Four more controls: results (2026-11-20, `rna-age sys-gap --cohorts more --guards`, `rna-age bulk-controls-score`;
+rows in the sys_gap tables, bulk ones with `level` `bulk` and the clock named). (A) T2D: 17 controls (16 with ≥ 20
+endothelial cells, 9 with PP cells), every type below `min_controls`: no clock, T1 and T2 inconclusive
+(unmeasurable), prediabetes not measurable either. (B) PD: 70 PD / 22-24 controls per type inside the common age
+range (64-101; `Brain_bank` as batch). The controls give no age clock: out-of-fold r with age −0.33 to −0.06 and
+slope ≤ 0 in every type but OPC (r 0.33, slope 0.12, so its years scale is wide: +20 y [3, 161], exploratory "hold",
+not read). P1 microglia: slope ≤ 0, inconclusive (unmeasured), in the plain run and in all 10 gene halves. An
+exploratory check per region (one region at a time, 17-22 controls) gives no clock either (r −0.62 to +0.21), so
+pooling the regions is not what kills it: 24 controls aged 64-101 (median 74) are too few and too old. (D) Sarcopenia,
+headline ensemble's own val predictions (gap in predicted years, case − control [95 % CI], donors in the common age
+range): GSE111016 +1.6 y [−0.7, 3.8] (20 vs 16, ages 66-78; clock r with age on controls 0.26, slope 0.23), GSE167186
++0.9 [−1.6, 3.3] (20 vs 19, 67-87; r 0.94, slope 0.32): S1 and S2 inconclusive (both point older, neither beyond the
+CI nor inside ±2 y); the Atlas fine-tune pair gives the same (+1.0 [−0.8, 2.9]; +1.1 [−3.4, 5.4]). (C) Down syndrome:
+not run here. Scoring GSE190125 needs a GPU (the Atlas fine-tune pair) and NCBI's annotation (not on disk yet;
+`bulk-controls-predict` fetches it); code and tests are in (`rna-age bulk-controls-predict GSE190125` as a GPU job, then
+`rna-age bulk-controls-score`), D1 is pending.
+Overall tally of counted predictions (16 scored, 1 pending): hold 3 (AD glia bar, plain run only, 6 of 10 gene halves;
+CMV CD8 T; CMV CD8 T − monocyte), fail 2 (CMV coarse B, CMV fine memory B: both reproducible, reported as findings),
+inconclusive 11 (CMV CD4 T and monocyte; CMV fine P1, P2, P4, P5; T2D T1, T2; PD P1; sarcopenia S1, S2), pending 1
+(Down syndrome D1). Of the 5 decided, 3 hold; but most predictions are undecided, and every new control so far was
+undecided for want of power (T2D, PD: too few controls for a cohort's own clock; sarcopenia: 16-19 controls in the
+common age range with CIs of ±2-3 y). RM33 does not pass on this count; the limiting factor is controls per cohort,
+not a contrary result. Next: the Down syndrome GPU job (96 adult pairs, the best-powered bulk control); for small
+single-cell cohorts, a clock trained on other cohorts' healthy donors of the same tissue (a design change, to be
+pre-registered before use) instead of the cohort's own controls.
 
 Design (Anton, same topic: "we have to modify design to allow idea of seeing age difference per system"): his
 individual + group loss with the system (cell type; tissue in bulk) as the unit. (0) One clock per system on

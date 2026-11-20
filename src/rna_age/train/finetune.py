@@ -41,6 +41,47 @@ def load_inputs() -> tuple[list[str], np.ndarray]:
     return ids, np.concatenate(xs)
 
 
+def make_head(dim: int):
+    """CLS → LayerNorm → MLP → age (the fine-tune head; checkpoints store its state under ``head``)."""
+    import torch
+
+    return torch.nn.Sequential(
+        torch.nn.LayerNorm(dim), torch.nn.Linear(dim, 256), torch.nn.GELU(), torch.nn.Dropout(0.1),
+        torch.nn.Linear(256, 1),
+    )  # fmt: skip
+
+
+def predict_checkpoint(ckpt: Path, X: np.ndarray, bs: int = 8) -> np.ndarray:
+    """Ages from a saved fine-tune (``best.pt``: head + its trained blocks over a fresh Atlas) for panel inputs
+    ``X`` (samples × 4,096, log2 TPM+1 as in ``*.inputs.npz``); GPU, fp16 autocast as in training."""
+    import torch
+    from bulkformer import load_atlas
+
+    from rna_age.train.atlas_patch import patch_atlas_attention
+
+    patch_atlas_attention()
+    model, _, _ = load_atlas(str(MODEL_DIR / "atlas"), device="cuda")
+    dev = next(model.parameters()).device
+    state = torch.load(ckpt, map_location=dev, weights_only=False)
+    model.load_state_dict(state["model"], strict=False)
+    head = make_head(model.output_norm.weight.shape[0]).to(dev)
+    head.load_state_dict(state["head"])
+    model.eval()
+    head.eval()
+    panel = pl.read_parquet(PANEL)["index"].to_numpy()
+    gene_ids = torch.as_tensor(np.r_[model.num_genes, panel], dtype=torch.long, device=dev)
+    out = []
+    with torch.no_grad():
+        for i in range(0, len(X), bs):
+            x = torch.as_tensor(np.asarray(X[i : i + bs], dtype=np.float32), device=dev)
+            x = torch.cat([x.new_zeros(len(x), 1), x], dim=1)
+            gid = gene_ids[None].expand(len(x), -1)
+            with torch.autocast("cuda", dtype=torch.float16):
+                h = model.encode(gid, x, torch.ones_like(gid, dtype=torch.bool))[:, 0]
+                out.append(head(h.float()).squeeze(-1).float().cpu().numpy())
+    return np.concatenate(out) if out else np.array([])
+
+
 def train(
     unfreeze: int = 2,
     epochs: int = 6,
@@ -106,10 +147,7 @@ def train(
         p_.requires_grad = unfreeze > 0
     model.gradient_checkpointing = unfreeze > 0
     dim = model.output_norm.weight.shape[0]
-    head = torch.nn.Sequential(
-        torch.nn.LayerNorm(dim), torch.nn.Linear(dim, 256), torch.nn.GELU(), torch.nn.Dropout(0.1),
-        torch.nn.Linear(256, 1),
-    ).to(dev)  # fmt: skip
+    head = make_head(dim).to(dev)
     groups = [{"params": head.parameters(), "lr": lr_head}]
     body = [p_ for p_ in model.parameters() if p_.requires_grad]
     if body:
