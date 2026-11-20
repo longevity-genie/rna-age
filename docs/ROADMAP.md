@@ -313,6 +313,10 @@ own-control clocks, each cell type's clock is trained on other cohorts' healthy 
 islet atlases; brain: PsychAD and HBCC controls; blood: OneK1K, AIDA, Terekhova), the small cohort's cases and controls
 scored with it and contrasted within study; its predictions pre-registered before the run. Down syndrome (D1) waits
 on the runner's GPU job.
+Down syndrome (D1, 2026-11-20, runner's jobs 6552585-6552586, 89d1366): GSE190125 blood, adults, trisomy 21 −
+controls +11.7 y [10.3, 13.2] (202 vs 66) with the Atlas fine-tune ensemble `20261110-1329-ens-atlasft-u4u6`: holds;
+children (exploratory) +7.3 y [5.6, 9.3]. Tally: 26 scored, 4 hold, 2 fail (the clock-dependent CMV B result), 20
+inconclusive. Waiting on Anton's pick between z-unit contrasts (default) and ≥ 50-control cohorts only.
 
 ## RM13 — A manuscript draft of the results (plan line 5)
 
