@@ -33,7 +33,7 @@ import polars as pl
 from rna_age.ages import find_age
 from rna_age.annotate import add_flags
 from rna_age.counts import blocks_of, write_parts
-from rna_age.download import Remote, meta_path
+from rna_age.download import Remote, is_fetched, meta_path
 from rna_age.download import fetch as _fetch
 from rna_age.paths import INPUT, INTERIM, download_dir, input_dir
 from rna_age.schema import conform
@@ -65,6 +65,9 @@ def samples_text_url(gse: str) -> str:
 
 
 def _polite_fetch(remote: Remote, dest_dir: Path, max_403: int = 3) -> Path | None:
+    dest = dest_dir / remote.name
+    if is_fetched(dest, remote):  # no request made, so no pause (RM7: skips cost 1.2 h per run)
+        return dest
     for attempt in range(1, max_403 + 1):
         try:
             path = _fetch(remote, dest_dir, connections=1)
