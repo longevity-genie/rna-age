@@ -61,6 +61,7 @@ stop before Anton is back; 07:00 report, then keep updating; one tabbed artifact
 
 ## Running (jobs carry seat / what / eta in their Slurm comment)
 - 6552380 RM7 NCBI GEO (resubmitted 2026-11-20 after 667ede7 moved the URLs to NCBI's FTP copy; nice 100): select targets, fetch one connection up to 400 new files, parse.
+- 6552585 RM33 Down syndrome control, GPU (bulk-controls-predict GSE190125), then 6552586 CPU bulk-controls-score (afterok, nice 100); submitted 2026-11-20.
 
 ## Results so far (details: `docs/experiments.md`, `data/output/summary/experiments.parquet`)
 - **RM30 (2026-11-14 00:53)**: our in-context tabular model pretrained on expression tables fails all four bars:
