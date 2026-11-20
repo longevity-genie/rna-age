@@ -60,7 +60,7 @@ stop before Anton is back; 07:00 report, then keep updating; one tabbed artifact
   rules: Census 2,356 healthy (3,815 any health), scBaseCount 492 (1,656), recount3 bulk 4,430 (6,380).
 
 ## Running (jobs carry seat / what / eta in their Slurm comment)
-- RM7 NCBI GEO: 6552049 failed in 28 s (2026-11-20 13:32): the gene annotation URL still serves reCAPTCHA; its FTP copy is under `geo/rnaseq_counts/annot/`. Waits on the lead's one-line URL fix, then resubmit.
+- 6552380 RM7 NCBI GEO (resubmitted 2026-11-20 after 667ede7 moved the URLs to NCBI's FTP copy; nice 100): select targets, fetch one connection up to 400 new files, parse.
 
 ## Results so far (details: `docs/experiments.md`, `data/output/summary/experiments.parquet`)
 - **RM30 (2026-11-14 00:53)**: our in-context tabular model pretrained on expression tables fails all four bars:
