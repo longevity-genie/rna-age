@@ -61,9 +61,10 @@ stop before Anton is back; 07:00 report, then keep updating; one tabbed artifact
 
 ## Running (jobs carry seat / what / eta in their Slurm comment)
 - 6552380 RM7 NCBI GEO (resubmitted 2026-11-20 after 667ede7 moved the URLs to NCBI's FTP copy; nice 100): select targets, fetch one connection up to 400 new files, parse.
-- 6552585 RM33 Down syndrome control, GPU (bulk-controls-predict GSE190125), then 6552586 CPU bulk-controls-score (afterok, nice 100); submitted 2026-11-20.
 
 ## Results so far (details: `docs/experiments.md`, `data/output/summary/experiments.parquet`)
+- **RM33 Down syndrome control (2026-11-20 14:33)**: blood (GSE190125), adults with trisomy 21 read +11.7 y
+  [10.3, 13.2] older than controls (202 vs 66), the pre-registered prediction holds; children +7.3 y (exploratory).
 - **RM30 (2026-11-14 00:53)**: our in-context tabular model pretrained on expression tables fails all four bars:
   single-cell 0 of 7 vs TabICLv2 (worse in 5), bulk test MAE 14.0 (bar 10.1), health gap −0.05 y (bar +2.9),
   perturbation ties the mean-change baseline (r 0.049 vs 0.050), so RM29 was cancelled.
