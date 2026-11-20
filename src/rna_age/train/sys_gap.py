@@ -299,12 +299,14 @@ def donor_obs(dataset_id: str, donor_ids: list[str], columns: list[str]) -> dict
 
 
 def load_cohort(
-    dataset_id: str, min_cells: int = 20, by_donor: bool = False, keep_censored: bool = False, level: str = "coarse"
-) -> Cohort:
+    dataset_id: str, min_cells: int = 20, by_donor: bool = False, keep_censored: bool = False, level: str = "coarse",
+    where: pl.Expr | None = None,
+) -> Cohort:  # fmt: skip
     """Donor metadata and, per system (``level`` coarse: ``coarse_type``; fine: ``fine_type``), the summed counts of
     donors with at least ``min_cells`` cells. ``by_donor`` sums a donor's tissues (default: one unit per donor ×
     tissue); ``keep_censored`` keeps donors whose age is only a bound (age = the bound, flagged in ``age_censored``);
-    used for DE, never for clocks."""
+    used for DE, never for clocks. ``where`` keeps only the groups (rows of ``groups.parquet`` with ``age`` added)
+    it is true on, e.g. healthy adults or one tissue."""
     d = _cohort_dir(dataset_id)
     g = pl.read_parquet(d / "groups.parquet")
     if "sex" not in g.columns and "Sex" in g.columns:
@@ -322,6 +324,8 @@ def load_cohort(
         if by_donor
         else pl.col("donor_id").cast(pl.Utf8) + ":" + pl.col("tissue"),
     ).filter(pl.col("age").is_not_null())
+    if where is not None:
+        g = g.filter(where)
     if dataset_id in PERSON_COLUMNS:  # the subject is the person (several samples per subject share it)
         ids = g["donor_id"].cast(pl.Utf8).unique().to_list()
         subj = donor_obs(dataset_id, ids, [PERSON_COLUMNS[dataset_id]]).get(PERSON_COLUMNS[dataset_id])
@@ -1083,13 +1087,14 @@ def run_cohort(
            "guards": guard_rows, "de": de_rows_used,
            "predictions": pred_rows if cd and cd.predictions else [], "composition": comp_rows}  # fmt: skip
     for k in ("donor", "type", "contrast", "corr", "guards", "predictions"):
-        out[k] = [{**r, "level": level} for r in out[k]]
+        out[k] = [{**r, "level": level, "clock": "own"} for r in out[k]]
     return out
 
 
 def _merge_write(k: str, new: pl.DataFrame) -> pl.DataFrame:
-    """Replace the rows of the (cohort, level) pairs in ``new`` in ``sys_gap_<k>.parquet``; other rows stay. Rows
-    written before levels existed are coarse."""
+    """Replace the rows of the (cohort, level[, clock]) keys in ``new`` in ``sys_gap_<k>.parquet``; other rows stay.
+    Rows written before levels existed are coarse; before clocks were named, a missing clock is the cohort's own
+    (``own``)."""
     path = SUMMARY / f"sys_gap_{k}.parquet"
     key = "for_cohort" if k == "de" else "cohort"
     if path.exists():
@@ -1100,6 +1105,10 @@ def _merge_write(k: str, new: pl.DataFrame) -> pl.DataFrame:
                 keys.append("level")
                 old = old.with_columns(pl.col("level").fill_null("coarse")) if "level" in old.columns else (
                     old.with_columns(level=pl.lit("coarse")))  # fmt: skip
+            if "clock" in new.columns:
+                keys.append("clock")
+                old = old.with_columns(pl.col("clock").fill_null("own")) if "clock" in old.columns else (
+                    old.with_columns(clock=pl.lit("own")))  # fmt: skip
             drop = new.select(keys).unique()
             new = pl.concat([old.join(drop, on=keys, how="anti"), new], how="diagonal_relaxed")
     new.write_parquet(path, compression="zstd")

@@ -1026,6 +1026,34 @@ def sys_gap_cmd(
             print(out["composition"].select("cohort", "coarse", "label", "share_control", "delta_share", "lo", "hi"))
 
 
+@app.command("sys-gap-external")
+def sys_gap_external_cmd(
+    targets: str = typer.Option("", help="comma-separated: pd, radc, cff99df2, altra, covid, allen (default all)"),
+    n_genes: int = typer.Option(2000, help="most variable genes per type, picked on the pool's training donors"),
+    min_cells: int = typer.Option(20, help="cells a donor needs in a type"),
+    min_controls: int = typer.Option(10, help="target controls a type needs for its bias line"),
+    seed: int = typer.Option(0),
+    guards: bool = typer.Option(True, help="gene-half clocks for targets with counted predictions"),
+) -> None:
+    """RM33 external clocks: per-type clocks on other cohorts' healthy donors of the tissue score a small cohort."""
+    import polars as pl
+
+    from rna_age.train.sys_gap_ext import TARGETS, run
+
+    chosen = _csv(targets) or tuple(TARGETS)
+    if unknown := [t for t in chosen if t not in TARGETS]:
+        raise typer.BadParameter(f"unknown targets {unknown}; known {list(TARGETS)}")
+    out = run(chosen, n_genes=n_genes, min_cells=min_cells, min_controls=min_controls, seed=seed, guards=guards)
+    ext = pl.col("clock").str.starts_with("external")
+    with pl.Config(tbl_rows=-1, tbl_cols=-1, tbl_width_chars=220):
+        print(out["type"].filter(ext).select("cohort", "clock", "type", "n_train", "n_controls", "slope", "r_age",
+                                             "reliability", "status"))  # fmt: skip
+        print(out["contrast"].filter(ext).select("cohort", "kind", "type", "delta_years", "lo", "hi", "n_case",
+                                                 "n_control", "status"))  # fmt: skip
+        print(out["predictions"].filter(ext & (pl.col("guard") == "none"))
+              .select("cohort", "type", "prediction", "counted", "delta_years", "lo", "hi", "lo90", "hi90", "verdict"))  # fmt: skip
+
+
 @app.command("bulk-controls-score")
 def bulk_controls_score(seed: int = typer.Option(0)) -> None:
     """RM33 bulk positive controls (whole tissue as one system): gap on an existing clock's predictions, case vs
