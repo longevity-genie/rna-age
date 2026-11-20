@@ -60,7 +60,7 @@ stop before Anton is back; 07:00 report, then keep updating; one tabbed artifact
   rules: Census 2,356 healthy (3,815 any health), scBaseCount 492 (1,656), recount3 bulk 4,430 (6,380).
 
 ## Running (jobs carry seat / what / eta in their Slurm comment)
-- RM7 NCBI GEO: run 1 (6552380, 51 min) fetched 340 of 4,035 series texts and 64 count files, parsed 19,524 samples from 58 series. Runs 2-11 chained (6554876-6554885, one connection each, 400 new files per run), then parse 6554886.
+- RM7 NCBI GEO: run 1 (6552380, 51 min) fetched 340 of 4,035 series texts and 64 count files, parsed 19,524 samples from 58 series. Runs 2-11 chained (6554876-6554885, one connection each, 400 new files per run), then parse 6554886. Not merged into samples_all or the splits: the lead decides how they enter (likely a separate external-test table).
 
 ## Results so far (details: `docs/experiments.md`, `data/output/summary/experiments.parquet`)
 - **RM33 Down syndrome control (2026-11-20 14:33)**: blood (GSE190125), adults with trisomy 21 read +11.7 y
