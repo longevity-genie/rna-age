@@ -263,6 +263,8 @@ def parse() -> None:
 
     sample_frames, columns = [], {}
     for gse, reason in targets.iter_rows():
+        if reason == "positive_control":  # RM34: read with its curated labels, never merged into training
+            continue
         cpath = d / "counts" / counts_name(gse)
         if not cpath.exists():
             continue
