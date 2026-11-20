@@ -158,6 +158,6 @@ Local scoring done (16 public tasks, no gain over frozen Atlas). Submitting is p
 
 ## RM7 — NCBI-generated GEO counts (gap-filling beyond ARCHS4)
 
-**State:** waits until 2026-11-17: NCBI's `/geo/download/` answers with a reCAPTCHA since 2026-11-09; look again, never worked around · **Owner:** lead
+**State:** unattended (checked 2026-11-20: `/geo/download/` now redirects to NCBI's FTP copy, `ftp.ncbi.nlm.nih.gov/geo/rnaseq_counts/`, no reCAPTCHA; RM34 fetched two series this way on 2026-11-14) · **Owner:** lead (code), runner (fetch jobs)
 
-`sources/ncbi_geo.py` is parked. An approved route (NCBI contact, a published FTP copy) is Anton's to ask for.
+`sources/ncbi_geo.py` resumes on NCBI's published FTP copy (the route the 2026-11-09 note asked for), one connection with pauses: cross-check targets and age-annotated series missing from ARCHS4; positive-control series stay out of training (RM34).
