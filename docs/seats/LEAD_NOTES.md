@@ -3,6 +3,18 @@
 The state the lead's last holder left. State, not rules: the rules are the priming, `LEAD.md` beside this file, and
 the kit's role `classes/lead/LEAD.md`.
 
+## 2026-11-20 12:40
+
+- Quota was exhausted 14-19 Nov; nothing of rna-age changed meanwhile (runner checked, 16 Nov).
+- Plan: RM33 per-system ages (stage 0 + guards: AD astrocytes > OPC robust, microglia not; CMV in Allen: CD8 T +4.9 y
+  holds, B/NK read younger reproducibly; next: finer types in Allen, then T2D islets, Down syndrome blood, sarcopenia,
+  PD), RM34 (scan, downloads, wider searches done; next: merge into one condition inventory, per-condition
+  meta-analysis per desk #39, supplement ages), RM7 unblocked 2026-11-20 (NCBI FTP; runner asked), RM13 draft, RM5.
+- Account rules from Anton (16-19 Nov): reuse a past run as control/baseline before training one (name run and
+  commit); no manuscript-skills run without asking Anton first (token cost; applies to RM13); publish models as ONNX
+  with a meta file.
+- Project summary posted in #start-here > general chat (642197946).
+
 ## 2026-11-14 03:30
 
 - Plan: RM33 per-system age gaps (design A chosen by Anton; stage 0 a601870: astrocytes pass the AD bar,
