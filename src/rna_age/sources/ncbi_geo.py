@@ -45,7 +45,8 @@ PAUSE = 4.0  # seconds between NCBI requests
 EUTILS = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils"
 SEARCH_TERM = '"rnaseq counts"[Filter] AND "Homo sapiens"[Organism] AND gse[ETYP]'
 ANNOT = "Human.GRCh38.p13.annot.tsv.gz"
-ANNOT_URL = f"https://www.ncbi.nlm.nih.gov/geo/download/?format=file&type=rnaseq_counts&file={ANNOT}"
+FTP = "https://ftp.ncbi.nlm.nih.gov/geo/rnaseq_counts"  # NCBI's published copy; /geo/download/ serves a reCAPTCHA
+ANNOT_URL = f"{FTP}/annot/{ANNOT}"
 TARGETS = INTERIM / "ncbi_geo_targets.parquet"
 CROSSCHECK_SERIES = 30
 
@@ -55,9 +56,7 @@ def counts_name(gse: str) -> str:
 
 
 def counts_url(gse: str) -> str:
-    return (
-        f"https://www.ncbi.nlm.nih.gov/geo/download/?type=rnaseq_counts&acc={gse}&format=file&file={counts_name(gse)}"
-    )
+    return f"{FTP}/{gse[:-3]}nnn/{counts_name(gse)}"
 
 
 def samples_text_url(gse: str) -> str:
