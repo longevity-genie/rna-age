@@ -1246,3 +1246,41 @@ TabPFN-3.5 − TabICLv2 with a donor-bootstrap 95 % CI (row bootstrap = tubes in
 Bar (better beyond the CI in ≥ 4 of 7): **missed**, 3 of 7 at each gene count; worse beyond the CI nowhere; mean
 difference −0.29 y (500 genes), −0.33 y (2,000). TabPFN-3.5 is better or level in 13 of 14 cells. Table:
 `data/output/summary/rm36_arm1_sc.parquet`.
+
+### 2026-11-21 16:45 · RM35 step 1c: the age-gene recipe is robust; stacking it passes; RM36 arm 1b fails
+At 4f0f13d, two chains. **Chain A** (2080 Ti, `--with tabicl rna-age sc-recipe ...`, 6583151-6583155), cohorts
+beaten of 7 (bar of step 1b: beats TabICLv2 2,000-gene pseudobulk beyond the CI in ≥ 4) and mean MAE over 7 cohorts:
+
+| variant | TabICLv2 beats | mean diff (y) | mean MAE (y) | ridge beats |
+|---|---|---|---|---|
+| agesel_class (1b, seed 0, 500 genes) | 4 | −1.15 | 5.47 | 4 |
+| agesel_class seed 1 | 4 | −1.12 | 5.50 | 4 |
+| agesel_class seed 2 | 4 | −1.08 | 5.54 | 4 |
+| agesel_class 1,000 genes | 4 | −0.92 | 5.70 | 3 |
+| agesel_class 2,000 genes | 4 | −0.81 | 5.80 | 3 |
+| stack (1b) | 6 | −0.84 | 5.78 | – |
+| stack_agesel | 6 | −1.39 | 5.23 | 5 (5.37 y) |
+
+(i) passes: every TabICLv2 variant passes, fewer genes are better. (ii) passes: `stack_agesel` 6/7 and the lowest
+mean MAE, below both `agesel_class` and `stack`. **Chain B** (CPU, 6583156-6583158): `sys-gap` with 500 age-chosen
+genes (clock `own:agegenes` / `external:<pool>:agegenes`) beside the HVG rows in `sys_gap_*.parquet`. (iii)
+descriptive: controls' r with age higher with age-chosen genes in 44 of 71 type rows (mean r up in 7 of 10
+cohort/pool pairs, largest ALTRA own 0.02 → 0.17, 5e57cd50 external 0.31 → 0.39); PsychAD's AD contrast beyond the CI
+in 9 of 11 rows with either gene set; 8 contrast rows change verdict (lupus B cells, AD microglia on the external
+brain pool, six CMV rows with wide CIs).
+
+**RM36 arm 1b** (6587449, `--with tabpfn rna-age sc-recipe agesel_class --models tabpfn35`): against the reused
+`recipe-agesel_class-tabicl` rows, paired by donor, MAE TabPFN-3.5 − TabICLv2 [95 % donor-bootstrap CI]:
+
+| cohort | donors | TabICLv2 | TabPFN-3.5 | diff [95 % CI] |
+|---|---|---|---|---|
+| 218acb0f | 261 | 6.67 | 6.64 | -0.03 [-0.35, +0.31] |
+| 37a17b78 | 783 | 4.82 | 4.86 | +0.04 [-0.12, +0.19] |
+| 3faad104 | 981 | 7.21 | 7.11 | -0.10 [-0.26, +0.06] |
+| 5c97eeeb | 299 | 3.50 | 3.36 | -0.13 [-0.35, +0.09] |
+| 5e57cd50 | 100 | 5.59 | 6.27 | +0.68 [+0.13, +1.23] |
+| c838aec3 | 625 | 5.39 | 5.36 | -0.03 [-0.20, +0.14] |
+| terekhov | 317 | 5.10 | 4.82 | -0.29 [-0.57, -0.01] |
+
+Bar (better beyond the CI in ≥ 4 of 7): **missed**, 1 better (terekhova), 1 worse (5e57cd50, 100 donors), mean +0.02
+y. In the recipe the two in-context models tie. Table: `data/output/summary/rm36_arm1b_recipe.parquet`.
