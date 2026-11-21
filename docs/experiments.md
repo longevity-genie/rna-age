@@ -1217,3 +1217,32 @@ chained 6480014-6480021, 6480038, 6480039; no failures. 121.7 GB in all.
 | d3cb449b | PD multi-region | 30.5 | 4,277 |
 | ff4235bb | Allen aging (CMV) | 40.1 | 7,926 |
 | 789ad837 | ALTRA (CMV, RA) | 18.1 | 3,277 |
+
+### 2026-11-21 16:35 · RM36 arm 1: TabPFN-3.5 against TabICLv2 as a single-cell clock
+At ea5c46e, `uv run --with tabpfn rna-age sc-tabular <c> --models tabpfn35 --n-genes 500|2000` with D7's mappings
+(blood `broad`, brain `cell_type`), 2080 Ti, jobs 6587352-6587365 (1-5 min each). TabPFN-3.5 weights
+(`tabpfn-v3.5-20260909.safetensors`) fetched from Prior-Labs/tabpfn_3_5 with the cluster's HF login into the TabPFN
+cache (Anton: research use). Control reused, not retrained: TabICLv2 `tabicl` / `tabicl-2000g` rows of
+`sc_tabular_<c>.parquet` (RM14/RM16, same folds and features). Whole-sample pseudobulk, MAE in years, difference
+TabPFN-3.5 − TabICLv2 with a donor-bootstrap 95 % CI (row bootstrap = tubes in Terekhova):
+
+| cohort | genes | donors | TabICLv2 | TabPFN-3.5 | diff [95 % CI] |
+|---|---|---|---|---|---|
+| 218acb0f | 500 | 261 | 7.55 | 7.00 | -0.55 [-0.91, -0.22] |
+| 37a17b78 | 500 | 783 | 6.65 | 6.52 | -0.13 [-0.32, +0.05] |
+| 3faad104 | 500 | 981 | 7.91 | 7.72 | -0.19 [-0.36, -0.03] |
+| 5c97eeeb | 500 | 299 | 6.35 | 6.00 | -0.35 [-0.68, +0.00] |
+| 5e57cd50 | 500 | 100 | 6.00 | 5.87 | -0.13 [-0.57, +0.30] |
+| c838aec3 | 500 | 625 | 6.45 | 6.48 | +0.03 [-0.14, +0.21] |
+| terekhov | 500 | 317 | 8.63 | 7.94 | -0.69 [-1.06, -0.33] |
+| 218acb0f | 2000 | 261 | 6.88 | 6.60 | -0.27 [-0.69, +0.11] |
+| 37a17b78 | 2000 | 783 | 7.40 | 6.81 | -0.59 [-0.79, -0.37] |
+| 3faad104 | 2000 | 981 | 7.37 | 7.16 | -0.22 [-0.41, -0.04] |
+| 5c97eeeb | 2000 | 299 | 5.81 | 5.57 | -0.24 [-0.61, +0.13] |
+| 5e57cd50 | 2000 | 100 | 6.19 | 5.97 | -0.22 [-0.73, +0.29] |
+| c838aec3 | 2000 | 625 | 5.77 | 5.45 | -0.32 [-0.50, -0.14] |
+| terekhov | 2000 | 317 | 6.92 | 6.49 | -0.43 [-0.86, +0.00] |
+
+Bar (better beyond the CI in ≥ 4 of 7): **missed**, 3 of 7 at each gene count; worse beyond the CI nowhere; mean
+difference −0.29 y (500 genes), −0.33 y (2,000). TabPFN-3.5 is better or level in 13 of 14 cells. Table:
+`data/output/summary/rm36_arm1_sc.parquet`.
