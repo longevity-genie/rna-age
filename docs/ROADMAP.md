@@ -9,7 +9,7 @@ The lead (`docs/seats/LEAD.md`) keeps it. Seeded at the lead's first seating (20
 
 ## RM36 — Tabular foundation models at full context: TabPFN-3.5 and TabICLv2
 
-**State:** building: arm 2 runs now; arms 1 and 3 submitted 2026-11-21 (weights via the cluster's HF login; Anton: "ignore license, it is research experiment") ·
+**State:** building: arm 1 failed its bar 2026-11-21; arm 1b next; arm 2 runs (12 h); arm 3 submitted 2026-11-21 (weights via the cluster's HF login; Anton: "ignore license, it is research experiment") ·
 **Owner:**
 lead (code), runner (jobs)
 
@@ -24,7 +24,12 @@ Code: `tabpfn35` in `train/tabfm.py` (`_estimator`) and `train/sc_tabular.py` (b
 - **Arm 1, single cell:** `uv run --with tabpfn rna-age sc-tabular <cohort> --models tabpfn35 --n-genes 500` and
   `--n-genes 2000`, the 7 D7 cohorts with D7's mappings (blood `broad`, brain `cell_type`). Reused control: TabICLv2
   `tabicl` / `tabicl-2000g` rows of `sc_tabular_*` (D7/RM14), same folds. Bar: better than TabICLv2 at the same gene
-  count beyond the paired CI in ≥ 4 of 7 cohorts.
+  count beyond the paired CI in ≥ 4 of 7 cohorts. **Outcome 2026-11-21:** fails, 3 of 7 at both gene counts, worse nowhere,
+  mean −0.3 y (DECISIONS).
+- **Arm 1b, TabPFN-3.5 in the best single-cell recipe** (pre-registered 2026-11-21, after arm 1): `uv run --with tabpfn
+  rna-age sc-recipe agesel_class --models tabpfn35` (500 age-chosen genes per cell class, RM35 step 1b's folds), the 7
+  cohorts. Reused control: `recipe-agesel_class-tabicl` (RM35 step 1b, 5.47 y mean). Bar: the same, better beyond the
+  paired CI in ≥ 4 of 7. Reason to run: arm 1's gain is small but never negative, and the recipe is the clock RM33 uses.
 - **Arm 2, bulk TabICLv2 at full context:** `uv run --with tabicl rna-age tabfm --model tabicl --features hvg
   --n-genes 2000 --context random --n-context 100000 --cap-per-study 100000` (every eligible training row), one A100.
   Reused controls: RM25 (job 6439059, 15.30 y) and the 20k-HVG MLP (8.1). Bar: test MAE ≤ 9.1 (RM25's bar).

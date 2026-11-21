@@ -393,3 +393,11 @@ RNAs) standardised to extremes and the network extrapolated (up to 3,051 y). Rea
 clock's error is ~11 y (r 0.76) against 7.46 on ARCHS4's held-out studies, in line with RM26's recount3 new studies
 (11.2): the honest external number for the manuscript. The counting pipeline itself moves a prediction by ~5 y SD and
 little on average. Any model fed counts from another pipeline needs the same range clip.
+
+**RM36 arm 1 outcome (2026-11-21, runner's chains 6587352-6587365 at ea5c46e, logged 6cb33c4; read by the lead):**
+fails its bar. TabPFN-3.5 against TabICLv2 at the same gene count, whole-sample pseudobulk, D7 folds, TabICLv2 rows
+reused from `sc_tabular_*`: better beyond the paired 95 % CI in 3 of 7 cohorts at 500 genes and 3 of 7 at 2,000 (bar 4),
+worse beyond it in none; mean −0.29 y (500) and −0.33 y (2,000), lower or level in 13 of 14 cohort × gene cells, two
+more at the CI edge (`rm36_arm1_sc.parquet`). Reading: a small, consistent gain that the pre-registered bar does not
+count, not a new clock. Whether it carries into the best single-cell recipe (age-chosen genes per cell class, RM35
+step 1b) is tested next as arm 1b.
