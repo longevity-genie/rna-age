@@ -370,7 +370,7 @@ def test_z_verdicts_and_gate():
     rows = [{"type": "A", "delta_years": 5.0, "lo": -1.0, "hi": 11.0, "lo90": 0.0, "hi90": 10.0,
              "delta_z": 0.6, "lo_z": 0.2, "hi_z": 1.0, "lo90_z": 0.25, "hi90_z": 0.95},
             {"type": "B", "delta_years": 0.0, "lo": -6.0, "hi": 6.0, "lo90": -5.0, "hi90": 5.0,
-             "delta_z": 0.0, "lo_z": -0.25, "hi_z": 0.25, "lo90_z": -0.2, "hi90_z": 0.2}]
+             "delta_z": 0.0, "lo_z": -0.1, "hi_z": 0.1, "lo90_z": -0.08, "hi90_z": 0.08}]
     p = {r["type"]: r for r in score_predictions(cd, rows)}
     assert p["A"]["verdict"] == "inconclusive" and p["A"]["verdict_z"] == "hold"
     assert p["B"]["verdict"] == "inconclusive" and p["B"]["verdict_z"] == "hold"

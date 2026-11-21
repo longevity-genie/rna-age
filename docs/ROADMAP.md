@@ -370,9 +370,10 @@ inconclusive.
 Z-unit scale (pre-registered 2026-11-21, before any rerun; desk #79, its default applied while Anton is away, the
 other option being years on cohorts with ≥ 50 controls only): every counted prediction is also scored on the gap in
 control residual SDs (`delta_z`, already in the contrast) with the same rules: `accelerates` holds if the 95 % CI is
-above 0, fails if below 0 or the 90 % CI lies inside ±0.3 z; `no_acceleration` holds if the 90 % CI lies inside
-±0.3 z, fails if the 95 % CI lies wholly beyond it (0.3 z: a small effect, chosen to match ±2 y at a typical slope and
-residual SD, not tuned on results). The z verdict counts only where every type it touches is measured (positive
+above 0, fails if below 0 or the 90 % CI lies inside ±0.11 z; `no_acceleration` holds if the 90 % CI lies inside
+±0.11 z, fails if the 95 % CI lies wholly beyond it (0.11 z: the ±2 y band converted at the median slope / residual SD
+of the 108 measured types, IQR 0.07-0.17; the first commit, 0c8275c, said 0.3 z with a wrong claim that it matched
+±2 y, corrected in the next commit before any rerun). The z verdict counts only where every type it touches is measured (positive
 control slope, reliability ≥ 0.5): the z scale drops the division by the slope, not the rule that the clock tracks
 age. The year verdicts stay as they are and are reported beside. Plus the pooled-regions rerun of cff99df2 (external
 brain clock, every region a donor has summed per type; tag `cff99df2-pooled`) with the area-9 run's predictions

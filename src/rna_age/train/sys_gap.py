@@ -104,7 +104,9 @@ PANCREAS = [
 ]
 GLIA, REFS = ("microglia", "astrocyte"), ("oligodendrocyte", "OPC")
 EQUIV_MARGIN = 2.0  # years: equivalence band of a "does not accelerate" prediction (90 % CI inside +-margin)
-Z_MARGIN = 0.3  # z-units (control residual SDs): the same band on the z scale (RM33, desk #79 default, 2026-11-21)
+# z-units (control residual SDs): the year band on the z scale, 2 y x median(slope / residual SD) over the 108
+# measured types in sys_gap_type (0.114; IQR 0.07-0.17) (RM33, desk #79 default, 2026-11-21)
+Z_MARGIN = 0.11
 
 
 @dataclass(frozen=True)
