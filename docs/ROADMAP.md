@@ -100,7 +100,7 @@ GSE114007 (OA: 5 pairs, controls young), GSE135251 (MASLD: no ages in GEO, NCBI 
 
 ## RM33 — System-level age gaps: which cell types or tissues make a person look older
 
-**State:** building, z-unit rescoring runs (desk #79 default; design A; stage 0 run, a601870; its two guards run 2026-11-14, `sys-gap --guards`; CMV run 2026-11-14: CD8 T holds, B fails reproducibly; four more controls run 2026-11-20: T2D, PD, sarcopenia inconclusive, Down syndrome awaits a GPU job; external clocks run 2026-11-20: all 9 counted inconclusive, Allen's B / NK findings clock-dependent) · **Owner:** lead
+**State:** building, next: per-condition pooling with RM34 (z rescoring done 2026-11-21, decided nothing new; design A; stage 0 run, a601870; its two guards run 2026-11-14, `sys-gap --guards`; CMV run 2026-11-14: CD8 T holds, B fails reproducibly; four more controls run 2026-11-20: T2D, PD, sarcopenia inconclusive, Down syndrome awaits a GPU job; external clocks run 2026-11-20: all 9 counted inconclusive, Allen's B / NK findings clock-dependent) · **Owner:** lead
 
 Review (2026-11-13; a design agent wrote three designs, two separate reviewers judged them on our data and cluster):
 A labelled cell types 6/10 validity, 8/10 feasibility; B label-free groups on our encoder 4/4 (encoder never saw brain,
@@ -383,6 +383,16 @@ counted predictions hold on the z scale, and the failures are reproducible (they
 gene-half guards), read as findings. Code: `verdict_z`, `gate_z`, `Z_MARGIN` in `sys_gap.py`. Reruns (runner): the
 commands that wrote the current own-clock, external and bulk-score rows, plus `sys-gap-external --targets
 cff99df2_pooled`; the year verdicts must come out identical (seeded), which doubles as a reproducibility check.
+Z-unit outcome (2026-11-21, runner's reruns from 8b511e6, logged 7809f8d; read by the lead): year verdicts reproduced
+exactly (781 of 781 rows). Counted predictions (31, guard none): z verdicts hold 3 (Allen CD8 T, Allen CD8 T −
+monocyte, Down syndrome blood), fail 3 (Allen B, Allen memory B, and one new: Allen CD56dim NK, inconclusive in years),
+inconclusive 25. Every verdict but that one matches the year scale. The pooled cff99df2 run does not help: astrocytes
+become unmeasured (reliability < 0.5). Reading: the small cohorts are underpowered on any scale, not slope-limited:
+the inconclusive predictions have a median 95 % CI width of 1.34 z with a median 22 controls, against expected effects
+of a few tenths of a z. Neither scale (desk #79's two options) decides them. What can: pooling cohorts per condition
+(RM34, desk #39's per-condition meta-analysis, default yes), so RM33's next step is that, not another scale. RM33's bar
+(most counted predictions hold) is not met; the decided results are the large cohorts' (AD astrocytes in PsychAD,
+CMV in Allen, Down syndrome).
 
 ## RM13 — A manuscript draft of the results (plan line 5)
 
