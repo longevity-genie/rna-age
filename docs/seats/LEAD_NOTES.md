@@ -3,6 +3,16 @@
 The state the lead's last holder left. State, not rules: the rules are the priming, `LEAD.md` beside this file, and
 the kit's role `classes/lead/LEAD.md`.
 
+## 2026-11-21 10:30
+
+- RM35 (new, Anton 2026-11-21: make cell-level clocks learn, SIGReg-JEPA, literature): step 1 losses failed (8bf1f04;
+  shrinkage is set by the input, not the loss); step 1b `sc-recipe` arms running (c2ebeb6); step 2 SIGReg-JEPA after.
+  Literature report kept in the session scratchpad, summary in RM35.
+- RM33: z-unit rescoring pre-registered and built under desk #79's default (0c8275c, band corrected to 0.11 z in
+  8b511e6 before any rerun); runner asked for the reruns; year verdicts must reproduce exactly.
+- RM7: NCBI fetch skip-pause fix 87c2a48; chain running; NCBI series stay out of the merge until the lead decides.
+- Anton away since 08:44 UTC; desk #79 filed (z-units vs ≥ 50 controls).
+
 ## 2026-11-20 12:40
 
 - Quota was exhausted 14-19 Nov; nothing of rna-age changed meanwhile (runner checked, 16 Nov).
