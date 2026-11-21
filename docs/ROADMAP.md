@@ -402,6 +402,15 @@ area 9): astrocyte, astrocyte − OPC, microglia, all `accelerates`; CMV (Allen,
 `accelerates`. Scored with the z rules (±0.11 z). Disclosure: each cohort's estimate was already seen; what is new is
 whether they add up. Next after it: more cohorts per condition from RM34's downloads (SEA-AD for Alzheimer's, HIHA for
 CMV) run through the same clocks, pre-registered as replications.
+Pooling outcome (2026-11-21, lead, `sys_gap_meta.parquet`): 9 predictions pooled from 2 cohorts each (cff99df2 had no
+measured astrocyte or microglia; I² = 0 everywhere). Hold 5: Alzheimer's astrocyte +0.71 z [0.50, 0.93], astrocyte −
+OPC +0.33 [0.09, 0.56], microglia +0.44 [0.26, 0.61]; CMV CD8 T +0.33 [0.09, 0.56], CD8 T − monocyte +0.44 [0.17,
+0.72]. Fail 1: CMV B −0.36 [−0.59, −0.14] (predicted no change; it reads younger in both cohorts, a reproducible
+finding). Inconclusive 3: CMV CD4 T −0.06 [−0.30, 0.18], monocyte −0.15 [−0.37, 0.07], sarcopenia muscle +0.38
+[−0.14, 0.90]. Caveat: the Alzheimer's pools are carried by PsychAD (≈ 450 donors against RADC's ≈ 40), which held on
+its own; pooling's new information is that the smaller cohorts agree in direction (no heterogeneity), and that CMV's
+CD8 T and B results replicate. With pooling, the pooled predictions meet Anton's bar for these systems (most hold, the
+failure reproducible); the conditions with one cohort (T2D, Parkinson's, Down syndrome) stay as they were.
 
 ## RM13 — A manuscript draft of the results (plan line 5)
 
