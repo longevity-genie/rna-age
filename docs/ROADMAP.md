@@ -42,6 +42,13 @@ Arms, after step 1 is read: (i) bootstrap-pseudocell augmentation for TabICLv2 a
 pseudobulks per donor, average over resamples at test); (ii) genes chosen inside the folds by within-cell-type age
 association instead of 500 HVGs; (iii) per-cell-type clocks stacked on out-of-fold predictions (RM31 averaged them).
 Bar: ≥ 0.3 y better mean MAE than TabICLv2 pseudobulk and better beyond the paired CI in ≥ 4 of 7.
+- Built 2026-11-21: `src/rna_age/train/sc_recipe.py`, CLI `sc-recipe ARM` with ARM `agesel` (500 genes by |r| with
+  age in the fold), `agesel_class` (age-chosen genes per class, side by side), `stack` (per-class and whole clocks,
+  inner out-of-fold, non-negative stacker), `boot` (20 means of 100 cached cells per donor, drawn with replacement;
+  test prediction the mean over resamples) and `boot1` (its control: one mean of the same cells). Each read by ridge
+  and TabICLv2. Bar as above, per arm and model (pre-registered before any full run; a ridge smoke on 5e57cd50
+  alone, the cohort with almost no age signal, ran every arm). `boot` also against `boot1`, since its cells are the
+  200-per-donor panel cache, not every cell and gene.
 
 **Step 2, a SIGReg-JEPA encoder (falsification run), after step 1.** Same pool (696k cells, 513 donors), panel and
 step budget as RM28; predict the embedding of a hidden gene view from a visible one, SIGReg (LeJEPA) on the

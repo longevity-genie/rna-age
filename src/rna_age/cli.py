@@ -875,6 +875,29 @@ def cell_loss_cmd(
         print(bar(cmp))
 
 
+@app.command("sc-recipe")
+def sc_recipe_cmd(
+    arm: str = typer.Argument(..., help="RM35 step 1b: agesel | agesel_class | stack | boot | boot1"),
+    cohorts: str = COHORTS_OPT,
+    models: str = typer.Option("ridge,tabicl"),
+    n_genes: int = typer.Option(500),
+    n_boot: int = typer.Option(20, help="boot: resampled pseudobulks per donor"),
+    boot_cells: int = typer.Option(100, help="boot: cells drawn per resample"),
+    write: bool = typer.Option(True, help="add rows to the summaries"),
+) -> None:
+    """RM35 step 1b: age-chosen genes, per-class stacking and bootstrap pseudobulks, against the pseudobulk clocks
+    on RM14's folds (TabICLv2 needs a GPU)."""
+    import polars as pl
+
+    from rna_age.train.sc_pretrain import bar
+    from rna_age.train.sc_recipe import run
+
+    cmp = run(arm, _cohorts(cohorts), tuple(_csv(models)), n_genes, n_boot, boot_cells, write=write)
+    with pl.Config(tbl_rows=-1, tbl_cols=-1, tbl_width_chars=200):
+        print(cmp)
+        print(bar(cmp.with_columns(run_id=pl.lit(f"rm35-recipe-{arm}"))))
+
+
 @app.command("sc-pretrain-universal-eval")
 def sc_pretrain_universal_eval_cmd(run_id: str, device: str = typer.Option("")) -> None:
     """RM28 arm universal: bulk predictions of the age head (run dir predictions.parquet, every split) and the
