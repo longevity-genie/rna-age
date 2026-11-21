@@ -393,6 +393,15 @@ of a few tenths of a z. Neither scale (desk #79's two options) decides them. Wha
 (RM34, desk #39's per-condition meta-analysis, default yes), so RM33's next step is that, not another scale. RM33's bar
 (most counted predictions hold) is not met; the decided results are the large cohorts' (AD astrocytes in PsychAD,
 CMV in Allen, Down syndrome).
+Per-condition pooling (pre-registered 2026-11-21 before it was computed; desk #39 default; code `sys_gap_meta.py`, CLI
+`sys-gap-meta`): every counted prediction measured in ≥ 2 cohorts is pooled on the z scale by random-effects
+meta-analysis (DerSimonian-Laird; SE = bootstrap 95 % CI width / 3.92), one estimate per cohort: its own clock where
+every type involved is measured, else the external clock where it is. Pools: Alzheimer's (PsychAD, RADC, cff99df2
+area 9): astrocyte, astrocyte − OPC, microglia, all `accelerates`; CMV (Allen, ALTRA): CD8 T, CD4 T, CD8 T − monocyte
+`accelerates`, monocyte, B `no_acceleration`; sarcopenia (GSE111016, GSE167186, the headline bulk ensemble): muscle
+`accelerates`. Scored with the z rules (±0.11 z). Disclosure: each cohort's estimate was already seen; what is new is
+whether they add up. Next after it: more cohorts per condition from RM34's downloads (SEA-AD for Alzheimer's, HIHA for
+CMV) run through the same clocks, pre-registered as replications.
 
 ## RM13 — A manuscript draft of the results (plan line 5)
 

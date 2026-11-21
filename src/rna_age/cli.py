@@ -1074,6 +1074,17 @@ def sys_gap_cmd(
             print(out["composition"].select("cohort", "coarse", "label", "share_control", "delta_share", "lo", "hi"))
 
 
+@app.command("sys-gap-meta")
+def sys_gap_meta_cmd() -> None:
+    """RM33: per-condition random-effects pooling of the z-scale system gaps over cohorts (sys_gap_meta.parquet)."""
+    import polars as pl
+
+    from rna_age.train.sys_gap_meta import run
+
+    with pl.Config(tbl_rows=-1, tbl_cols=-1, tbl_width_chars=220):
+        print(run())
+
+
 @app.command("sys-gap-external")
 def sys_gap_external_cmd(
     targets: str = typer.Option("", help="comma-separated: pd, radc, cff99df2, cff99df2_pooled, altra, covid, allen (default all)"),
