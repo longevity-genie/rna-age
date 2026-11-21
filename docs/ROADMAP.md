@@ -9,7 +9,7 @@ The lead (`docs/seats/LEAD.md`) keeps it. Seeded at the lead's first seating (20
 
 ## RM36 — Tabular foundation models at full context: TabPFN-3.5 and TabICLv2
 
-**State:** building: arm 2 runs now; arms 1 and 3 handed to the runner 2026-11-21 (Anton: use the HF token he gave) ·
+**State:** building: arm 2 runs now; arms 1 and 3 submitted 2026-11-21 (weights via the cluster's HF login; Anton: "ignore license, it is research experiment") ·
 **Owner:**
 lead (code), runner (jobs)
 
