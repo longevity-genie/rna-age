@@ -7,6 +7,47 @@ The lead (`docs/seats/LEAD.md`) keeps it. Seeded at the lead's first seating (20
 
 ## Items
 
+## RM35 — Make cell-level clocks learn age instead of shrinking to the mean
+
+**State:** urgent, step 1 (Anton, 2026-11-21, #rna-age > general chat: "Shrinking towards mean means the model doesn't
+learn, can we use sigreg jepa and change losses to make them learn", then "read literature and brainstorm in parallel
+on other ideas as well"; the lead took "also" as a go on both steps, default (a), told him so) · **Owner:** lead
+(code), runner (jobs). Code: `src/rna_age/train/cell_loss.py`, CLI `cell-loss`.
+
+**What shrinkage means here.** A squared-error model that ranks donors with correlation r predicts with a slope of
+about r² to r (pred on true age): the best clock itself, TabICLv2 on pseudobulk, has slopes 0.02-0.76 per cohort
+(RM14's `sc_tabular_*`). In our bulk work, stretching predictions to slope 1 raised test MAE from 10.26 to 14.02 y
+(docs/experiments.md, 2026-11-10). So the target is ranking (r) at equal or better MAE; a slope that rises with r
+flat is a calibration trade, not learning. RM32's per-cell term lowered r as well as the slope: it lost information.
+
+**Step 1, losses on a unit head (no pretrained encoder).** 15-cell pseudocells on the RM28 panel (2,000 genes,
+cached cohort cells, at most 200 cells per donor), an MLP per unit, the donor's age pooled over its units, RM14's
+folds. Arms: `mse` (control of this code; no past run reads raw expression with a unit head: RM32's reference read
+RM28's encoder), `nll` w 0.1 and 1 (per-unit Gaussian NLL, precision-weighted pooling, so units with little signal
+widen their variance instead of pulling to the mean), `ccc` w 0.5 (Lin's concordance on the batch), `rank` w 0.5
+(pairwise logistic on donors ≥ 5 y apart). Reused controls: TabICLv2 2,000-gene pseudobulk (D7/RM14,
+`sc_tabular_*`) and RM32's reference `scpre-mask-s0-finetune` (331e85c, mean diff +1.78 y, mean r 0.58).
+- **Bar (pre-registered 2026-11-21):** an arm passes if its mean r over the 7 cohorts is ≥ 0.05 above `cell-mse`'s
+  with mean MAE no worse (paired, within 0.2 y); it wins if it also beats TabICLv2 pseudobulk beyond the paired CI in
+  ≥ 4 of 7 cohorts. Slope is reported (`cell_loss_slope.parquet`), not a bar.
+- Smoke (lead, CPU, 5e57cd50, 5 epochs): runs, 23 s.
+
+**Step 1b, from the literature read (lead's research agent, 2026-11-21; abstracts unless noted).** Working
+single-cell clocks (sc-ImmuAging, Muralidharan 2025 brain [papers read]) use many bootstrapped pseudocells per donor
+and cell type with a linear model and age-preselected genes; set models with attention trail pseudobulk stacks
+(IDEAL-Age [paper]); a 2026 benchmark found 2,000 HVGs beat 10 frozen single-cell foundation models on age [abs].
+Arms, after step 1 is read: (i) bootstrap-pseudocell augmentation for TabICLv2 and ridge (train on many resampled
+pseudobulks per donor, average over resamples at test); (ii) genes chosen inside the folds by within-cell-type age
+association instead of 500 HVGs; (iii) per-cell-type clocks stacked on out-of-fold predictions (RM31 averaged them).
+Bar: ≥ 0.3 y better mean MAE than TabICLv2 pseudobulk and better beyond the paired CI in ≥ 4 of 7.
+
+**Step 2, a SIGReg-JEPA encoder (falsification run), after step 1.** Same pool (696k cells, 513 donors), panel and
+step budget as RM28; predict the embedding of a hidden gene view from a visible one, SIGReg (LeJEPA) on the
+embeddings. SIGReg-JEPA models on single cells exist (LeCellModel, Cell-JEPA, scJEPA) but report no age or donor task
+[abs]; RM28's encoder did not collapse, its features were not about age, so this is a test, not an expectation.
+Read-out frozen + TabICLv2 and fine-tuned. Reused control: RM28's masking arm. Bar: ≥ 1 y better than RM28's masking
+arm (its +1.71 / +1.41 / +1.78), else the encoder route stays closed. ~6-10 GPU-hours.
+
 ## RM34 — Positive-control datasets for system ageing: fetch and check which are usable
 
 **State:** urgent (Anton, 2026-11-13, #rna-age > general chat: "Ok, download these data and validate which is

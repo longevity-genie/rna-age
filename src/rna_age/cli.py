@@ -850,6 +850,31 @@ def sc_pretrain_finetune_cmd(
         print(bar(cmp))
 
 
+@app.command("cell-loss")
+def cell_loss_cmd(
+    loss: str = typer.Option("mse", help="RM35: mse | nll | ccc | rank"),
+    w: float = typer.Option(0.0, help="weight of the extra loss term (ignored for mse)"),
+    cohorts: str = COHORTS_OPT,
+    pseudocell: int = typer.Option(15, help="cells averaged per unit (1 = single cells)"),
+    epochs: int = typer.Option(60),
+    max_donors: int = typer.Option(0, help="smoke runs only"),
+    device: str = typer.Option(""),
+    write: bool = typer.Option(True, help="add rows to the summaries"),
+) -> None:
+    """RM35 step 1: a unit (pseudocell) age head on raw panel expression, pooled per donor, with an anti-shrinkage
+    loss; compared with the pseudobulk clocks on RM14's folds (GPU or CPU)."""
+    import polars as pl
+
+    from rna_age.train.cell_loss import run
+    from rna_age.train.sc_pretrain import bar
+
+    cmp = run(loss, w, _cohorts(cohorts), pseudocell, epochs, max_donors=max_donors or None, device=device or None,
+              write=write)  # fmt: skip
+    with pl.Config(tbl_rows=-1, tbl_cols=-1, tbl_width_chars=200):
+        print(cmp)
+        print(bar(cmp))
+
+
 @app.command("sc-pretrain-universal-eval")
 def sc_pretrain_universal_eval_cmd(run_id: str, device: str = typer.Option("")) -> None:
     """RM28 arm universal: bulk predictions of the age head (run dir predictions.parquet, every split) and the
