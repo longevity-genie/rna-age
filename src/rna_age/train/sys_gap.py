@@ -471,9 +471,32 @@ def assign_folds(person: np.ndarray, is_ctrl: np.ndarray, n_folds: int, rng: np.
     return fold
 
 
+# RM35 step 1c: how a clock picks its genes. "hvg": most variable (design A); "age": largest |Pearson r| with age on
+# the training rows (RM35 step 1b's winner). Set by ``run`` / ``sys_gap_ext.run``; rows then carry ``clock_suffix``.
+GENE_SELECTION = "hvg"
+
+
+def clock_suffix() -> str:
+    return "" if GENE_SELECTION == "hvg" else f":{GENE_SELECTION}genes"
+
+
+def age_columns(X: np.ndarray, y: np.ndarray, n: int) -> np.ndarray:
+    """Columns with the largest |Pearson r| with ``y`` (constant columns last)."""
+    xc = X - X.mean(0)
+    sd = xc.std(0)
+    r = np.zeros(X.shape[1])
+    ok = sd > 0
+    r[ok] = (xc[:, ok] * (y - y.mean())[:, None]).mean(0) / (sd[ok] * y.std())
+    return np.argsort(-np.abs(r), kind="stable")[: min(n, X.shape[1])]
+
+
 def fit_fold(Xtr: np.ndarray, y: np.ndarray, n_genes: int):
-    """Ridge on the training rows' most variable columns, standardised on them; returns a predict function."""
-    keep = np.argsort(-Xtr.var(0), kind="stable")[: min(n_genes, Xtr.shape[1])]
+    """Ridge on the training rows' most variable columns (or, with ``GENE_SELECTION == "age"``, the columns most
+    correlated with age on them), standardised on them; returns a predict function."""
+    if GENE_SELECTION == "age":
+        keep = age_columns(Xtr, y, n_genes)
+    else:
+        keep = np.argsort(-Xtr.var(0), kind="stable")[: min(n_genes, Xtr.shape[1])]
     mu, sd = Xtr[:, keep].mean(0), Xtr[:, keep].std(0) + 1e-6
     m = RidgeCV(alphas=ALPHAS).fit((Xtr[:, keep] - mu) / sd, y)
     return lambda X: m.predict((X[:, keep] - mu) / sd)
@@ -1103,7 +1126,7 @@ def run_cohort(
            "guards": guard_rows, "de": de_rows_used,
            "predictions": pred_rows if cd and cd.predictions else [], "composition": comp_rows}  # fmt: skip
     for k in ("donor", "type", "contrast", "corr", "guards", "predictions"):
-        out[k] = [{**r, "level": level, "clock": "own"} for r in out[k]]
+        out[k] = [{**r, "level": level, "clock": "own" + clock_suffix()} for r in out[k]]
     return out
 
 
@@ -1133,8 +1156,12 @@ def _merge_write(k: str, new: pl.DataFrame) -> pl.DataFrame:
 
 def run(
     cohorts: tuple[str, ...] = COHORTS, n_genes: int = 2000, min_cells: int = 20, min_controls: int = 20, seed: int = 0,
-    guards: bool = False, levels: tuple[str, ...] = ("coarse",),
+    guards: bool = False, levels: tuple[str, ...] = ("coarse",), gene_selection: str = "hvg",
 ) -> dict[str, pl.DataFrame]:  # fmt: skip
+    global GENE_SELECTION
+    if gene_selection not in ("hvg", "age"):
+        raise ValueError(f"gene_selection must be hvg or age, got {gene_selection!r}")
+    GENE_SELECTION = gene_selection
     SUMMARY.mkdir(parents=True, exist_ok=True)
     acc: dict[str, list[dict]] = {k: [] for k in ("donor", "type", "contrast", "corr", "guards", "de", "predictions",
                                                   "composition")}  # fmt: skip

@@ -82,6 +82,13 @@ Bar: ≥ 0.3 y better mean MAE than TabICLv2 pseudobulk and better beyond the pa
 1,000 / 2,000 genes in all, the same bar against TabICLv2 pseudobulk; (ii) the two winners combined: stacked per-class
 clocks each on its own age-chosen genes; (iii) RM33's per-system clocks rebuilt on age-chosen genes (ridge per type, as
 design A) and the AD / CMV contrasts rerun, reported beside the HVG clocks, not replacing their verdicts.
+- Built 2026-11-21 (commands): (i) `sc-recipe agesel_class --seed 1`, `--seed 2`, `--n-genes 1000`, `--n-genes 2000`
+  (rows suffixed `-s<seed>` / `-<n>g`); (ii) `sc-recipe stack_agesel` (each level-0 clock on its 500 age-chosen
+  genes); (iii) `sys-gap --gene-selection age --n-genes 500` (default cohorts, PsychAD's AD contrast), `sys-gap --cohorts
+  cmv --gene-selection age --n-genes 500`, `sys-gap-external --gene-selection age --n-genes 500 --targets radc,altra`;
+  rows carry clock `own:agegenes` / `external:<pool>:agegenes`, beside the HVG rows. Bars: (i) each variant passes
+  step 1b's bar (the winner is robust if all four do); (ii) the same bar, and better than `stack` and `agesel_class`
+  in mean MAE; (iii) descriptive: per type, the controls' r with age and the AD / CMV contrasts next to the HVG clocks.
 
 **Step 2, a SIGReg-JEPA encoder (falsification run), after step 1.** Same pool (696k cells, 513 donors), panel and
 step budget as RM28; predict the embedding of a hidden gene view from a visible one, SIGReg (LeJEPA) on the

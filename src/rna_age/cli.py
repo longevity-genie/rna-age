@@ -899,12 +899,13 @@ def cell_loss_cmd(
 
 @app.command("sc-recipe")
 def sc_recipe_cmd(
-    arm: str = typer.Argument(..., help="RM35 step 1b: agesel | agesel_class | stack | boot | boot1"),
+    arm: str = typer.Argument(..., help="RM35: agesel | agesel_class | stack | stack_agesel | boot | boot1"),
     cohorts: str = COHORTS_OPT,
     models: str = typer.Option("ridge,tabicl"),
     n_genes: int = typer.Option(500),
     n_boot: int = typer.Option(20, help="boot: resampled pseudobulks per donor"),
     boot_cells: int = typer.Option(100, help="boot: cells drawn per resample"),
+    seed: int = typer.Option(0, help="model seed (RM35 1c robustness); rows get -s<seed>"),
     write: bool = typer.Option(True, help="add rows to the summaries"),
 ) -> None:
     """RM35 step 1b: age-chosen genes, per-class stacking and bootstrap pseudobulks, against the pseudobulk clocks
@@ -914,7 +915,7 @@ def sc_recipe_cmd(
     from rna_age.train.sc_pretrain import bar
     from rna_age.train.sc_recipe import run
 
-    cmp = run(arm, _cohorts(cohorts), tuple(_csv(models)), n_genes, n_boot, boot_cells, write=write)
+    cmp = run(arm, _cohorts(cohorts), tuple(_csv(models)), n_genes, n_boot, boot_cells, seed=seed, write=write)
     with pl.Config(tbl_rows=-1, tbl_cols=-1, tbl_width_chars=200):
         print(cmp)
         print(bar(cmp.with_columns(run_id=pl.lit(f"rm35-recipe-{arm}"))))
@@ -1069,6 +1070,7 @@ def sys_gap_cmd(
         False, help="PsychAD: leave-DE-genes-out (independent cohorts) and gene-half clocks; Allen (CMV): gene halves"
     ),
     level: str = typer.Option("coarse", help="systems: coarse classes, fine (the dataset's own labels), or both"),
+    gene_selection: str = typer.Option("hvg", help="RM35 1c: hvg (design A) | age (genes most correlated with age); age rows get clock own:agegenes"),
 ) -> None:
     """RM33 stage 0: per-type ridge clocks on controls, gaps, split-half reliability, shared vs specific, AD contrast."""
     import polars as pl
@@ -1081,7 +1083,7 @@ def sys_gap_cmd(
     if any(lv not in LEVELS for lv in levels):
         raise typer.BadParameter(f"level must be one of {LEVELS} or both")
     out = run(chosen, n_genes=n_genes, min_cells=min_cells, min_controls=min_controls, seed=seed,
-              guards=guards, levels=levels)  # fmt: skip
+              guards=guards, levels=levels, gene_selection=gene_selection)  # fmt: skip
     with pl.Config(tbl_rows=-1, tbl_cols=-1, tbl_width_chars=220):
         print(out["type"].select("cohort", "level", "type", "n_controls", "slope", "sensitivity", "reliability", "test_retest_r",
                                  "shared_share", "status"))  # fmt: skip
@@ -1115,6 +1117,7 @@ def sys_gap_external_cmd(
     min_controls: int = typer.Option(10, help="target controls a type needs for its bias line"),
     seed: int = typer.Option(0),
     guards: bool = typer.Option(True, help="gene-half clocks for targets with counted predictions"),
+    gene_selection: str = typer.Option("hvg", help="RM35 1c: hvg | age (clock external:<pool>:agegenes)"),
 ) -> None:
     """RM33 external clocks: per-type clocks on other cohorts' healthy donors of the tissue score a small cohort."""
     import polars as pl
@@ -1124,7 +1127,8 @@ def sys_gap_external_cmd(
     chosen = _csv(targets) or tuple(TARGETS)
     if unknown := [t for t in chosen if t not in TARGETS]:
         raise typer.BadParameter(f"unknown targets {unknown}; known {list(TARGETS)}")
-    out = run(chosen, n_genes=n_genes, min_cells=min_cells, min_controls=min_controls, seed=seed, guards=guards)
+    out = run(chosen, n_genes=n_genes, min_cells=min_cells, min_controls=min_controls, seed=seed, guards=guards,
+              gene_selection=gene_selection)
     ext = pl.col("clock").str.starts_with("external")
     with pl.Config(tbl_rows=-1, tbl_cols=-1, tbl_width_chars=220):
         print(out["type"].filter(ext).select("cohort", "clock", "type", "n_train", "n_controls", "slope", "r_age",

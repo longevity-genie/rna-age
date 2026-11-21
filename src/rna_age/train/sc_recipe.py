@@ -36,7 +36,7 @@ from rna_age.train.sc_tabular import _fit_predict, fold_features
 
 log = logging.getLogger(__name__)
 
-ARMS = ("agesel", "agesel_class", "stack", "boot", "boot1")
+ARMS = ("agesel", "agesel_class", "stack", "stack_agesel", "boot", "boot1")
 
 
 def age_genes(X: np.ndarray, y: np.ndarray, n: int) -> np.ndarray:
@@ -78,14 +78,24 @@ def agesel_class_features(blocks, tr: np.ndarray, te: np.ndarray, y: np.ndarray,
     return np.hstack(ftr), np.hstack(fte)
 
 
+def age_features(X: np.ndarray, fit: np.ndarray, pred: np.ndarray, y: np.ndarray, n: int):
+    """The ``n`` columns most correlated with age on ``fit`` rows, standardised on them."""
+    cols = age_genes(X[fit], y[fit], n)
+    return standardise(X[fit][:, cols], X[pred][:, cols])
+
+
 def stack_predict(Xw: np.ndarray, blocks, tr: np.ndarray, te: np.ndarray, y: np.ndarray, groups: np.ndarray,
-                  model: str, n_genes: int, seed: int) -> np.ndarray:  # fmt: skip
-    """Non-negative linear stacker over the whole-pseudobulk clock and the per-class clocks (inner out-of-fold)."""
+                  model: str, n_genes: int, seed: int, select: str = "hvg") -> np.ndarray:  # fmt: skip
+    """Non-negative linear stacker over the whole-pseudobulk clock and the per-class clocks (inner out-of-fold);
+    ``select``: each level-0 clock's genes, most variable (``hvg``) or most correlated with age (``age``)."""
     from sklearn.linear_model import LinearRegression
+
+    def feats(X, fit, pred):
+        return age_features(X, fit, pred, y, n_genes) if select == "age" else fold_features(X, fit, pred, n_genes)
 
     def level0(rows_fit: np.ndarray, rows_pred: np.ndarray) -> np.ndarray:
         cols = []
-        a, b = fold_features(Xw, rows_fit, rows_pred, n_genes)
+        a, b = feats(Xw, rows_fit, rows_pred)
         whole = _fit_predict(model, a, y[rows_fit], b, seed)
         cols.append(whole)
         for _, X, ok in blocks:
@@ -93,7 +103,7 @@ def stack_predict(Xw: np.ndarray, blocks, tr: np.ndarray, te: np.ndarray, y: np.
             p = whole.copy()
             have = ok[rows_pred]
             if have.any() and len(f) >= 20:
-                a, b = fold_features(X, f, rows_pred[have], n_genes)
+                a, b = feats(X, f, rows_pred[have])
                 p[have] = _fit_predict(model, a, y[f], b, seed)
             cols.append(p)
         return np.column_stack(cols)
@@ -116,6 +126,11 @@ def boot_units(x: np.ndarray, donor: np.ndarray, donors: np.ndarray, n_boot: int
             xs.append(x[pick].astype(np.float32).mean(0))
             owner.append(k)
     return np.stack(xs), np.array(owner)
+
+
+def model_name(arm: str, model: str, n_genes: int = 500, seed: int = 0) -> str:
+    """Rows of the default run keep step 1b's names; other gene counts and seeds are suffixed (step 1c)."""
+    return f"recipe-{arm}-{model}" + (f"-{n_genes}g" if n_genes != 500 else "") + (f"-s{seed}" if seed else "")
 
 
 def run_cohort(cohort: str, arm: str, models: tuple[str, ...] = ("ridge", "tabicl"), n_genes: int = 500,
@@ -147,8 +162,9 @@ def run_cohort(cohort: str, arm: str, models: tuple[str, ...] = ("ridge", "tabic
             elif arm == "agesel_class":
                 a, b = agesel_class_features(blocks, tr, te, age, n_genes)
                 pred[m][te] = _fit_predict(m, a, age[tr], b, seed)
-            elif arm == "stack":
-                pred[m][te] = stack_predict(Xw, blocks, tr, te, age, groups, m, n_genes, seed)
+            elif arm in ("stack", "stack_agesel"):
+                pred[m][te] = stack_predict(Xw, blocks, tr, te, age, groups, m, n_genes, seed,
+                                            "age" if arm == "stack_agesel" else "hvg")  # fmt: skip
             else:
                 nb, nc = (n_boot, boot_cells) if arm == "boot" else (1, 0)
                 Utr, otr = boot_units(xcell, dcell, donors[tr], nb, nc, rng)
@@ -159,7 +175,7 @@ def run_cohort(cohort: str, arm: str, models: tuple[str, ...] = ("ridge", "tabic
                 pred[m][te] = np.bincount(ote, p, len(te)) / np.bincount(ote, minlength=len(te))
     rows = []
     for m, p in pred.items():
-        rows += [{"cohort": cohort[:8], "representation": "natural", "model": f"recipe-{arm}-{m}", "donor": d,
+        rows += [{"cohort": cohort[:8], "representation": "natural", "model": model_name(arm, m, n_genes, seed), "donor": d,
                   "group": int(g), "age": float(a), "pred": float(v)}
                  for d, g, a, v in zip(donors, groups, age, p, strict=True)]  # fmt: skip
     return pl.DataFrame(rows)
@@ -181,7 +197,7 @@ def run(arm: str, cohorts: tuple[str, ...] = EVAL_COHORTS, models: tuple[str, ..
     oof = pl.concat(parts)
     cmp = compare(oof, n_boot=n_bootstrap_ci)
     if write:
-        run_id = f"rm35-recipe-{arm}"
+        run_id = f"rm35-recipe-{arm}" + (f"-{n_genes}g" if n_genes != 500 else "") + (f"-s{seed}" if seed else "")
         _merge_summary(oof.with_columns(run_id=pl.lit(run_id)), SUMMARY / "sc_pretrain_oof.parquet")
         _merge_summary(cmp.with_columns(run_id=pl.lit(run_id)), SUMMARY / "sc_pretrain_clock.parquet")
     return cmp

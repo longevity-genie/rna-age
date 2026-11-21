@@ -41,3 +41,13 @@ def test_agesel_class_features_and_stack():
     assert np.all(a[:10, :2] == 0)  # missing class → fold mean
     p = sr.stack_predict(X, blocks, tr, te, age, groups, "ridge", 20, 0)
     assert np.corrcoef(p, age[te])[0, 1] > 0.7
+
+
+def test_model_names_and_stack_agesel():
+    assert sr.model_name("agesel_class", "tabicl") == "recipe-agesel_class-tabicl"
+    assert sr.model_name("agesel_class", "tabicl", 1000, 2) == "recipe-agesel_class-tabicl-1000g-s2"
+    X, age = _data()
+    blocks = [("A", X, np.ones(len(age), bool))]
+    tr, te = np.arange(90), np.arange(90, 120)
+    p = sr.stack_predict(X, blocks, tr, te, age, np.arange(len(age)), "ridge", 4, 0, "age")
+    assert np.corrcoef(p, age[te])[0, 1] > 0.8

@@ -29,6 +29,7 @@ import numpy as np
 import polars as pl
 
 from rna_age.paths import INPUT
+from rna_age.train import sys_gap as sg
 from rna_age.train.sys_gap import (
     ALLEN,
     ALTRA,
@@ -245,7 +246,7 @@ def run_target(
     visits = t.dataset_id in PERSON_COLUMNS  # as stage 0: repeat visits leave clock line and contrast
     primary = first_visits(co.person, co.age) if visits else np.ones(len(co.donors), dtype=bool)
     case_all, ctrl_all = case_all & primary, ctrl_all & primary
-    tag, clock = t.tag or _tag(t.dataset_id), f"external:{t.pool}"
+    tag, clock = t.tag or _tag(t.dataset_id), f"external:{t.pool}" + sg.clock_suffix()
     genes = common_genes([co.genes] + [p.genes for p in pool])
     if len(genes) < n_genes:
         raise ValueError(f"{t.dataset_id}: {len(genes)} genes common to target and pool (< {n_genes}); ids differ?")
@@ -332,8 +333,11 @@ def run_target(
 
 def run(
     targets: tuple[str, ...] = tuple(TARGETS), n_genes: int = 2000, min_cells: int = 20, min_controls: int = 10,
-    seed: int = 0, guards: bool = True,
+    seed: int = 0, guards: bool = True, gene_selection: str = "hvg",
 ) -> dict[str, pl.DataFrame]:  # fmt: skip
+    if gene_selection not in ("hvg", "age"):
+        raise ValueError(f"gene_selection must be hvg or age, got {gene_selection!r}")
+    sg.GENE_SELECTION = gene_selection
     SUMMARY.mkdir(parents=True, exist_ok=True)
     cache: dict[str, Cohort] = {}
     acc: dict[str, list[dict]] = {k: [] for k in ("type", "contrast", "guards", "predictions")}

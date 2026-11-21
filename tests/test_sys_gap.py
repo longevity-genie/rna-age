@@ -376,3 +376,24 @@ def test_z_verdicts_and_gate():
     assert p["B"]["verdict"] == "inconclusive" and p["B"]["verdict_z"] == "hold"
     g = gate_z([{**p["A"], "status": "ok"}, {**p["B"], "status": "ok / unmeasured: slope <= 0"}])
     assert g[0]["verdict_z"] == "hold" and g[1]["verdict_z"] == "inconclusive"
+
+
+def test_age_gene_selection_switch():
+    import numpy as np
+
+    from rna_age.train import sys_gap as sg
+
+    rng = np.random.default_rng(0)
+    y = rng.uniform(20, 80, 100)
+    X = rng.normal(size=(100, 30))
+    X[:, 5] += (y - 50) / 10
+    X[:, 9] *= 10
+    assert sg.age_columns(X, y, 1).tolist() == [5]
+    try:
+        sg.GENE_SELECTION = "age"
+        assert sg.clock_suffix() == ":agegenes"
+        f = sg.fit_fold(X, y, 1)
+        assert np.corrcoef(f(X), y)[0, 1] > 0.8
+    finally:
+        sg.GENE_SELECTION = "hvg"
+    assert sg.clock_suffix() == ""
