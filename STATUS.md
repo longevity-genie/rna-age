@@ -60,7 +60,7 @@ stop before Anton is back; 07:00 report, then keep updating; one tabbed artifact
   rules: Census 2,356 healthy (3,815 any health), scBaseCount 492 (1,656), recount3 bulk 4,430 (6,380).
 
 ## Running (jobs carry seat / what / eta in their Slurm comment)
-- RM36 arm 2 (889b9b1): TabICLv2 bulk at full context on a 2080 Ti (A100 nodes are off limits for the runner), 6581001 n-context 100000 chunk 512, 6581001 was OOM-killed on host RAM (96G, at load, not the GPU); 6581002 (n-context 30000) runs, then 6581385 full context with 256G. Arms 1 and 3 are go (lead, 2026-11-21) but wait for a Prior Labs API key (`TABPFN_TOKEN`, TabPFN-3.5 licence accepted), asked of Anton by DM: the cluster's HF login already has access to tabpfn_3_5, yet `tabpfn` checks the licence before any v3.5 download.
+- RM36 arm 2 (889b9b1): TabICLv2 bulk at full context on a 2080 Ti (A100 nodes are off limits for the runner), 6581001 n-context 100000 chunk 512, 6581001 was OOM-killed on host RAM (96G, at load, not the GPU); 6581002 (n-context 30000) runs, then 6581385 full context with 256G. Arms 1 and 3 (Anton 642492715: run without the Prior Labs key; checkpoint fetched with the HF login into the TabPFN cache): arm 1 blood chain 6587352-6587359, brain chain 6587360-6587365; arm 3 6587366 (2,000 genes) then 6587367 (20,000), 256G.
 - RM35 step 1c (4f0f13d): chain A GPU 6583151-6583155 (agesel_class seeds 1, 2; n-genes 1000, 2000; stack_agesel), chain B CPU 6583156-6583158 (sys-gap with age-chosen genes: 7 cohorts, cmv, external radc+altra).
 
 ## Results so far (details: `docs/experiments.md`, `data/output/summary/experiments.parquet`)
