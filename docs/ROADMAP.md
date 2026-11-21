@@ -482,3 +482,11 @@ half has no saved weights, so its three seeds are retrained with the original re
 --n-hvg 20000 --train-set all --seed S --external --external-source ncbi_geo`), their test MAE checked against
 8.03 / 8.24 / 8.14; the Atlas half scores from its checkpoints. No bar: a measurement for the manuscript's external
 validation.
+First scoring (2026-11-21, runner's jobs, logged da971b3; read by the lead). The Atlas pair is valid: external test on
+251 new studies (4,212 samples) MAE 11.3 y [9.9, 12.9], median 9.1, r 0.74 [0.62, 0.81] (healthy 406: 14.1, r 0.63),
+in line with RM26's recount3 new studies (11.2); cross-check on 4,414 shared samples: NCBI vs ARCHS4 counts r 0.97,
+NCBI reads 2.3 y younger on average (SD 4.3), MAE 6.77 vs 6.72. The MLP half is not valid: its 46,028-gene axis has
+only 23,181 genes in NCBI's counts, the absent HVGs enter as zeros and standardise to extremes (cross-check r 0.21, SD
+of the difference 97 y), so the headline ensemble's 17.6 y here measures a feature mismatch, not the clock. Fix (RM26's
+way): the three MLPs retrained on the gene axis NCBI also measures (`--genes-with ncbi_geo`), their test MAE reported
+against the originals, then `rm7-score` again with them.
