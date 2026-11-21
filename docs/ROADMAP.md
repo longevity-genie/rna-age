@@ -9,9 +9,9 @@ The lead (`docs/seats/LEAD.md`) keeps it. Seeded at the lead's first seating (20
 
 ## RM36 — Tabular foundation models at full context: TabPFN-3.5 and TabICLv2
 
-**State:** blocked: arms 1 and 3 need the TabPFN-3.5 weights in the job environment (Anton's HF access, 2026-11-21;
-the token he posted in a channel is to be revoked and a new read-only one sent to the runner by direct message); arm 2
-needs nothing and runs now · **Owner:** lead (code), runner (jobs)
+**State:** building: arm 2 runs now; arms 1 and 3 wait until the runner has TabPFN-3.5 access (Anton's HF account; the
+token he posted in a channel is to be revoked, a new read-only one sent to the runner by direct message) · **Owner:**
+lead (code), runner (jobs)
 
 Anton, 2026-11-21, #rna-age > general chat: "Also i heard tabfn did something to scale to millions of rows", "I talk
 about 4", "Is https://huggingface.co/Prior-Labs/tabpfn_3_5 better than Clv2 or similar? I see i have access". TabPFN-4
