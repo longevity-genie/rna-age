@@ -452,6 +452,18 @@ Local scoring done (16 public tasks, no gain over frozen Atlas). Submitting is p
 
 ## RM7 — NCBI-generated GEO counts (gap-filling beyond ARCHS4)
 
-**State:** unattended (checked 2026-11-20: `/geo/download/` now redirects to NCBI's FTP copy, `ftp.ncbi.nlm.nih.gov/geo/rnaseq_counts/`, no reCAPTCHA; RM34 fetched two series this way on 2026-11-14) · **Owner:** lead (code), runner (fetch jobs)
+**State:** building: scoring runs (fetch and parse done 2026-11-21: 22,415 kept samples, 317 series; decision: external test, not training) · **Owner:** lead (code), runner (fetch jobs)
 
 `sources/ncbi_geo.py` resumes on NCBI's published FTP copy (the route the 2026-11-09 note asked for), one connection with pauses: cross-check targets and age-annotated series missing from ARCHS4; positive-control series stay out of training (RM34).
+
+Totals (runner, 2026-11-21, parse 6554886): 4,035 series texts and 979 count files fetched, no NCBI refusals; 25,045
+samples with counts, 22,415 kept (22,347 exact ages): 18,022 in 39 cross-check series that ARCHS4 holds, 4,393 in 278
+series ARCHS4 lacks. Decision (lead, 2026-11-21): nothing enters the age table, the splits or training (RM26: 3 % more
+samples bought at most 0.2 y). Two readings instead (`train/rm7_external.py`, CLI `rm7-predict-atlas`, `rm7-score`):
+the headline clock's **external test** on the not-in-ARCHS4 series (MAE, median, r, study-bootstrap CIs, all and
+healthy; against the headline's 7.46 test and RM26's 11.2 on recount3's new studies), and a **pipeline cross-check**
+(the same GSMs predicted from NCBI and from ARCHS4 counts, out-of-sample ARCHS4 predictions only). The headline's MLP
+half has no saved weights, so its three seeds are retrained with the original recipe (`probe --features hvg --model mlp
+--n-hvg 20000 --train-set all --seed S --external --external-source ncbi_geo`), their test MAE checked against
+8.03 / 8.24 / 8.14; the Atlas half scores from its checkpoints. No bar: a measurement for the manuscript's external
+validation.

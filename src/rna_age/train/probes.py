@@ -115,6 +115,7 @@ def run_probe(
     restrict_to: str = "",
     external: bool = False,
     samples_suffix: str = "",
+    external_source: str = "external",
     genes_with: tuple[str, ...] = (),
     exclude_studies: tuple[str, ...] = (),
 ) -> dict:
@@ -167,7 +168,7 @@ def run_probe(
         if external and features == "hvg":
             from rna_age.train.external import log_cpm_matrix
 
-            ext_ids, ext_lc = log_cpm_matrix(genes)
+            ext_ids, ext_lc = log_cpm_matrix(genes, external_source)
             X_ext = ext_lc[:, gi]
             del ext_lc
         X = lc[:, gi] if features in ("hvg", "tpm") else np.hstack([X, lc[:, gi]])
@@ -229,8 +230,9 @@ def run_probe(
     )  # fmt: skip
     if ext_out:
         pl.DataFrame({"sample_id": ext_ids, "pred": inv(ext_out[0]).astype(np.float64)}).write_parquet(
-            run_dir / "predictions_external.parquet"
-        )
+            run_dir / ("predictions_external.parquet" if external_source == "external"
+                       else f"predictions_external_{external_source}.parquet")
+        )  # fmt: skip
     row = finish_run(run_dir, out, {"seconds": time.time() - t0})
     log.info("run %s: %s", run_dir.name, {k: v for k, v in row.items() if k.startswith("test_")})
     return row

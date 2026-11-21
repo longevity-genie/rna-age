@@ -51,9 +51,13 @@ def available() -> bool:
     return (EXTERNAL / "samples.parquet").exists() and (EXTERNAL / "counts" / "index.json").exists()
 
 
-def log_cpm_matrix(genes: list[str]) -> tuple[list[str], np.ndarray]:
-    """External sample ids and their log-CPM on ``genes`` (library size over ``genes``, as in training)."""
+def log_cpm_matrix(genes: list[str], source: str = "external") -> tuple[list[str], np.ndarray]:
+    """Sample ids of a source outside the age table and their log-CPM on ``genes`` (library size over ``genes``, as in
+    training). ``external``: RM10's series; ``ncbi_geo``: RM7's NCBI counts, only samples with no exclusion."""
     from rna_age.train.features import load_counts, log_cpm
 
-    ids = pl.read_parquet(EXTERNAL / "samples.parquet", columns=["sample_id"])["sample_id"].to_list()
-    return ids, log_cpm(load_counts("external", ids, genes))
+    s = pl.read_parquet(INPUT / source / "samples.parquet")
+    if "exclude_reason" in s.columns:
+        s = s.filter(pl.col("exclude_reason").is_null())
+    ids = s["sample_id"].to_list()
+    return ids, log_cpm(load_counts(source, ids, genes))

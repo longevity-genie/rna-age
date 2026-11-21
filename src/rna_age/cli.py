@@ -146,6 +146,7 @@ def probe(
     train_set: str = typer.Option("healthy", help="healthy (healthy-or-unknown) | all (incl. disease)"),
     restrict_to: str = typer.Option("", help="latest: only samples with Latest embeddings"),
     external: bool = typer.Option(False, help="also score data/input/external (rna-age external); --features hvg"),
+    external_source: str = typer.Option("external", help="RM7: ncbi_geo scores the NCBI counts instead"),
     samples_suffix: str = SAMPLES_SUFFIX,
     genes_with: str = GENES_WITH,
     exclude_train_studies: str = EXCLUDE_TRAIN,
@@ -158,7 +159,7 @@ def probe(
         features, model, n_hvg, transform=transform, seed=seed, interval=interval, study_weights=study_weights,
         hidden=tuple(int(h) for h in hidden.split(",")), dropout=dropout, train_set=train_set,
         restrict_to=restrict_to, external=external, samples_suffix=samples_suffix, genes_with=_csv(genes_with),
-        exclude_studies=_csv(exclude_train_studies),
+        exclude_studies=_csv(exclude_train_studies), external_source=external_source,
     )  # fmt: skip
 
 
@@ -368,6 +369,27 @@ def external_cmd(series: str = typer.Argument(..., help="comma-separated GEO ser
     from rna_age.train.external import extract
 
     extract(series.split(","))
+
+
+@app.command("rm7-predict-atlas")
+def rm7_predict_atlas_cmd() -> None:
+    """RM7: the Atlas fine-tune pair scores every kept NCBI sample (GPU) → data/interim/ncbi_geo_predictions/."""
+    from rna_age.train.rm7_external import predict_atlas
+
+    predict_atlas()
+
+
+@app.command("rm7-score")
+def rm7_score_cmd(mlp_runs: str = typer.Argument(..., help="comma-separated MLP reruns with --external-source ncbi_geo")) -> None:
+    """RM7: external test on the not-in-ARCHS4 series and the NCBI vs ARCHS4 cross-check (summary parquets)."""
+    import polars as pl
+
+    from rna_age.train.rm7_external import run
+
+    ext, cc = run(mlp_runs.split(","))
+    with pl.Config(tbl_rows=-1, tbl_cols=-1, tbl_width_chars=220):
+        print(ext)
+        print(cc)
 
 
 @app.command("biology-paired")
