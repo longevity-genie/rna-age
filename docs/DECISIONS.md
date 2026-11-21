@@ -401,3 +401,26 @@ worse beyond it in none; mean −0.29 y (500) and −0.33 y (2,000), lower or le
 more at the CI edge (`rm36_arm1_sc.parquet`). Reading: a small, consistent gain that the pre-registered bar does not
 count, not a new clock. Whether it carries into the best single-cell recipe (age-chosen genes per cell class, RM35
 step 1b) is tested next as arm 1b.
+
+**RM35 step 1c outcome (2026-11-21, runner's chains at c2ebeb6 / 4f0f13d, logged 1ada161 / 12c2565; read by the
+lead):** passes. Against TabICLv2 on pseudobulk (D7 folds, cohorts beaten beyond the paired CI, of 7):
+
+| variant | TabICLv2 head | mean diff | mean MAE |
+|---|---|---|---|
+| agesel_class, 500 genes (step 1b) | 4/7 | −1.15 | 5.47 |
+| seed 1 / seed 2 | 4/7, 4/7 | −1.12 / −1.08 | 5.50 / 5.54 |
+| 1,000 / 2,000 genes | 4/7, 4/7 | −0.92 / −0.81 | 5.70 / 5.80 |
+| stack_agesel | 6/7 | −1.39 | 5.23 |
+
+(i) The recipe is robust: all four variants pass with TabICLv2 (ridge fails at 1,000 and 2,000 genes); fewer genes are
+better. (ii) Stacked per-class clocks, each on its own age-chosen genes, pass 6 of 7 at 5.23 y, below both `stack`
+(5.78) and `agesel_class` (5.47): **the new best single-cell clock is `recipe-stack_agesel-tabicl`.** (iii) Descriptive:
+RM33's per-type clocks on age-chosen genes raise the controls' r with age in 44 of 71 type rows; PsychAD's AD contrast
+is beyond the CI in 9 of 11 rows with either gene set; 8 contrast verdicts change (lupus B, AD microglia on the
+external brain pool, six CMV rows with wide CIs). The HVG verdicts stand; the age-gene rows sit beside them.
+
+**RM36 arm 1b outcome (2026-11-21, runner's job 6587449 at b0714f6, logged 1ada161; read by the lead):** fails.
+Inside the age-chosen-genes recipe, TabPFN-3.5 ties TabICLv2: better beyond the paired CI in 1 of 7 (Terekhova −0.29),
+worse in 1 (5e57cd50, +0.68), mean +0.02 y (5.49 vs 5.47; `rm36_arm1b_recipe.parquet`). Reading: arm 1's small edge
+over TabICLv2 on variance-chosen genes disappears once the genes are chosen for age. TabICLv2 stays the single-cell
+read-out (open weights, equal accuracy).

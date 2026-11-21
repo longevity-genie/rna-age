@@ -9,7 +9,7 @@ The lead (`docs/seats/LEAD.md`) keeps it. Seeded at the lead's first seating (20
 
 ## RM36 — Tabular foundation models at full context: TabPFN-3.5 and TabICLv2
 
-**State:** building: arm 1 failed its bar 2026-11-21; arm 1b next; arm 2 runs (12 h); arm 3 submitted 2026-11-21 (weights via the cluster's HF login; Anton: "ignore license, it is research experiment") ·
+**State:** building: arms 1 and 1b failed their bars 2026-11-21 (TabICLv2 stays the single-cell read-out); arm 2 runs (12 h); arm 3 submitted 2026-11-21 (weights via the cluster's HF login; Anton: "ignore license, it is research experiment") ·
 **Owner:**
 lead (code), runner (jobs)
 
@@ -39,7 +39,7 @@ Code: `tabpfn35` in `train/tabfm.py` (`_estimator`) and `train/sc_tabular.py` (b
 
 ## RM35 — Make cell-level clocks learn age instead of shrinking to the mean
 
-**State:** building: step 1b passed 2026-11-21 (DECISIONS), next its robustness and use in RM33 (step 1c); step 2 after. Anton, 2026-11-21, #rna-age > general chat: "Shrinking towards mean means the model doesn't
+**State:** building: steps 1b and 1c passed 2026-11-21 (DECISIONS; new best single-cell clock `recipe-stack_agesel-tabicl`, 5.23 y); step 2 (SIGReg-JEPA) is built next, unattended. Anton, 2026-11-21, #rna-age > general chat: "Shrinking towards mean means the model doesn't
 learn, can we use sigreg jepa and change losses to make them learn", then "read literature and brainstorm in parallel
 on other ideas as well"; the lead took "also" as a go on both steps, default (a), told him so) · **Owner:** lead
 (code), runner (jobs). Code: `src/rna_age/train/cell_loss.py`, CLI `cell-loss`.
@@ -83,7 +83,7 @@ Bar: ≥ 0.3 y better mean MAE than TabICLv2 pseudobulk and better beyond the pa
   TabICLv2 pseudobulk, 4 of 7; stacked per-class TabICLv2: −0.84, 6 of 7; also age-chosen per class with ridge
   (−0.65) and whole-pseudobulk age genes with TabICLv2 (−0.55). Bootstrap arms fail (cache too thin). Table in DECISIONS.
 
-**Step 1c (next, pre-registered 2026-11-21).** (i) Robustness of the winner: seeds 1 and 2 (TabICLv2's own seed) and
+**Step 1c (pre-registered 2026-11-21; passed, DECISIONS).** (i) Robustness of the winner: seeds 1 and 2 (TabICLv2's own seed) and
 1,000 / 2,000 genes in all, the same bar against TabICLv2 pseudobulk; (ii) the two winners combined: stacked per-class
 clocks each on its own age-chosen genes; (iii) RM33's per-system clocks rebuilt on age-chosen genes (ridge per type, as
 design A) and the AD / CMV contrasts rerun, reported beside the HVG clocks, not replacing their verdicts.
