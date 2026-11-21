@@ -490,3 +490,13 @@ only 23,181 genes in NCBI's counts, the absent HVGs enter as zeros and standardi
 of the difference 97 y), so the headline ensemble's 17.6 y here measures a feature mismatch, not the clock. Fix (RM26's
 way): the three MLPs retrained on the gene axis NCBI also measures (`--genes-with ncbi_geo`), their test MAE reported
 against the originals, then `rm7-score` again with them.
+Second scoring (2026-11-21, runs 20261121-1345/1348/1351-hvg20000-mlp-trainall-genes-ncbi_geo[-seedN], logged
+3101205): test MAE 7.75 / 8.10 / 7.96 (originals 8.03 / 8.24 / 8.14), but the MLP still fails on NCBI counts
+(cross-check r 0.25; external 33.5 y). The lead's check on the login node: NCBI and ARCHS4 log-CPM of the same samples
+agree (per-sample r 0.93-0.98) and rows line up; the MLP's outputs agree for most samples (median difference 5 y) and
+explode for ~10 % (up to 3,051 y). Cause: a few small-RNA and histone genes (7SK, RN7SL3, H4C11) that NCBI counts and
+ARCHS4 barely does; where they are among the 20k HVGs their standardised values land far outside training and the
+network extrapolates. Fix, chosen after seeing these results (disclosed as such): for a source from another counting
+pipeline, each external feature is clipped to its training range, the share clipped per sample saved
+(`clipped_frac`); RM10's ARCHS4-counted external samples are untouched. Third scoring: the same three reruns with the
+clip, then `rm7-score`.

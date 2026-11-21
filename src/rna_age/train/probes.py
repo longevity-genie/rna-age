@@ -180,6 +180,16 @@ def run_probe(
     scaler = StandardScaler().fit(X[train])
     Xs = scaler.transform(X).astype(np.float32)
     ext_out: list = []
+    Xe, clipped = None, None
+    if external:
+        Xe = scaler.transform(X_ext).astype(np.float32)
+        if external_source != "external":  # RM7: another counting pipeline; a gene it counts and ARCHS4 barely does
+            # (7SK, RN7SL, histone RNAs) would standardise to extreme z: clip each feature to its training range
+            lo_, hi_ = Xs[train].min(0), Xs[train].max(0)
+            clipped = ((Xe < lo_) | (Xe > hi_)).mean(1)
+            Xe = np.clip(Xe, lo_, hi_)
+            log.info("external %s: %.2f %% of feature values clipped to the training range", external_source,
+                     100 * float(clipped.mean()))  # fmt: skip
     if external and features != "hvg":
         raise ValueError("external scoring needs --features hvg")
     if model == "ridge":
@@ -206,7 +216,7 @@ def run_probe(
         pred, _ = _mlp(
             Xs, y, train, val, seed=seed, delta=0.25 if transform == "horvath" else 5.0, hidden=hidden,
             dropout=dropout, exact=exact if interval else None, lo=lo, hi=hi, weights=w, val_y=y_years[val], inv=inv,
-            X_extra=scaler.transform(X_ext).astype(np.float32) if external else None, extra_out=ext_out,
+            X_extra=Xe, extra_out=ext_out,
         )  # fmt: skip
         pred = inv(pred)
         params = {"val_mae": float(np.mean(np.abs(pred[val] - y_years[val]))), "seed": seed}
@@ -229,7 +239,10 @@ def run_probe(
          "embedding_join": not skip_emb},
     )  # fmt: skip
     if ext_out:
-        pl.DataFrame({"sample_id": ext_ids, "pred": inv(ext_out[0]).astype(np.float64)}).write_parquet(
+        ext_df = pl.DataFrame({"sample_id": ext_ids, "pred": inv(ext_out[0]).astype(np.float64)})
+        if clipped is not None:
+            ext_df = ext_df.with_columns(clipped_frac=pl.Series(clipped.astype(np.float64)))
+        ext_df.write_parquet(
             run_dir / ("predictions_external.parquet" if external_source == "external"
                        else f"predictions_external_{external_source}.parquet")
         )  # fmt: skip
