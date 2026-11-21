@@ -30,10 +30,8 @@ log = logging.getLogger(__name__)
 SOURCE = "ncbi_geo"
 TARGETS = INTERIM / "ncbi_geo_targets.parquet"
 PRED_DIR = INTERIM / "ncbi_geo_predictions"
-HEADLINE = "20261111-0747-ens-mlp3t2-plus-atlasft2"
 ATLAS_RUNS = ("20261110-0555-atlas-ft-u4-all", "20261110-0533-atlas-ft-u6-all")
 ATLAS_ENSEMBLE = "20261110-1329-ens-atlasft-u4u6"
-MLP_ENSEMBLE = "20261111-0747-ens-mlp3-t2"
 
 
 def kept_samples() -> pl.DataFrame:
@@ -115,13 +113,25 @@ def external_test(pred: pl.DataFrame, n_boot: int = 2000) -> pl.DataFrame:
     return pl.DataFrame(rows)
 
 
-def crosscheck(pred: pl.DataFrame) -> pl.DataFrame:
-    """NCBI-count vs ARCHS4-count predictions of the same GSMs (out-of-sample ARCHS4 predictions only)."""
+def archs4_predictions(mlp_runs: list[str]) -> dict[str, pl.DataFrame]:
+    """ARCHS4-count predictions from the same models that scored the NCBI counts: the MLP runs' own
+    ``predictions.parquet`` (averaged), the Atlas ensemble's, and their mean as the headline."""
+    cols = ["sample_id", "split", "age_years", "pred"]
+    mlp = (pl.concat([pl.read_parquet(OUTPUT / "runs" / r / "predictions.parquet").select(cols) for r in mlp_runs])
+           .group_by("sample_id", "split", "age_years").agg(pl.col("pred").mean()))  # fmt: skip
+    atlas = pl.read_parquet(OUTPUT / "runs" / ATLAS_ENSEMBLE / "predictions.parquet").select(cols)
+    head = mlp.join(atlas.select("sample_id", pl.col("pred").alias("pa")), on="sample_id", how="inner").with_columns(
+        pred=(pl.col("pred") + pl.col("pa")) / 2
+    ).drop("pa")
+    return {"pred": head, "pred_mlp": mlp, "pred_atlas": atlas}
+
+
+def crosscheck(pred: pl.DataFrame, mlp_runs: list[str]) -> pl.DataFrame:
+    """NCBI-count vs ARCHS4-count predictions of the same GSMs by the same models (out-of-sample ARCHS4 predictions
+    only: val / test / transfer)."""
     rows = []
-    for col, run in (("pred", HEADLINE), ("pred_mlp", MLP_ENSEMBLE), ("pred_atlas", ATLAS_ENSEMBLE)):
-        a = pl.read_parquet(OUTPUT / "runs" / run / "predictions.parquet").select(
-            "sample_id", "split", "age_years", pl.col("pred").alias("pred_archs4")
-        )
+    for col, a in archs4_predictions(mlp_runs).items():
+        a = a.rename({"pred": "pred_archs4"})
         d = pred.select("sample_id", pl.col(col).alias("pred_ncbi")).join(a, on="sample_id", how="inner")
         if d.is_empty():
             continue
@@ -137,7 +147,7 @@ def crosscheck(pred: pl.DataFrame) -> pl.DataFrame:
 
 def run(mlp_runs: list[str], n_boot: int = 2000, write: bool = True) -> tuple[pl.DataFrame, pl.DataFrame]:
     pred = headline_predictions(mlp_runs)
-    ext, cc = external_test(pred, n_boot), crosscheck(pred)
+    ext, cc = external_test(pred, n_boot), crosscheck(pred, mlp_runs)
     if write:
         ext.write_parquet(OUTPUT / "summary" / "rm7_external_test.parquet", compression="zstd")
         cc.write_parquet(OUTPUT / "summary" / "rm7_crosscheck.parquet", compression="zstd")
