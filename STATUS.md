@@ -61,7 +61,7 @@ stop before Anton is back; 07:00 report, then keep updating; one tabbed artifact
 
 ## Running (jobs carry seat / what / eta in their Slurm comment)
 - RM35 step 1b sc-recipe (c2ebeb6): 6 arms chained on GPU, 6575652 agesel, 6575653 agesel_class, 6575654 stack, 6575655 boot1, 6575656 boot ridge, 6575657 boot tabicl n-boot 5.
-- RM36 arm 2 (889b9b1): TabICLv2 bulk at full context on a 2080 Ti (A100 nodes are off limits for the runner), 6581001 n-context 100000 chunk 512, fallback 6581002 n-context 30000 if it fails. Arms 1 and 3 wait for TabPFN-3.5 access (a new token from Anton by DM).
+- RM36 arm 2 (889b9b1): TabICLv2 bulk at full context on a 2080 Ti (A100 nodes are off limits for the runner), 6581001 n-context 100000 chunk 512, 6581001 was OOM-killed on host RAM (96G, at load, not the GPU); 6581002 (n-context 30000) runs, then 6581385 full context with 256G. Arms 1 and 3 wait for TabPFN-3.5 access (a new token from Anton by DM).
 - RM7 external test (31f525f): MLP reruns 6581147-6581149 (seeds 0-2, NCBI scored on the side), Atlas pair 6581150; then rm7-score on CPU.
 
 ## Results so far (details: `docs/experiments.md`, `data/output/summary/experiments.parquet`)
