@@ -1284,3 +1284,17 @@ brain pool, six CMV rows with wide CIs).
 
 Bar (better beyond the CI in ≥ 4 of 7): **missed**, 1 better (terekhova), 1 worse (5e57cd50, 100 donors), mean +0.02
 y. In the recipe the two in-context models tie. Table: `data/output/summary/rm36_arm1b_recipe.parquet`.
+
+### 2026-11-21 17:20 · RM35 step 2: SIGReg-JEPA encoder fails every read-out
+At 0833d82 on a 2080 Ti: `rna-age sc-jepa` (RM28's pool, 30 epochs, 6587488, 6 min; run
+`20261121-1651-scpre-jepa-s0`), then `sc-pretrain-embed` (6587507), `--with tabicl sc-pretrain-clock` (6587508),
+`sc-pretrain-finetune` (6587509). No collapse (val effective rank 17.4 at epoch 30), but held-out SIGReg 1,060 against
+40 on training cells. Mean MAE minus the pseudobulk reference over the 7 cohorts, cohorts beaten:
+
+| read-out | SIGReg-JEPA | RM28 masking (reused, 20261113-1942-scpre-mask-s0) | beaten |
+|---|---|---|---|
+| frozen + ridge | +2.63 y | +1.71 y | 0/7 |
+| frozen + TabICLv2 | +2.59 y | +1.41 y | 0/7 |
+| fine-tuned | +3.29 y | +1.78 y | 0/7 |
+
+Bar (≥ 1 y better than the masking arm in each column): **missed** in all three; JEPA is 0.9-1.5 y worse.
