@@ -465,38 +465,3 @@ kept private in the repository until Anton decides where it goes.
 
 Local scoring done (16 public tasks, no gain over frozen Atlas). Submitting is public and needs Anton's account.
 
-## RM7 — NCBI-generated GEO counts (gap-filling beyond ARCHS4)
-
-**State:** building: scoring runs (fetch and parse done 2026-11-21: 22,415 kept samples, 317 series; decision: external test, not training) · **Owner:** lead (code), runner (fetch jobs)
-
-`sources/ncbi_geo.py` resumes on NCBI's published FTP copy (the route the 2026-11-09 note asked for), one connection with pauses: cross-check targets and age-annotated series missing from ARCHS4; positive-control series stay out of training (RM34).
-
-Totals (runner, 2026-11-21, parse 6554886): 4,035 series texts and 979 count files fetched, no NCBI refusals; 25,045
-samples with counts, 22,415 kept (22,347 exact ages): 18,022 in 39 cross-check series that ARCHS4 holds, 4,393 in 278
-series ARCHS4 lacks. Decision (lead, 2026-11-21): nothing enters the age table, the splits or training (RM26: 3 % more
-samples bought at most 0.2 y). Two readings instead (`train/rm7_external.py`, CLI `rm7-predict-atlas`, `rm7-score`):
-the headline clock's **external test** on the not-in-ARCHS4 series (MAE, median, r, study-bootstrap CIs, all and
-healthy; against the headline's 7.46 test and RM26's 11.2 on recount3's new studies), and a **pipeline cross-check**
-(the same GSMs predicted from NCBI and from ARCHS4 counts, out-of-sample ARCHS4 predictions only). The headline's MLP
-half has no saved weights, so its three seeds are retrained with the original recipe (`probe --features hvg --model mlp
---n-hvg 20000 --train-set all --seed S --external --external-source ncbi_geo`), their test MAE checked against
-8.03 / 8.24 / 8.14; the Atlas half scores from its checkpoints. No bar: a measurement for the manuscript's external
-validation.
-First scoring (2026-11-21, runner's jobs, logged da971b3; read by the lead). The Atlas pair is valid: external test on
-251 new studies (4,212 samples) MAE 11.3 y [9.9, 12.9], median 9.1, r 0.74 [0.62, 0.81] (healthy 406: 14.1, r 0.63),
-in line with RM26's recount3 new studies (11.2); cross-check on 4,414 shared samples: NCBI vs ARCHS4 counts r 0.97,
-NCBI reads 2.3 y younger on average (SD 4.3), MAE 6.77 vs 6.72. The MLP half is not valid: its 46,028-gene axis has
-only 23,181 genes in NCBI's counts, the absent HVGs enter as zeros and standardise to extremes (cross-check r 0.21, SD
-of the difference 97 y), so the headline ensemble's 17.6 y here measures a feature mismatch, not the clock. Fix (RM26's
-way): the three MLPs retrained on the gene axis NCBI also measures (`--genes-with ncbi_geo`), their test MAE reported
-against the originals, then `rm7-score` again with them.
-Second scoring (2026-11-21, runs 20261121-1345/1348/1351-hvg20000-mlp-trainall-genes-ncbi_geo[-seedN], logged
-3101205): test MAE 7.75 / 8.10 / 7.96 (originals 8.03 / 8.24 / 8.14), but the MLP still fails on NCBI counts
-(cross-check r 0.25; external 33.5 y). The lead's check on the login node: NCBI and ARCHS4 log-CPM of the same samples
-agree (per-sample r 0.93-0.98) and rows line up; the MLP's outputs agree for most samples (median difference 5 y) and
-explode for ~10 % (up to 3,051 y). Cause: a few small-RNA and histone genes (7SK, RN7SL3, H4C11) that NCBI counts and
-ARCHS4 barely does; where they are among the 20k HVGs their standardised values land far outside training and the
-network extrapolates. Fix, chosen after seeing these results (disclosed as such): for a source from another counting
-pipeline, each external feature is clipped to its training range, the share clipped per sample saved
-(`clipped_frac`); RM10's ARCHS4-counted external samples are untouched. Third scoring: the same three reruns with the
-clip, then `rm7-score`.

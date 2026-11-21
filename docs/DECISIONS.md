@@ -372,3 +372,24 @@ resampling helps ridge a little against its own control (−0.21 y) but the cach
 what the clock reads matters more than how it is trained. Genes chosen for their age association within each cell
 class, rather than for variance, are the largest single-cell gain since D7. The new best single-cell clock is TabICLv2
 on age-chosen genes per cell class (`recipe-agesel_class-tabicl`). Step 2 (SIGReg-JEPA) stays a falsification run.
+
+**RM7 outcome (2026-11-21, lead's code 31f525f / c7526bb / 21ef01b, runner's fetch chain 6554876-6554886 and scoring
+jobs, logged fa7338f; read by the lead):** done. NCBI-generated GEO counts (4,035 series texts, 979 count files, no
+NCBI refusals): 22,415 kept samples, none entering the age table, splits or training (RM26: 3 % more samples bought at
+most 0.2 y). As an external test of the headline clock, 4,212 exact-age samples in 251 studies ARCHS4 does not hold:
+
+| model | MAE (95 % CI, by study) | median | r | healthy (406) |
+|---|---|---|---|---|
+| headline ensemble | 10.97 [9.68, 12.49] | 8.9 | 0.76 | 14.7 |
+| its MLP half (retrained on NCBI-measured genes) | 13.05 [11.24, 14.98] | 10.4 | 0.69 | 17.0 |
+| its Atlas half | 11.34 [9.89, 12.87] | 9.1 | 0.74 | 14.1 |
+
+Pipeline cross-check, the same samples counted by NCBI and by ARCHS4, same models: ensemble r 0.95 between the two,
+NCBI 0.67 y younger on average (SD 5.2); Atlas r 0.97, −2.3 y; MLP r 0.95, +1.2 y. Two fixes were needed and both were
+chosen after seeing results: the MLP half retrained on the gene axis NCBI measures (test MAE 7.75 / 8.10 / 7.96 against
+the originals' 8.03 / 8.24 / 8.14), and, for a source from another counting pipeline, each feature clipped to its
+training range (0.03 % of values), because a few small RNAs NCBI counts and ARCHS4 barely does (7SK, RN7SL3, histone
+RNAs) standardised to extremes and the network extrapolated (up to 3,051 y). Reading: on studies outside ARCHS4 the
+clock's error is ~11 y (r 0.76) against 7.46 on ARCHS4's held-out studies, in line with RM26's recount3 new studies
+(11.2): the honest external number for the manuscript. The counting pipeline itself moves a prediction by ~5 y SD and
+little on average. Any model fed counts from another pipeline needs the same range clip.
