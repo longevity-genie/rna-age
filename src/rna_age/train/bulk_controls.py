@@ -23,7 +23,7 @@ import numpy as np
 import polars as pl
 
 from rna_age.paths import INPUT, INTERIM, OUTPUT
-from rna_age.train.sys_gap import CaseDef, _merge_write, contrast, score_predictions
+from rna_age.train.sys_gap import CaseDef, _merge_write, contrast, gate_z, score_predictions
 
 log = logging.getLogger(__name__)
 
@@ -133,7 +133,7 @@ def score_control(
     contrast_rows = [{**extra, **r, "status": status, "covariates": cov, "beyond_ci": bool(r["lo"] > 0 or r["hi"] < 0)}
                      for r in rows]  # fmt: skip
     cd = CaseDef(spec.condition, predictions=((spec.system, kind),))
-    pred_rows = [{**extra, "guard": "none", **p, "status": status} for p in score_predictions(cd, rows)]
+    pred_rows = gate_z([{**extra, "guard": "none", **p, "status": status} for p in score_predictions(cd, rows)])
     return {"type": type_rows, "contrast": contrast_rows, "predictions": pred_rows}
 
 

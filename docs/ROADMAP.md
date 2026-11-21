@@ -100,7 +100,7 @@ GSE114007 (OA: 5 pairs, controls young), GSE135251 (MASLD: no ages in GEO, NCBI 
 
 ## RM33 — System-level age gaps: which cell types or tissues make a person look older
 
-**State:** building (design A; stage 0 run, a601870; its two guards run 2026-11-14, `sys-gap --guards`; CMV run 2026-11-14: CD8 T holds, B fails reproducibly; four more controls run 2026-11-20: T2D, PD, sarcopenia inconclusive, Down syndrome awaits a GPU job; external clocks run 2026-11-20: all 9 counted inconclusive, Allen's B / NK findings clock-dependent) · **Owner:** lead
+**State:** building, z-unit rescoring runs (desk #79 default; design A; stage 0 run, a601870; its two guards run 2026-11-14, `sys-gap --guards`; CMV run 2026-11-14: CD8 T holds, B fails reproducibly; four more controls run 2026-11-20: T2D, PD, sarcopenia inconclusive, Down syndrome awaits a GPU job; external clocks run 2026-11-20: all 9 counted inconclusive, Allen's B / NK findings clock-dependent) · **Owner:** lead
 
 Review (2026-11-13; a design agent wrote three designs, two separate reviewers judged them on our data and cluster):
 A labelled cell types 6/10 validity, 8/10 feasibility; B label-free groups on our encoder 4/4 (encoder never saw brain,
@@ -366,7 +366,22 @@ on the runner's GPU job.
 Down syndrome (D1, 2026-11-20, runner's jobs 6552585-6552586, 89d1366): GSE190125 blood, adults, trisomy 21 −
 controls +11.7 y [10.3, 13.2] (202 vs 66) with the Atlas fine-tune ensemble `20261110-1329-ens-atlasft-u4u6`: holds;
 children (exploratory) +7.3 y [5.6, 9.3]. Tally: 26 scored, 4 hold, 2 fail (the clock-dependent CMV B result), 20
-inconclusive. Waiting on Anton's pick between z-unit contrasts (default) and ≥ 50-control cohorts only.
+inconclusive.
+Z-unit scale (pre-registered 2026-11-21, before any rerun; desk #79, its default applied while Anton is away, the
+other option being years on cohorts with ≥ 50 controls only): every counted prediction is also scored on the gap in
+control residual SDs (`delta_z`, already in the contrast) with the same rules: `accelerates` holds if the 95 % CI is
+above 0, fails if below 0 or the 90 % CI lies inside ±0.3 z; `no_acceleration` holds if the 90 % CI lies inside
+±0.3 z, fails if the 95 % CI lies wholly beyond it (0.3 z: a small effect, chosen to match ±2 y at a typical slope and
+residual SD, not tuned on results). The z verdict counts only where every type it touches is measured (positive
+control slope, reliability ≥ 0.5): the z scale drops the division by the slope, not the rule that the clock tracks
+age. The year verdicts stay as they are and are reported beside. Plus the pooled-regions rerun of cff99df2 (external
+brain clock, every region a donor has summed per type; tag `cff99df2-pooled`) with the area-9 run's predictions
+(astrocyte, astrocyte − OPC counted). Disclosure: the 95 % z intervals were already in `sys_gap_contrast` and the lead
+had seen year-scale results; the 90 % z intervals and the gated z verdicts are new. Bar for RM33 as Anton set it: most
+counted predictions hold on the z scale, and the failures are reproducible (they fail on both scales and in the
+gene-half guards), read as findings. Code: `verdict_z`, `gate_z`, `Z_MARGIN` in `sys_gap.py`. Reruns (runner): the
+commands that wrote the current own-clock, external and bulk-score rows, plus `sys-gap-external --targets
+cff99df2_pooled`; the year verdicts must come out identical (seeded), which doubles as a reproducibility check.
 
 ## RM13 — A manuscript draft of the results (plan line 5)
 

@@ -361,3 +361,18 @@ def test_contrast_in_predicted_years_without_slope():
     acc = contrast({"blood": pred}, age, sex, None, case, ~case, np.arange(n), [], n_boot=200)[0]
     assert raw["lo"] > 1.0 and raw["hi"] < 3.0 and abs(raw["delta_years"] - 2.0) < 0.4
     assert abs(acc["delta_years"] - 8.0) < 2.0
+
+
+def test_z_verdicts_and_gate():
+    from rna_age.train.sys_gap import CaseDef, gate_z, score_predictions
+
+    cd = CaseDef("x", predictions=(("A", "accelerates"), ("B", "no_acceleration")))
+    rows = [{"type": "A", "delta_years": 5.0, "lo": -1.0, "hi": 11.0, "lo90": 0.0, "hi90": 10.0,
+             "delta_z": 0.6, "lo_z": 0.2, "hi_z": 1.0, "lo90_z": 0.25, "hi90_z": 0.95},
+            {"type": "B", "delta_years": 0.0, "lo": -6.0, "hi": 6.0, "lo90": -5.0, "hi90": 5.0,
+             "delta_z": 0.0, "lo_z": -0.25, "hi_z": 0.25, "lo90_z": -0.2, "hi90_z": 0.2}]
+    p = {r["type"]: r for r in score_predictions(cd, rows)}
+    assert p["A"]["verdict"] == "inconclusive" and p["A"]["verdict_z"] == "hold"
+    assert p["B"]["verdict"] == "inconclusive" and p["B"]["verdict_z"] == "hold"
+    g = gate_z([{**p["A"], "status": "ok"}, {**p["B"], "status": "ok / unmeasured: slope <= 0"}])
+    assert g[0]["verdict_z"] == "hold" and g[1]["verdict_z"] == "inconclusive"

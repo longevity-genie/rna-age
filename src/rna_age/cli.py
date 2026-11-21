@@ -1076,7 +1076,7 @@ def sys_gap_cmd(
 
 @app.command("sys-gap-external")
 def sys_gap_external_cmd(
-    targets: str = typer.Option("", help="comma-separated: pd, radc, cff99df2, altra, covid, allen (default all)"),
+    targets: str = typer.Option("", help="comma-separated: pd, radc, cff99df2, cff99df2_pooled, altra, covid, allen (default all)"),
     n_genes: int = typer.Option(2000, help="most variable genes per type, picked on the pool's training donors"),
     min_cells: int = typer.Option(20, help="cells a donor needs in a type"),
     min_controls: int = typer.Option(10, help="target controls a type needs for its bias line"),

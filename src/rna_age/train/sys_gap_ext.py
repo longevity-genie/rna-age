@@ -51,6 +51,7 @@ from rna_age.train.sys_gap import (
     gene_halves,
     load_cohort,
     log_cpm,
+    gate_z,
     score_predictions,
     spearman_brown,
     thin_halves,
@@ -119,12 +120,15 @@ class Target:
     by_donor: bool = False
     tissues: tuple[str, ...] | None = None
     guards: bool = True
+    tag: str | None = None  # the summary's cohort key, when one cohort is scored two ways
 
 
 TARGETS = {
     "pd": Target(PD_BRAIN, "brain", PD_EXT, by_donor=True),
     "radc": Target(RADC, "brain", AD_EXT),
     "cff99df2": Target(AD_RESILIENCE, "brain", AD_EXT, tissues=("Brodmann (1909) area 9",)),
+    # RM33 pre-registered rerun (2026-11-21, desk #79 default): every region a donor has, summed per type
+    "cff99df2_pooled": Target(AD_RESILIENCE, "brain", AD_EXT, by_donor=True, tag="cff99df2-pooled"),
     "altra": Target(ALTRA, "blood", CMV_EXT),
     "covid": Target(COVID_PBMC, "blood", COVID, counted=False, tissues=("blood",), guards=False),
     "allen": Target(ALLEN, "blood", CMV, counted=False, guards=False),
@@ -224,7 +228,7 @@ def gated(pred_rows: list[dict], status_of: dict[str, str], counted: bool) -> li
         ok = all(s == "ok" for s in st)
         out.append({**p, "counted": p["counted"] and counted, "status": " / ".join(st), "verdict_ci": p["verdict"],
                     "verdict": p["verdict"] if ok else "inconclusive"})  # fmt: skip
-    return out
+    return gate_z(out)
 
 
 def run_target(
@@ -241,7 +245,7 @@ def run_target(
     visits = t.dataset_id in PERSON_COLUMNS  # as stage 0: repeat visits leave clock line and contrast
     primary = first_visits(co.person, co.age) if visits else np.ones(len(co.donors), dtype=bool)
     case_all, ctrl_all = case_all & primary, ctrl_all & primary
-    tag, clock = _tag(t.dataset_id), f"external:{t.pool}"
+    tag, clock = t.tag or _tag(t.dataset_id), f"external:{t.pool}"
     genes = common_genes([co.genes] + [p.genes for p in pool])
     if len(genes) < n_genes:
         raise ValueError(f"{t.dataset_id}: {len(genes)} genes common to target and pool (< {n_genes}); ids differ?")

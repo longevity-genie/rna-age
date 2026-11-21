@@ -104,6 +104,7 @@ PANCREAS = [
 ]
 GLIA, REFS = ("microglia", "astrocyte"), ("oligodendrocyte", "OPC")
 EQUIV_MARGIN = 2.0  # years: equivalence band of a "does not accelerate" prediction (90 % CI inside +-margin)
+Z_MARGIN = 0.3  # z-units (control residual SDs): the same band on the z scale (RM33, desk #79 default, 2026-11-21)
 
 
 @dataclass(frozen=True)
@@ -632,8 +633,10 @@ def contrast(
         lo, hi = ci([b[t][0] for b in boots])
         lo90, hi90 = ci([b[t][0] for b in boots], 5)
         lz, hz = ci([b[t][1] for b in boots])
+        lz90, hz90 = ci([b[t][1] for b in boots], 5)
         out.append({"kind": "type", "type": t, "delta_years": point[t][0], "lo": lo, "hi": hi,
                     "delta_z": point[t][1], "lo_z": lz, "hi_z": hz, "lo90": lo90, "hi90": hi90,
+                    "lo90_z": lz90, "hi90_z": hz90,
                     "n_case": int((ok & case).sum()), "n_control": int((ok & ctrl).sum())})  # fmt: skip
     for a, b in pairs:
         if a not in preds or b not in preds:
@@ -641,10 +644,11 @@ def contrast(
         lo, hi = ci([x[a][0] - x[b][0] for x in boots])
         lo90, hi90 = ci([x[a][0] - x[b][0] for x in boots], 5)
         lz, hz = ci([x[a][1] - x[b][1] for x in boots])
+        lz90, hz90 = ci([x[a][1] - x[b][1] for x in boots], 5)
         ok = inside & ~np.isnan(preds[a]) & ~np.isnan(preds[b])
         out.append({"kind": "difference", "type": f"{a} - {b}", "delta_years": point[a][0] - point[b][0],
                     "lo": lo, "hi": hi, "delta_z": point[a][1] - point[b][1], "lo_z": lz, "hi_z": hz,
-                    "lo90": lo90, "hi90": hi90,
+                    "lo90": lo90, "hi90": hi90, "lo90_z": lz90, "hi90_z": hz90,
                     "n_case": int((ok & case).sum()), "n_control": int((ok & ctrl).sum())})  # fmt: skip
     for r in out:
         r["age_range"] = f"{lo_age:g}-{hi_age:g}"
@@ -763,11 +767,21 @@ def score_predictions(cd: CaseDef, rows: list[dict]) -> list[dict]:
     for target, kind in cd.predictions:
         r = by.get(target, {})
         v = [float(r.get(k, np.nan)) for k in ("delta_years", "lo", "hi", "lo90", "hi90")]
+        z = [float(r.get(k, np.nan)) for k in ("delta_z", "lo_z", "hi_z", "lo90_z", "hi90_z")]
         out.append({"condition": cd.name, "type": target, "prediction": kind, "counted": kind != "exploratory",
                     "delta_years": v[0], "lo": v[1], "hi": v[2], "lo90": v[3], "hi90": v[4],
+                    "delta_z": z[0], "lo_z": z[1], "hi_z": z[2], "lo90_z": z[3], "hi90_z": z[4],
                     "n_case": int(r.get("n_case", 0)), "n_control": int(r.get("n_control", 0)),
-                    "verdict": verdict(kind, *v[1:])})  # fmt: skip
+                    "verdict": verdict(kind, *v[1:]), "verdict_z": verdict(kind, *z[1:], margin=Z_MARGIN)})  # fmt: skip
     return out
+
+
+def gate_z(rows: list[dict]) -> list[dict]:
+    """The z verdict counts only where every type it touches is measured (``status`` ok for each part: positive
+    control slope, split-half reliability >= 0.5); the z scale drops the division by the slope, not the rule that the
+    clock must track age (RM33 z-unit pre-registration, 2026-11-21)."""
+    return [r if "verdict_z" not in r else {**r, "verdict_z": r["verdict_z"] if all(s.strip() == "ok" for s in str(r.get("status", "")).split(" / "))
+             else "inconclusive"} for r in rows]  # fmt: skip
 
 
 def predictions_pass(cd: CaseDef, rows: list[dict]) -> bool:
@@ -1060,8 +1074,8 @@ def run_cohort(
         status_of = {t: res[t]["status"] for t in types}
 
         def scored(guard: str, rr: list[dict]) -> list[dict]:
-            return [{"cohort": tag, "guard": guard, **p, "status": " / ".join(status_of.get(x.strip(), "absent")
-                     for x in p["type"].split(" - "))} for p in score_predictions(cd, rr)]  # fmt: skip
+            return gate_z([{"cohort": tag, "guard": guard, **p, "status": " / ".join(status_of.get(x.strip(), "absent")
+                           for x in p["type"].split(" - "))} for p in score_predictions(cd, rr)])  # fmt: skip
 
         pred_rows += scored("none", rows)
         if with_guards:
