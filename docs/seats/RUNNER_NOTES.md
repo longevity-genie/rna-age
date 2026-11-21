@@ -52,3 +52,4 @@ Nothing. RM1 finished (75f72cd); both GPU slots left free on the lead's word unt
   inputs, outputs and the checks run, at least ONNX Runtime vs PyTorch), next to safetensors weights and config.
   rna-age has published no model yet (checked 2026-11-20); the first one follows this.
 - CPU-only jobs carry `--nice=100` (account rule 2026-11-18), set by `slurm/submit.sh` since d334c82.
+- TabICLv2 is not in the project environment: any job that fits it needs `slurm/submit.sh gpu NAME --with tabicl rna-age ...` (tabicl 2.2.0 resolved 2026-11-21); without it the job fails at import within 30 s (RM35 1b, 6575652-6575655).
