@@ -345,3 +345,30 @@ set by how much age the input carries at this resolution, not by the loss; chang
 Step 1b (more and better-chosen information: bootstrap pseudocells, age-selected genes, stacked per-type clocks, the
 literature's working recipe) goes next; step 2 (SIGReg-JEPA) stays a falsification run after it. Run cost: ~9 h on
 one 2080 Ti.
+
+**RM35 step 1b outcome (2026-11-21, lead's code c2ebeb6, runner's jobs 6575656 and 6575863-6575867, logged b51a1ad;
+read by the lead):** passes. The recipe of published single-cell clocks, on RM14's folds and donors, against TabICLv2
+on the 2,000-gene pseudobulk (D7's best clock; mean over 7 cohorts, MAE 6.62); bar: ≥ 0.3 y better on average and
+better beyond the paired CI in ≥ 4 of 7:
+
+| arm | model | MAE | r | vs TabICLv2 pseudobulk | cohorts better | bar |
+|---|---|---|---|---|---|---|
+| genes chosen for age per cell class, side by side | TabICLv2 | 5.47 | 0.79 | −1.15 | 4 | pass |
+| per-class clocks, stacked out of fold | TabICLv2 | 5.78 | 0.79 | −0.84 | 6 | pass |
+| genes chosen for age per cell class | ridge | 5.97 | 0.78 | −0.65 | 4 | pass |
+| genes chosen for age (whole pseudobulk) | TabICLv2 | 6.07 | 0.75 | −0.55 | 4 | pass |
+| genes chosen for age (whole pseudobulk) | ridge | 6.13 | 0.75 | −0.48 | 3 | fail |
+| per-class clocks, stacked | ridge | 6.40 | 0.75 | −0.22 | 1 | fail |
+| bootstrap pseudobulks (20 × 100 cached cells) | ridge | 7.88 | 0.67 | +1.26 | 0 | fail |
+| one mean of the cached cells (its control) | ridge / TabICLv2 | 8.09 / 8.06 | 0.60 / 0.62 | +1.47 / +1.44 | 0 | |
+| bootstrap pseudobulks (5 × 100) | TabICLv2 | 8.74 | 0.57 | +2.12 | 0 | fail |
+
+The best arm gains most in brain and Terekhova (PsychAD −2.58 [−2.98, −2.21], HBCC −2.31, Terekhova −1.81) and
+little in the two large blood cohorts (OneK1K −0.17 n.s., AIDA −0.38). Its mean slope is 0.62 (stack 0.65), against
+the cell-level arms' 0.37-0.44: ranking improved, so the shrinkage eased with it, as step 1's reading predicted. Folds
+checked: one row per person in every cohort (Terekhova's visits grouped), so no person is on both sides. Bootstrap
+resampling helps ridge a little against its own control (−0.21 y) but the cached 200-cell, 2,000-gene panel loses
+~1.4 y against full pseudobulk, so it is not a fair test of BootstrapCell; it is not pursued on this cache. Reading:
+what the clock reads matters more than how it is trained. Genes chosen for their age association within each cell
+class, rather than for variance, are the largest single-cell gain since D7. The new best single-cell clock is TabICLv2
+on age-chosen genes per cell class (`recipe-agesel_class-tabicl`). Step 2 (SIGReg-JEPA) stays a falsification run.
