@@ -1264,7 +1264,7 @@ beaten of 7 (bar of step 1b: beats TabICLv2 2,000-gene pseudobulk beyond the CI 
 (i) passes: every TabICLv2 variant passes, fewer genes are better. (ii) passes: `stack_agesel` 6/7 and the lowest
 mean MAE, below both `agesel_class` and `stack`. **Chain B** (CPU, 6583156-6583158): `sys-gap` with 500 age-chosen
 genes (clock `own:agegenes` / `external:<pool>:agegenes`) beside the HVG rows in `sys_gap_*.parquet`. (iii)
-descriptive: controls' r with age higher with age-chosen genes in 44 of 71 type rows (mean r up in 7 of 10
+descriptive: controls' r with age higher with age-chosen genes in 44 of 71 type rows (mean r up in 6 of 10
 cohort/pool pairs, largest ALTRA own 0.02 → 0.17, 5e57cd50 external 0.31 → 0.39); PsychAD's AD contrast beyond the CI
 in 9 of 11 rows with either gene set; 8 contrast rows change verdict (lupus B cells, AD microglia on the external
 brain pool, six CMV rows with wide CIs).
