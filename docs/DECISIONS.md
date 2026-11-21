@@ -424,3 +424,15 @@ Inside the age-chosen-genes recipe, TabPFN-3.5 ties TabICLv2: better beyond the 
 worse in 1 (5e57cd50, +0.68), mean +0.02 y (5.49 vs 5.47; `rm36_arm1b_recipe.parquet`). Reading: arm 1's small edge
 over TabICLv2 on variance-chosen genes disappears once the genes are chosen for age. TabICLv2 stays the single-cell
 read-out (open weights, equal accuracy).
+
+**RM35 step 2 outcome and RM35 closed (2026-11-21, lead's code 0833d82, runner's job 6587488 and read-out chain,
+logged 68726e6; read by the lead):** fails. The SIGReg-JEPA encoder (two gene views per cell, RM28's encoder, pool and
+budget, λ = 0.05, run 20261121-1651-scpre-jepa-s0, 6 min on a 2080 Ti) against RM28's masking arm (reused, run
+20261113-1942-scpre-mask-s0), mean MAE minus pseudobulk TabICLv2: frozen + ridge +2.63 vs +1.71, frozen + TabICLv2
++2.59 vs +1.41, fine-tuned +3.29 vs +1.78; 0 of 7 cohorts better than pseudobulk. The bar (≥ 1 y better than masking in
+each) is missed by 1.9-2.5 y. No full collapse (validation effective rank 17.4 of 256) but a partial one, and held-out
+donors' embeddings sit far from the Gaussian SIGReg fits on training cells (statistic 1,060 vs 40; the held-out chunk
+is 4x larger, so ~6x per cell). Tuning λ or the views would be a new pre-registered run; none is planned. Reading, with
+RM28 and RM32: self-supervised cell encoders trained on our pool learn cell identity, not age. RM35 is closed: the
+single-cell gain came from what the clock reads (age-chosen genes per cell class, stacked: 5.23 y, steps 1b-1c), not
+from losses or encoders (steps 1 and 2).
