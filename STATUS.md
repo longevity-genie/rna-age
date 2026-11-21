@@ -61,6 +61,7 @@ stop before Anton is back; 07:00 report, then keep updating; one tabbed artifact
 
 ## Running (jobs carry seat / what / eta in their Slurm comment)
 - RM35 step 1b sc-recipe (c2ebeb6): 6 arms chained on GPU, 6575652 agesel, 6575653 agesel_class, 6575654 stack, 6575655 boot1, 6575656 boot ridge, 6575657 boot tabicl n-boot 5.
+- RM36 arm 2 (889b9b1): TabICLv2 bulk at full context on a 2080 Ti (A100 nodes are off limits for the runner), 6581001 n-context 100000 chunk 512, fallback 6581002 n-context 30000 if it fails. Arms 1 and 3 wait for TabPFN-3.5 access (a new token from Anton by DM).
 
 ## Results so far (details: `docs/experiments.md`, `data/output/summary/experiments.parquet`)
 - **RM7 NCBI GEO (2026-11-21 11:33)**: fetch complete (14 runs, 4,035/4,035 series texts, 979 count files, no NCBI refusals), parse 6554886: 25,045 samples from 970 series; kept 22,415 (22,347 exact age). Crosscheck series (already in ARCHS4): 18,022 kept in 39; new (not_in_archs4): 4,393 kept in 278 series. Excluded: cell_line 1,380, tumor 1,014, prenatal 84, cancer_patient 69, single_cell 48, stem_or_organoid 34. Not merged into samples_all or the splits; the lead decides how they enter.
