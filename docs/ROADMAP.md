@@ -9,7 +9,7 @@ The lead (`docs/seats/LEAD.md`) keeps it. Seeded at the lead's first seating (20
 
 ## RM35 — Make cell-level clocks learn age instead of shrinking to the mean
 
-**State:** urgent, step 1 (Anton, 2026-11-21, #rna-age > general chat: "Shrinking towards mean means the model doesn't
+**State:** urgent, step 1b (step 1 failed 2026-11-21, every arm, DECISIONS; Anton, 2026-11-21, #rna-age > general chat: "Shrinking towards mean means the model doesn't
 learn, can we use sigreg jepa and change losses to make them learn", then "read literature and brainstorm in parallel
 on other ideas as well"; the lead took "also" as a go on both steps, default (a), told him so) · **Owner:** lead
 (code), runner (jobs). Code: `src/rna_age/train/cell_loss.py`, CLI `cell-loss`.
@@ -31,6 +31,8 @@ widen their variance instead of pulling to the mean), `ccc` w 0.5 (Lin's concord
   with mean MAE no worse (paired, within 0.2 y); it wins if it also beats TabICLv2 pseudobulk beyond the paired CI in
   ≥ 4 of 7 cohorts. Slope is reported (`cell_loss_slope.parquet`), not a bar.
 - Smoke (lead, CPU, 5e57cd50, 5 epochs): runs, 23 s.
+- **Outcome (2026-11-21, jobs 6575132-6575136):** fails, every arm: r within 0.004 of `cell-mse` (0.631), slopes
+  0.37-0.44, +1.42 to +1.70 y behind TabICLv2 pseudobulk, 0 of 7. The loss does not set the shrinkage; the input does.
 
 **Step 1b, from the literature read (lead's research agent, 2026-11-21; abstracts unless noted).** Working
 single-cell clocks (sc-ImmuAging, Muralidharan 2025 brain [papers read]) use many bootstrapped pseudocells per donor

@@ -324,3 +324,24 @@ Reading: continued training of the in-context regressor on our expression episod
 but away from what made it the best single-cell clock, and taught it no disease or knockdown signal. With RM28 (own
 encoder) and RM22 (Geneformer), the third pretraining route that loses to TabICLv2 read-out of summed expression; the
 single-cell clock stays D7's, and pretraining is not pursued further without a new idea. Run cost: ~6 h on one 2080 Ti.
+
+**RM35 step 1 outcome (2026-11-21, lead's code f926f81, runner's jobs 6575132-6575136, logged 2f931ed; read by the
+lead):** fails its bar in every arm. A pseudocell (15 cells) age head on raw panel expression, pooled per donor, RM14's
+folds; mean over the 7 cohorts, MAE difference against TabICLv2 pseudobulk (0 of 7 cohorts better in every arm):
+
+| arm | MAE | r | slope | vs pseudobulk |
+|---|---|---|---|---|
+| mse (control) | 8.08 | 0.631 | 0.42 | +1.46 |
+| nll w 0.1 | 8.12 | 0.629 | 0.41 | +1.50 |
+| nll w 1 | 8.32 | 0.624 | 0.37 | +1.70 |
+| ccc w 0.5 | 8.04 | 0.635 | 0.43 | +1.42 |
+| rank w 0.5 | 8.08 | 0.630 | 0.44 | +1.46 |
+| RM32 reference (RM28 encoder) | 8.40 | 0.576 | | +1.78 |
+
+The bar (r ≥ 0.05 above `mse` at no worse MAE) is missed by every arm (best +0.004, ccc). No loss moved the slope
+more than ±0.05; the per-unit NLL lowered it, as RM32's per-cell term did. Raw expression beats the pretrained
+encoder (r 0.63 vs 0.58, −0.32 y) and is still 1.4 y behind TabICLv2 on summed expression. Reading: the shrinkage is
+set by how much age the input carries at this resolution, not by the loss; changing the objective cannot recover it.
+Step 1b (more and better-chosen information: bootstrap pseudocells, age-selected genes, stacked per-type clocks, the
+literature's working recipe) goes next; step 2 (SIGReg-JEPA) stays a falsification run after it. Run cost: ~9 h on
+one 2080 Ti.
