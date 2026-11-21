@@ -9,8 +9,8 @@ The lead (`docs/seats/LEAD.md`) keeps it. Seeded at the lead's first seating (20
 
 ## RM36 — Tabular foundation models at full context: TabPFN-3.5 and TabICLv2
 
-**State:** building: arm 2 runs now; arms 1 and 3 wait until the runner has TabPFN-3.5 access (Anton's HF account; the
-token he posted in a channel is to be revoked, a new read-only one sent to the runner by direct message) · **Owner:**
+**State:** building: arm 2 runs now; arms 1 and 3 handed to the runner 2026-11-21 (Anton: use the HF token he gave) ·
+**Owner:**
 lead (code), runner (jobs)
 
 Anton, 2026-11-21, #rna-age > general chat: "Also i heard tabfn did something to scale to millions of rows", "I talk
