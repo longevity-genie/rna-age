@@ -9,7 +9,7 @@ The lead (`docs/seats/LEAD.md`) keeps it. Seeded at the lead's first seating (20
 
 ## RM35 — Make cell-level clocks learn age instead of shrinking to the mean
 
-**State:** urgent, step 1b (step 1 failed 2026-11-21, every arm, DECISIONS; Anton, 2026-11-21, #rna-age > general chat: "Shrinking towards mean means the model doesn't
+**State:** building: step 1b runs (runner, jobs 6575656 and 6575863-6575867; step 1 failed 2026-11-21, every arm, DECISIONS; step 2 after 1b is read; Anton, 2026-11-21, #rna-age > general chat: "Shrinking towards mean means the model doesn't
 learn, can we use sigreg jepa and change losses to make them learn", then "read literature and brainstorm in parallel
 on other ideas as well"; the lead took "also" as a go on both steps, default (a), told him so) · **Owner:** lead
 (code), runner (jobs). Code: `src/rna_age/train/cell_loss.py`, CLI `cell-loss`.
