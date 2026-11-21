@@ -61,10 +61,10 @@ stop before Anton is back; 07:00 report, then keep updating; one tabbed artifact
 
 ## Running (jobs carry seat / what / eta in their Slurm comment)
 - RM35 step 1b sc-recipe (c2ebeb6): 6 arms chained on GPU, 6575652 agesel, 6575653 agesel_class, 6575654 stack, 6575655 boot1, 6575656 boot ridge, 6575657 boot tabicl n-boot 5.
-- RM33 z-unit rescoring (8b511e6): CPU chain 6575791 T2D+PD, 6575792 sys-gap-external, 6575793 bulk-controls-score, then 6576242 Allen, 6576243 ALTRA (rerun with full dataset ids; short ids failed); check: year verdicts unchanged vs the pre-rerun copy.
 - RM7 NCBI GEO: run 1 (6552380, 51 min) fetched 340 of 4,035 series texts and 64 count files, parsed 19,524 samples from 58 series. Runs 2-4 (6554876-6554878) done, no NCBI refusals: 1,094 series texts and 509 count files so far. Runs 5-11 and parse 6554886 were held 22:54-22:56: each run re-slept 4 s on every already-fetched file (run time 1:12, 1:32, 1:58 vs a 2:00 limit). Fixed in 87c2a48 (skip before the pause); chain released. Not merged into samples_all or the splits: the lead decides how they enter (likely a separate external-test table).
 
 ## Results so far (details: `docs/experiments.md`, `data/output/summary/experiments.parquet`)
+- **RM33 z-unit rescoring (2026-11-21 10:50, 8b511e6)**: all sys_gap rows rerun (6575791-6575793, 6576242-6576243); the 781 existing prediction rows are reproduced exactly (verdict and delta_years identical), plus 121 new cff99df2-pooled rows. On the 112 unguarded rows, z and year verdicts agree in 110; two differ (Allen external CD8 T - monocyte: inconclusive -> hold; Allen own fine CD56dim NK: inconclusive -> fail).
 - **RM35 step 1 cell losses (2026-11-21 09:45)**: 5 arms (6575132-6575136, ~1:47 each on a 2080 Ti) beat the pseudobulk clocks in 0 of 7 cohorts each; mean MAE gap vs best pseudobulk mse +1.46, nll 0.1 +1.50, nll 1 +1.70, ccc 0.5 +1.42, rank 0.5 +1.46 y. Median slope pred-on-age 0.44 (mse) vs 0.38-0.47 with the extra losses: shrinkage not reduced.
 - **RM33 Down syndrome control (2026-11-20 14:33)**: blood (GSE190125), adults with trisomy 21 read +11.7 y
   [10.3, 13.2] older than controls (202 vs 66), the pre-registered prediction holds; children +7.3 y (exploratory).
