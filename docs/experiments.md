@@ -1298,3 +1298,17 @@ At 0833d82 on a 2080 Ti: `rna-age sc-jepa` (RM28's pool, 30 epochs, 6587488, 6 m
 | fine-tuned | +3.29 y | +1.78 y | 0/7 |
 
 Bar (≥ 1 y better than the masking arm in each column): **missed** in all three; JEPA is 0.9-1.5 y worse.
+
+### 2026-11-21 19:27 · RM36 arm 3: TabPFN-3.5 on bulk misses the bar at 2,000 and 20,000 genes
+Commit fc76748's code (`tabfm` with `tabpfn35`, HF checkpoint in the TabPFN cache, Anton 642492715) on a 2080 Ti,
+n-context 100000. That gives every eligible row: 43,958 rows from 1,572 studies. Test n 8,843.
+
+| genes | job | run | test MAE | r | bias slope | val MAE | time |
+|---|---|---|---|---|---|---|---|
+| 2,000 HVGs | 6587366 | 20261121-1803-tfm-tabpfn35-hvg-ctx100k | 14.99 y | 0.55 | −0.69 | 15.38 y | 1 h 22 |
+| 20,000 HVGs | 6587367 | 20261121-1927-tfm-tabpfn35-hvg-ctx100k | 15.48 y | 0.50 | −0.71 | 16.36 y | 1 h 24 |
+
+Bar (≤ 9.1 y): **missed** at both. Reused controls: RM25 TabICLv2 at 4k context, 15.30 y (6439059), and the 20k-HVG
+MLP, 8.1 y. At 20,000 genes the 8 default estimators sample at most 6,144 of the features (768 each, per TabPFN's
+own warning), so that row does not test the full 20,000. Transfer to the held-out pseudobulk at 20,000 genes: MAE
+19.04 y, r 0.26, mean error −10.3 y.
