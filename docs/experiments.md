@@ -1312,3 +1312,11 @@ Bar (≤ 9.1 y): **missed** at both. Reused controls: RM25 TabICLv2 at 4k contex
 MLP, 8.1 y. At 20,000 genes the 8 default estimators sample at most 6,144 of the features (768 each, per TabPFN's
 own warning), so that row does not test the full 20,000. Transfer to the held-out pseudobulk at 20,000 genes: MAE
 19.04 y, r 0.26, mean error −10.3 y.
+
+### 2026-11-22 00:36 · RM36 arm 2: TabICLv2 on bulk at full context misses the bar
+Job 6587406 (code at 889b9b1, `tabfm` `tabicl`, n-context 100000, chunk 512) on a 2080 Ti: the context was every
+eligible row, 43,958 rows from 1,572 studies, 2,000 HVGs. It took 8 h 11. Run 20261122-0036-tfm-tabicl-hvg-ctx100k:
+**test MAE 15.94 y**, r 0.48, bias slope −0.73, val 15.60 y (n 8,843). Transfer to pseudobulk: 18.85 y, r 0.19.
+
+Bar (≤ 9.1 y): **missed**. Against the reused RM25 TabICLv2 at 4k context (15.30 y, 6439059), 11× the context is
+0.64 y worse. The 30k fallback (6587407) was cancelled unrun because arm 2 succeeded.
