@@ -39,7 +39,7 @@ Code: `tabpfn35` in `train/tabfm.py` (`_estimator`) and `train/sc_tabular.py` (b
 
 ## RM35 — Make cell-level clocks learn age instead of shrinking to the mean
 
-**State:** building: steps 1b and 1c passed 2026-11-21 (DECISIONS; new best single-cell clock `recipe-stack_agesel-tabicl`, 5.23 y); step 2 (SIGReg-JEPA) is built next, unattended. Anton, 2026-11-21, #rna-age > general chat: "Shrinking towards mean means the model doesn't
+**State:** building: steps 1b and 1c passed 2026-11-21 (DECISIONS; new best single-cell clock `recipe-stack_agesel-tabicl`, 5.23 y); step 2 (SIGReg-JEPA) built 2026-11-21, runs next. Anton, 2026-11-21, #rna-age > general chat: "Shrinking towards mean means the model doesn't
 learn, can we use sigreg jepa and change losses to make them learn", then "read literature and brainstorm in parallel
 on other ideas as well"; the lead took "also" as a go on both steps, default (a), told him so) · **Owner:** lead
 (code), runner (jobs). Code: `src/rna_age/train/cell_loss.py`, CLI `cell-loss`.
@@ -101,6 +101,13 @@ embeddings. SIGReg-JEPA models on single cells exist (LeCellModel, Cell-JEPA, sc
 [abs]; RM28's encoder did not collapse, its features were not about age, so this is a test, not an expectation.
 Read-out frozen + TabICLv2 and fine-tuned. Reused control: RM28's masking arm. Bar: ≥ 1 y better than RM28's masking
 arm (its +1.71 / +1.41 / +1.78), else the encoder route stays closed. ~6-10 GPU-hours.
+- Built 2026-11-21 (`train/sc_jepa.py`, CLI `sc-jepa`): two random gene views per cell (each hides 30-60 % of the
+  panel), RM28's encoder (`ScMAE`, same width and depth), a projector and a predictor from the context view's embedding
+  to the target view's; loss (1 − λ)·prediction + λ·SIGReg (sliced Epps-Pulley, λ = 0.05), no EMA teacher. RM28's
+  pool, 30 epochs, batch 1,024, lr 1e-3. `failed` (exit 3) if the validation embeddings collapse (effective rank < 2).
+  Commands: `rna-age sc-jepa` (one 2080 Ti; RM28's masking arm took 303 s for 30 epochs on an A100, two encoder
+  passes per step here, so well under an hour), then `sc-pretrain-embed RUN`, `uv run --with tabicl rna-age sc-pretrain-clock RUN` (frozen + ridge /
+  TabICLv2) and `sc-pretrain-finetune RUN` (fine-tuned), the same commands RM28's arms used.
 
 ## RM34 — Positive-control datasets for system ageing: fetch and check which are usable
 

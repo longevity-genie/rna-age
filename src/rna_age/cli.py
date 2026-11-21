@@ -815,6 +815,31 @@ def sc_pretrain_cmd(
         raise typer.Exit(3)
 
 
+@app.command("sc-jepa")
+def sc_jepa_cmd(
+    epochs: int = typer.Option(30),
+    seed: int = typer.Option(0),
+    pool: str = typer.Option("default"),
+    batch_size: int = typer.Option(1024),
+    lr: float = typer.Option(1e-3),
+    lam: float = typer.Option(0.05, help="SIGReg weight λ (LeJEPA's default)"),
+    mask_lo: float = typer.Option(0.3, help="each view hides a fraction of the panel drawn in [lo, hi]"),
+    mask_hi: float = typer.Option(0.6),
+    max_cells: int = typer.Option(0, help="smoke runs only"),
+    max_steps: int = typer.Option(0, help="smoke runs only: steps per epoch"),
+    device: str = typer.Option(""),
+) -> None:
+    """RM35 step 2: pretrain a SIGReg-JEPA encoder on RM28's pool (GPU); read out with sc-pretrain-embed / -clock /
+    -finetune RUN_ID. Exits 3 when the embeddings collapsed."""
+    from rna_age.train.sc_jepa import pretrain_jepa
+
+    s = pretrain_jepa(epochs, seed, pool, batch_size, lr, mask_lo=mask_lo, mask_hi=mask_hi, lam=lam,
+                      max_cells=max_cells or None, max_steps=max_steps or None, device=device or None)  # fmt: skip
+    print(s)
+    if s["failed"]:
+        raise typer.Exit(3)
+
+
 @app.command("sc-pretrain-embed")
 def sc_pretrain_embed_cmd(
     run_id: str,
