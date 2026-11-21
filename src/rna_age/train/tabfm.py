@@ -27,7 +27,7 @@ from rna_age.train.runs import finish_run, new_run
 
 log = logging.getLogger(__name__)
 
-MODELS = ("tabicl", "tabfm", "geneicl", "geneicl-fast", "mitra2", "limix2", "tabpfn", "ridge")
+MODELS = ("tabicl", "tabfm", "geneicl", "geneicl-fast", "mitra2", "limix2", "tabpfn", "tabpfn35", "ridge")
 
 
 def _estimator(model: str, seed: int):
@@ -55,6 +55,12 @@ def _estimator(model: str, seed: int):
         from tabpfn import TabPFNRegressor
 
         return TabPFNRegressor(device="cuda", random_state=seed, ignore_pretraining_limits=True)
+    if model == "tabpfn35":  # RM36: TabPFN-3.5 (<= 1M rows, <= 20k features; non-commercial weights, HF/TABPFN_TOKEN)
+        from tabpfn import TabPFNRegressor
+        from tabpfn.constants import ModelVersion
+
+        return TabPFNRegressor.create_default_for_version(ModelVersion.V3_5, device="cuda", random_state=seed,
+                                                          ignore_pretraining_limits=True)  # fmt: skip
     if model == "ridge":  # control: same features and context rows, linear readout
         from sklearn.linear_model import RidgeCV
 

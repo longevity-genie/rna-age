@@ -287,7 +287,7 @@ def blend(run_a: str, run_b: str, name: str = typer.Option("blend")) -> None:
 
 @app.command("tabfm")
 def tabfm_cmd(
-    model: str = typer.Option("tabicl", help="tabicl | tabpfn (package via `uv run --with`)"),
+    model: str = typer.Option("tabicl", help="tabicl | tabpfn | tabpfn35 (package via `uv run --with`)"),
     features: str = typer.Option("hvg-pca", help="hvg-pca | hvg | logcpm | atlas"),
     n_genes: int = typer.Option(20000, help="HVGs (RM25: 2000 with --features hvg)"),
     context: str = typer.Option("random", help="random | nearest-study (RM25: one prompt per query study)"),
@@ -457,7 +457,7 @@ def biology_cmd(
 def sc_tabular_cmd(
     dataset_id: str,
     models: str = typer.Option(
-        "ridge,mlp,tabicl", help="comma-separated: ridge, enet, gbm, mlp, tabicl (--with tabicl)"
+        "ridge,mlp,tabicl", help="comma-separated: ridge, enet, gbm, mlp, tabicl (--with tabicl), tabpfn35 (--with tabpfn)"
     ),
     reference: str = typer.Option("ridge", help="the model every other is compared against"),
     n_genes: int = typer.Option(500),

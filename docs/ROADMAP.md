@@ -7,6 +7,31 @@ The lead (`docs/seats/LEAD.md`) keeps it. Seeded at the lead's first seating (20
 
 ## Items
 
+## RM36 — Tabular foundation models at full context: TabPFN-3.5 and TabICLv2
+
+**State:** blocked: arms 1 and 3 need the TabPFN-3.5 weights in the job environment (Anton's HF access, 2026-11-21;
+the token he posted in a channel is to be revoked and a new read-only one sent to the runner by direct message); arm 2
+needs nothing and runs now · **Owner:** lead (code), runner (jobs)
+
+Anton, 2026-11-21, #rna-age > general chat: "Also i heard tabfn did something to scale to millions of rows", "I talk
+about 4", "Is https://huggingface.co/Prior-Labs/tabpfn_3_5 better than Clv2 or similar? I see i have access". TabPFN-4
+is not released (preview report 2026-11-19, waitlist). TabPFN-3.5 (Sept 2026, package `tabpfn` 10.2, `ModelVersion.V3_5`)
+takes up to 1M rows and 20,000 features with regression (README); weights non-commercial research only, outputs
+included. No published comparison with TabICLv2 was found. Our gap: on bulk, TabICLv2 only ever saw 10k random (15.7 y)
+or 4k nearest-study (RM25, 15.3 y) context rows, never the full ~47k training set; in single cell it read 500 genes.
+Code: `tabpfn35` in `train/tabfm.py` (`_estimator`) and `train/sc_tabular.py` (by name, not a default).
+
+- **Arm 1, single cell:** `uv run --with tabpfn rna-age sc-tabular <cohort> --models tabpfn35 --n-genes 500` and
+  `--n-genes 2000`, the 7 D7 cohorts with D7's mappings (blood `broad`, brain `cell_type`). Reused control: TabICLv2
+  `tabicl` / `tabicl-2000g` rows of `sc_tabular_*` (D7/RM14), same folds. Bar: better than TabICLv2 at the same gene
+  count beyond the paired CI in ≥ 4 of 7 cohorts.
+- **Arm 2, bulk TabICLv2 at full context:** `uv run --with tabicl rna-age tabfm --model tabicl --features hvg
+  --n-genes 2000 --context random --n-context 100000 --cap-per-study 100000` (every eligible training row), one A100.
+  Reused controls: RM25 (job 6439059, 15.30 y) and the 20k-HVG MLP (8.1). Bar: test MAE ≤ 9.1 (RM25's bar).
+- **Arm 3, bulk TabPFN-3.5 at full context:** the same with `--model tabpfn35`, `--n-genes 2000` and `--n-genes 20000`.
+  Same controls and bar. If arm 2 or 3 passes, its health gap (D6's evaluation) follows; TabPFN-4 is swapped in when
+  released.
+
 ## RM35 — Make cell-level clocks learn age instead of shrinking to the mean
 
 **State:** building: step 1b runs (runner, jobs 6575656 and 6575863-6575867; step 1 failed 2026-11-21, every arm, DECISIONS; step 2 after 1b is read; Anton, 2026-11-21, #rna-age > general chat: "Shrinking towards mean means the model doesn't

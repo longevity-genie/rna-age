@@ -27,7 +27,7 @@ from rna_age.train.composition import _cpm, donor_profiles
 
 log = logging.getLogger(__name__)
 
-MODELS = ("ridge", "enet", "gbm", "mlp", "tabicl")
+MODELS = ("ridge", "enet", "gbm", "mlp", "tabicl")  # defaults; "tabpfn35" by name (RM36)
 # other estimators by name: seed → an object with fit(X, y) and predict(X) (RM30 registers its trained model here)
 ESTIMATORS: dict[str, Callable[[int], Any]] = {}
 
@@ -56,11 +56,11 @@ def _fit_predict(model: str, Xtr: np.ndarray, ytr: np.ndarray, Xte: np.ndarray, 
         m = MLPRegressor(hidden_layer_sizes=(128, 32), alpha=1e-2, early_stopping=True, max_iter=2000,
                          random_state=seed)  # fmt: skip
         return m.fit(Xtr, ytr).predict(Xte)
-    if model == "tabicl":
+    if model in ("tabicl", "tabpfn35"):  # in-context models (``uv run --with tabicl`` / ``--with tabpfn``)
         from rna_age.train.tabfm import _estimator
 
-        return np.asarray(_estimator("tabicl", seed).fit(Xtr, ytr).predict(Xte), dtype=np.float64)
-    raise ValueError(f"model must be one of {MODELS}, got {model!r}")
+        return np.asarray(_estimator(model, seed).fit(Xtr, ytr).predict(Xte), dtype=np.float64)
+    raise ValueError(f"model must be one of {MODELS + ('tabpfn35',)}, got {model!r}")
 
 
 def fold_features(X: np.ndarray, tr: np.ndarray, te: np.ndarray, n_genes: int) -> tuple[np.ndarray, np.ndarray]:
