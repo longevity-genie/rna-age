@@ -959,6 +959,7 @@ def mct_cmd(
     lr: float = typer.Option(1e-4, help="finetune"),
     n_train_layers: int = typer.Option(4, help="finetune: top encoder layers trained"),
     max_genes: int = typer.Option(4096, help="finetune: genes per bag"),
+    tag: str = typer.Option("mct", help="row and run prefix: mct (MCT's weights) | mct-scratch (step c)"),
     write: bool = typer.Option(True, help="add rows to the summaries"),
 ) -> None:
     """RM37: MCT donor embeddings → age (frozen read-out) or MCT fine-tuned for age, on RM14's folds, against
@@ -974,9 +975,56 @@ def mct_cmd(
 
     out = mct.run(step, _cohorts(cohorts), Path(ckpt) if ckpt else mct.CKPT, Path(index_dir) if index_dir else mct.INDEX,
                   seed=seed, device=device,
-                  write=write, **kw)  # fmt: skip
+                  write=write, tag=tag, **kw)  # fmt: skip
     with pl.Config(tbl_rows=-1, tbl_cols=-1, tbl_width_chars=200):
         print(out)
+
+
+@app.command("mct-pool")
+def mct_pool_cmd(
+    datasets: str = typer.Option("", help="comma-separated dataset ids (default: every non-evaluation h5ad)"),
+    factor: int = typer.Option(2, help="cells kept per sample and type: this × the type's MCT slots"),
+    seed: int = typer.Option(0),
+    max_samples: int | None = typer.Option(None, help="smoke runs: samples per dataset"),
+    out: str = typer.Option("", help="pool directory (default data/interim/mct/pool)"),
+) -> None:
+    """RM37 step (c): the from-scratch pretraining pool (CPU job; resumes dataset by dataset)."""
+    from pathlib import Path
+
+    import polars as pl
+
+    from rna_age.train import mct_scratch
+
+    s = mct_scratch.build_pool(tuple(_csv(datasets)) or None, factor, seed, max_samples=max_samples,
+                               out_root=Path(out) if out else mct_scratch.POOL)  # fmt: skip
+    with pl.Config(tbl_rows=-1, tbl_cols=-1, tbl_width_chars=200):
+        print(s)
+
+
+@app.command("mct-scratch")
+def mct_scratch_cmd(
+    steps: int = typer.Option(20_000),
+    accumulate: int = typer.Option(8, help="bags per optimiser step"),
+    lr: float = typer.Option(1e-3),
+    warmup: int = typer.Option(1000),
+    max_genes: int = typer.Option(4096),
+    n_layers: int = typer.Option(12),
+    eval_every: int = typer.Option(1000),
+    seed: int = typer.Option(0),
+    device: str = typer.Option("cuda"),
+    pool: str = typer.Option("", help="pool directory (default data/interim/mct/pool)"),
+) -> None:
+    """RM37 step (c): pretrain MCT's architecture from scratch (masked gene identity) on the pool; then
+    `rna-age mct readout|finetune --ckpt <checkpoint_dir>/best.ckpt --tag mct-scratch`."""
+    import json
+    from pathlib import Path
+
+    from rna_age.train import mct_scratch
+
+    status = mct_scratch.pretrain(steps, accumulate, lr, warmup, max_genes, n_layers=n_layers,
+                                  eval_every=eval_every, seed=seed, device=device,
+                                  pool_root=Path(pool) if pool else mct_scratch.POOL)  # fmt: skip
+    print(json.dumps(status, indent=2))
 
 
 @app.command("sc-pretrain-universal-eval")

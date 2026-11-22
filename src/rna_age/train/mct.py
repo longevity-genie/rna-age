@@ -143,10 +143,29 @@ class MctEncoder(nn.Module):
                                            batch_first=True)  # fmt: skip
         self.encoder = nn.TransformerEncoder(layer, n_layers, enable_nested_tensor=False)
 
-    def forward(self, x: torch.Tensor, gene_ids: torch.Tensor, pad_mask: torch.Tensor | None = None) -> torch.Tensor:
-        """``x``: batch × genes × cells (log1p CP10k), ``gene_ids``: batch × genes; returns batch × genes × emb."""
-        h = self.gene_id_emb(gene_ids) + self.gene_expression_encoder(x)
+    def forward(self, x: torch.Tensor, gene_ids: torch.Tensor, pad_mask: torch.Tensor | None = None,
+                expr_mask: torch.Tensor | None = None) -> torch.Tensor:  # fmt: skip
+        """``x``: batch × genes × cells (log1p CP10k), ``gene_ids``: batch × genes; returns batch × genes × emb.
+        ``expr_mask`` (batch × genes, bool): tokens whose expression is replaced by MCT's mask embedding."""
+        e = self.gene_expression_encoder(x)
+        if expr_mask is not None:
+            e = torch.where(expr_mask.unsqueeze(-1), self.gene_expression_mask_emb.weight[0].to(e.dtype), e)
+        h = self.gene_id_emb(gene_ids) + e
         return self.encoder(self.dropout(self.layer_norm(h)), src_key_padding_mask=pad_mask)
+
+
+class MctMGMHead(nn.Module):
+    """MCT's masked-gene head (``MulticellularTransformerMGMHead``), same parameter names."""
+
+    def __init__(self, emb: int, n_genes: int, eps: float = 1e-12):
+        super().__init__()
+        self.dense = nn.Linear(emb, emb)
+        self.layer_norm = nn.LayerNorm(emb, eps=eps)
+        self.decoder = nn.Linear(emb, n_genes, bias=False)
+        self.bias = nn.Parameter(torch.zeros(n_genes))
+
+    def forward(self, h: torch.Tensor) -> torch.Tensor:
+        return self.decoder(self.layer_norm(nn.functional.gelu(self.dense(h)))) + self.bias
 
 
 def load_encoder(path: Path = CKPT) -> tuple[MctEncoder, dict]:
@@ -523,9 +542,10 @@ def bar(cmp: pl.DataFrame) -> pl.DataFrame:
 
 
 def run(step: str, cohorts: tuple[str, ...] = EVAL_COHORTS, ckpt: Path = CKPT, index_dir: Path = INDEX,
-        seed: int = 0, device: str = "cuda", write: bool = True, **kw) -> pl.DataFrame:  # fmt: skip
+        seed: int = 0, device: str = "cuda", write: bool = True, tag: str = "mct", **kw) -> pl.DataFrame:  # fmt: skip
     """``step`` ``readout`` or ``finetune`` over ``cohorts``; rows into ``sc_pretrain_{oof,clock}.parquet`` under run
-    ``rm37-mct-<step>``; returns the bar table."""
+    ``rm37-<tag>-<step>`` (``tag`` ``mct`` for MCT's checkpoint, ``mct-scratch`` for step (c)); model names start with
+    ``tag``; returns the bar table."""
     if step not in ("readout", "finetune"):
         raise ValueError(f"step must be readout or finetune, got {step!r}")
     index = Index.load(index_dir)
@@ -537,7 +557,8 @@ def run(step: str, cohorts: tuple[str, ...] = EVAL_COHORTS, ckpt: Path = CKPT, i
     for c in cohorts:
         t0 = time.time()
         f = readout_cohort if step == "readout" else finetune_cohort
-        o = f(c, model, index, seed=seed, device=device, **kw)
+        o = f(c, model, index, seed=seed, device=device, **kw).with_columns(
+            model=pl.col("model").str.replace("^mct", tag))
         parts.append(o)
         log.info("%s %s: %s (%.0fs)", c[:8], step,
                  {m: round(float((g["pred"] - g["age"]).abs().mean()), 2) for (m,), g in o.group_by("model")},
@@ -545,7 +566,7 @@ def run(step: str, cohorts: tuple[str, ...] = EVAL_COHORTS, ckpt: Path = CKPT, i
     oof = pl.concat(parts)
     cmp = compare_reference(oof)
     if write:
-        run_id = f"rm37-mct-{step}" + (f"-s{seed}" if seed else "")
+        run_id = f"rm37-{tag}-{step}" + (f"-s{seed}" if seed else "")
         _merge_summary(oof.with_columns(run_id=pl.lit(run_id)), SUMMARY / "sc_pretrain_oof.parquet")
         _merge_summary(cmp.with_columns(run_id=pl.lit(run_id)), SUMMARY / "sc_pretrain_clock.parquet")
     return bar(cmp)
