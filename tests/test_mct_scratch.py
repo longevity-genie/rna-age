@@ -57,7 +57,7 @@ def test_mask_tokens_proportions():
 def test_pool_bag(tmp_path):
     write_index(tmp_path / "index")
     write_pool(tmp_path / "pool")
-    pool = mct_scratch.Pool(tmp_path / "pool", mct.Index.load(tmp_path / "index"))
+    pool = mct_scratch.Pool(tmp_path / "pool", mct.Index.load(tmp_path / "index"), min_cells=1)
     assert len(pool) == 6
     x, tok = pool.bag(2, np.random.default_rng(0), max_genes=50)
     assert x.shape == (len(tok), 16) and (tok >= 2).all() and x.dtype == np.float32
@@ -70,7 +70,20 @@ def test_pretrain_tiny_and_reload(tmp_path, monkeypatch):
     write_pool(tmp_path / "pool", n_samples=10)
     st = mct_scratch.pretrain(steps=3, accumulate=2, warmup=1, max_genes=20, emb=8, n_layers=2, n_heads=2, hidden=16,
                               val_share=0.2, n_val_bags=2, eval_every=2, device="cpu", pool_root=tmp_path / "pool",
-                              index_dir=tmp_path / "index")  # fmt: skip
+                              index_dir=tmp_path / "index", min_cells=1)  # fmt: skip
     assert np.isfinite(st["best_val_loss"])
     enc, cfg = mct.load_encoder(st["best_checkpoint"])
     assert len(enc.encoder.layers) == 2 and cfg["n_heads"] == 2 and enc.gene_id_emb.num_embeddings == V
+
+
+def test_pool_drops_small_samples_and_tiny_bag_has_tokens(tmp_path):
+    write_index(tmp_path / "index")
+    write_pool(tmp_path / "pool")
+    idx = mct.Index.load(tmp_path / "index")
+    full = mct_scratch.Pool(tmp_path / "pool", idx, min_cells=1)
+    sizes = (full.samples["end"] - full.samples["start"]).to_numpy()
+    cut = int(np.median(sizes))
+    part = mct_scratch.Pool(tmp_path / "pool", idx, min_cells=cut)
+    assert len(part) == int((sizes >= cut).sum()) and part.dropped == len(full) - len(part)
+    x, tok = full.bag(int(np.argmin(sizes)), np.random.default_rng(0), max_genes=50)  # ≤ 20 cells, MCT's rule keeps none
+    assert len(tok) > 0

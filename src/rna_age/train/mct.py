@@ -344,6 +344,8 @@ def bag_tensor(dc: DonorCells, d: int, rng: np.random.Generator, max_genes: int,
     sub = dc.X[dc.rows[d][slots[filled]]]
     nexp = np.bincount(sub.indices, minlength=sub.shape[1])
     genes = np.flatnonzero(nexp > int(min_frac * len(slots)))
+    if not len(genes):  # a donor with ≤ 10 cells: no gene passes MCT's rule; keep what any cell expresses
+        genes = np.flatnonzero(nexp > 0)
     if len(genes) > max_genes:
         genes = np.sort(rng.choice(genes, max_genes, replace=False))
     dense = np.zeros((len(slots), len(genes)), dtype=np.float32)

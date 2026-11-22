@@ -138,24 +138,28 @@ def build_pool(datasets: tuple[str, ...] | None = None, factor: int = 2, seed: i
 
 
 class Pool:
-    """The written pool, memory-mapped; ``bag(i, rng, max_genes)`` gives one MCT bag of sample ``i``."""
+    """The written pool, read into memory (``in_memory``, the default: memory-mapped reads from the network filesystem
+    stalled a 2080 Ti run at ~1 % GPU for 90 min); ``bag(i, rng, max_genes)`` gives one MCT bag of sample ``i``."""
 
-    def __init__(self, root: Path = POOL, index: mct.Index | None = None):
+    def __init__(self, root: Path = POOL, index: mct.Index | None = None, in_memory: bool = True,
+                 min_cells: int = 50):  # fmt: skip
         self.index = index or mct.Index.load()
         self.names = list(self.index.order)
         self.n_vocab = len(self.index.gene2idx)
         self.parts, frames = [], []
         for k, d in enumerate(sorted(p for p in root.iterdir() if (p / "samples.parquet").exists())):
             self.parts.append({
-                "data": np.load(d / "data.npy", mmap_mode="r"),
-                "indices": np.load(d / "indices.npy", mmap_mode="r"),
+                "data": np.load(d / "data.npy", mmap_mode=None if in_memory else "r"),
+                "indices": np.load(d / "indices.npy", mmap_mode=None if in_memory else "r"),
                 "indptr": np.load(d / "indptr.npy"),
                 "slot": pl.read_parquet(d / "cells.parquet")["slot"].to_numpy().astype(np.int64),
             })  # fmt: skip
             frames.append(pl.read_parquet(d / "samples.parquet").with_columns(part=pl.lit(k)))
         if not frames:
             raise FileNotFoundError(f"no pool under {root}")
-        self.samples = pl.concat(frames, how="vertical_relaxed")
+        s = pl.concat(frames, how="vertical_relaxed")
+        self.samples = s.filter((pl.col("end") - pl.col("start")) >= min_cells)  # tiny samples give near-empty bags
+        self.dropped = s.height - self.samples.height
 
     def __len__(self) -> int:
         return self.samples.height
@@ -220,13 +224,17 @@ def save_checkpoint(path: Path, model: MctPretrain, config: dict, step: int) -> 
 def pretrain(steps: int = 20_000, accumulate: int = 8, lr: float = 1e-3, warmup: int = 1000, max_genes: int = 4096,
              emb: int = 64, n_layers: int = 12, n_heads: int = 4, hidden: int = 256, val_share: float = 0.02,
              n_val_bags: int = 64, eval_every: int = 1000, seed: int = 0, device: str = "cuda",
-             pool_root: Path = POOL, name: str | None = None, index_dir: Path = mct.INDEX) -> dict:  # fmt: skip
+             pool_root: Path = POOL, name: str | None = None, index_dir: Path = mct.INDEX,
+             min_cells: int = 50) -> dict:  # fmt: skip
     from rna_age.train.runs import has_native_bf16, new_run
 
     torch.manual_seed(seed)
     rng = np.random.default_rng(seed)
     gen = torch.Generator().manual_seed(seed)
-    pool = Pool(pool_root, mct.Index.load(index_dir))
+    t_load = time.time()
+    pool = Pool(pool_root, mct.Index.load(index_dir), min_cells=min_cells)
+    log.info("pool: %d samples from %d datasets (%d with < 50 cells dropped) in %.0fs", len(pool), len(pool.parts),
+             pool.dropped, time.time() - t_load)  # fmt: skip
     n = len(pool)
     perm = rng.permutation(n)
     n_val = max(1, int(round(val_share * n)))
@@ -235,7 +243,7 @@ def pretrain(steps: int = 20_000, accumulate: int = 8, lr: float = 1e-3, warmup:
     config = {"model": "mct-scratch", "arm": "rm37-c", "steps": steps, "accumulate": accumulate, "lr": lr,
               "warmup": warmup, "max_genes": max_genes, "gene_emb_dim": emb, "n_layers": n_layers, "n_heads": n_heads,
               "hidden_dim": hidden, "n_genes": pool.n_vocab, "n_input": n_in, "dropout": 0.2,
-              "transformer_dropout": 0.1, "padding_token_idx": 0, "seed": seed, "samples_train": len(tr),
+              "transformer_dropout": 0.1, "padding_token_idx": 0, "seed": seed, "min_cells": min_cells, "samples_train": len(tr),
               "samples_val": len(va), "datasets": pool.samples["dataset_id"].unique().sort().to_list()}  # fmt: skip
     run_dir = new_run(name or f"mct-scratch-s{seed}", config)
     cfg = json.loads((run_dir / "config.json").read_text())
@@ -249,7 +257,9 @@ def pretrain(steps: int = 20_000, accumulate: int = 8, lr: float = 1e-3, warmup:
     sched = torch.optim.lr_scheduler.LambdaLR(
         opt, lambda s: (s + 1) / warmup if s < warmup else 0.5 * (1 + math.cos(math.pi * (s - warmup) / max(1, steps - warmup))))  # fmt: skip
     vrng = np.random.default_rng(seed + 1)
+    t_val = time.time()
     val_bags = [pool.bag(int(va[i % len(va)]), vrng, max_genes) for i in range(n_val_bags)]
+    log.info("%d validation bags in %.1fs", n_val_bags, time.time() - t_val)
     log.info("run %s: %d train / %d val samples, %d parameters, amp %s", cfg["run_id"], len(tr), len(va),
              sum(p.numel() for p in model.parameters()), amp)  # fmt: skip
     rows, best, t0 = [], np.inf, time.time()
@@ -268,6 +278,8 @@ def pretrain(steps: int = 20_000, accumulate: int = 8, lr: float = 1e-3, warmup:
         scaler.update()
         opt.zero_grad(set_to_none=True)
         sched.step()
+        if step in (1, 10, 100):
+            log.info("step %d: %.2fs per step so far", step, (time.time() - t0) / step)
         if step == 500 or step % eval_every == 0 or step == steps:
             model.eval()
             vgen = torch.Generator().manual_seed(seed + 2)
