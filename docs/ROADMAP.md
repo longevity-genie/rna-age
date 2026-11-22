@@ -44,7 +44,7 @@ augmentation). Test prediction: the mean over 4 bags. RM14's folds, trained per 
     1,024 slots fill. In brain bags 148 fill, because MCT has no neuron type: all neurons share the 54 "Other" slots.
   - RADC reads in 4 min at ~20 GB peak.
   - Runner, once the checkpoint is at `data/interim/mct/multicellular_transformer.ckpt` (index JSONs are already in
-    `data/interim/mct/index/`): `rna-age mct readout` (one GPU, 64 GB), then `uv run --with tabicl rna-age mct
+    `data/interim/mct/index/`): `uv run --with tabicl rna-age mct readout` (one GPU, 64 GB), then `rna-age mct
     finetune` (one GPU per cohort via `--cohorts`).
 
 **Reused controls** (same cohorts, folds and metric; no retraining):
