@@ -36,6 +36,17 @@ layers and the head train; the rest stays frozen. MSE on standardised age, AdamW
 per training donor per epoch, at most 4,096 genes per bag (a random subset of the expressed genes, also an
 augmentation). Test prediction: the mean over 4 bags. RM14's folds, trained per cohort.
 
+- Built 2026-11-22 (0b2a184): `src/rna_age/train/mct.py`, CLI `rna-age mct readout|finetune`.
+  - MCT's encoder is re-implemented with its parameter names, so the checkpoint loads in our environment.
+  - The checkpoint is read with torch's weights-only unpickler, MCT's classes as inert stubs.
+  - Each donor's pool is ≤ 4 × the slot count per type.
+  - Smoke on real cells (CPU, random weights): lupus 5 donors, Terekhova 3, RADC all 100. In PBMC bags ~350 of
+    1,024 slots fill. In brain bags 148 fill, because MCT has no neuron type: all neurons share the 54 "Other" slots.
+  - RADC reads in 4 min at ~20 GB peak.
+  - Runner, once the checkpoint is at `data/interim/mct/multicellular_transformer.ckpt` (index JSONs are already in
+    `data/interim/mct/index/`): `rna-age mct readout` (one GPU, 64 GB), then `uv run --with tabicl rna-age mct
+    finetune` (one GPU per cohort via `--cohorts`).
+
 **Reused controls** (same cohorts, folds and metric; no retraining):
 - `recipe-stack_agesel-tabicl`, 5.23 y mean (RM35 step 1c, DECISIONS).
 - `pseudobulk-tabicl-2000g` (RM14).
