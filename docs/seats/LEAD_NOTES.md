@@ -8,7 +8,11 @@ the kit's role `classes/lead/LEAD.md`.
 - Anton asked about MCT (Multicellular Transformer, bioRxiv 10.64898/2026.11.14.766251): a sample is a set of cells in
   cell-type slots, with genes as tokens. No weights released. Options put to him (Zulip, general chat): 1) watch for the
   weights, then a donor read-out against 5.23 y (default, no run); 2) build a small MCT-style donor encoder now.
-  Waiting on his answer.
+  Correction after reading the preprint and github.com/almaan/mct (Apache-2.0): a pretrained checkpoint IS released
+  (Google Drive, gdown, with gene/cell-type index JSONs; `mct.embed(adata, cell_type_key=...)` gives per-sample gene
+  embeddings). Corpus: 14 M cells, 3,500+ donors, 4,200+ samples, sources in Supp. Table S1 (not yet read). Proposed
+  RM37: donor embeddings → age head on our 7 cohorts vs 5.23 y; check S1 for cohort overlap first. `unattended`,
+  starts when Anton is away unless he says no or "now".
 
 ## 2026-11-22 00:30
 
