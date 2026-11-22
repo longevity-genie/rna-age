@@ -60,7 +60,7 @@ stop before Anton is back; 07:00 report, then keep updating; one tabbed artifact
   rules: Census 2,356 healthy (3,815 any health), scBaseCount 492 (1,656), recount3 bulk 4,430 (6,380).
 
 ## Running (jobs carry seat / what / eta in their Slurm comment)
-- RM37 step (c): Tabula Sapiens - All Cells h5ad (53d208b0, 1.14 M cells, 24 donors, ~12 GB; Anton 642679107), `positive-controls-fetch`, CPU job 6592220 (started 17:38); then `mct-pool` 6592246 (afterok, 128G) and `mct-scratch` 6592247 (afterok, 2080 Ti, default 4 h; rate read at step 500, resized if it projects past that).
+- RM37 step (c): Tabula Sapiens - All Cells h5ad (53d208b0, 1.14 M cells, 24 donors, ~12 GB; Anton 642679107), `positive-controls-fetch`, CPU job 6592220 (started 17:38); then `mct-pool` 6592246 (afterok, 128G) pool done (35 min, 2,383 samples). `mct-scratch` 6592247 found no free card; rerun 6592739 crashed at its first step: a bag with 0 gene tokens (samples with ≤ 10 cells; `bag_tensor` needs a gene in > 10 of the cells), fix proposed to the lead.
 
 ## Results so far (details: `docs/experiments.md`, `data/output/summary/experiments.parquet`)
 - **RM36 arm 2, TabICLv2 bulk at full context (2026-11-22 00:36, 6587406, run 20261122-0036-tfm-tabicl-hvg-ctx100k)**: test MAE 15.94 y, r 0.48, bias slope −0.73 (context 43,958 rows from 1,572 studies, 2,000 HVGs, 8 h 11 on a 2080 Ti); bar ≤ 9.1 missed, 0.64 y worse than RM25 at 4k context (15.30 y). The 30k fallback was cancelled unrun.
