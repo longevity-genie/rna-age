@@ -3,6 +3,17 @@
 The state the lead's last holder left. State, not rules: the rules are the priming, `LEAD.md` beside this file, and
 the kit's role `classes/lead/LEAD.md`.
 
+## 2026-11-22 00:30
+
+- Closed 2026-11-21/22: RM7 (external test 10.97 y, r 0.76), RM35 (best single-cell clock `recipe-stack_agesel-tabicl`,
+  5.23 y; losses and SIGReg-JEPA fail), RM36 (TabPFN-3.5 / TabICLv2 at full bulk context ≈ 15 y; TabICLv2 stays).
+- TabPFN-3.5 weights load from TabPFN's cache (`TABPFN_MODEL_CACHE_DIR`, file `tabpfn-v3.5-20260909.safetensors`
+  fetched with the cluster's HF login); the licence check runs only on download. Anton: "ignore license, it is research
+  experiment". 3.5's architecture is TabICL-like (column embed, 8 CLS per row, 24-layer ICL over rows).
+- KronLSTM in a tabular FM: Anton asked; condition (more context helps) not met on bulk. Open only for cell context.
+- Open next: RM33 replications (SEA-AD, HIHA), pre-registered before running; RM34 inventory; RM13 draft (no
+  manuscript-skills run without Anton); desk #79 stays as a record.
+
 ## 2026-11-21 10:30
 
 - RM35 (new, Anton 2026-11-21: make cell-level clocks learn, SIGReg-JEPA, literature): step 1 losses failed (8bf1f04;
@@ -97,14 +108,3 @@ the kit's role `classes/lead/LEAD.md`.
   lead's, one line per landed result with its meaning (first post 12:50; figures from scripts/milestone_figures.py).
 - RM8 waits on Anton: pretrain once or stop KronLSTM (default stop, 2026-11-12).
 - kron-fm read from `../kron-fm`, not a dependency. Kit #411 open.
-
-## 2026-11-22 00:30
-
-- Closed 2026-11-21/22: RM7 (external test 10.97 y, r 0.76), RM35 (best single-cell clock `recipe-stack_agesel-tabicl`,
-  5.23 y; losses and SIGReg-JEPA fail), RM36 (TabPFN-3.5 / TabICLv2 at full bulk context ≈ 15 y; TabICLv2 stays).
-- TabPFN-3.5 weights load from TabPFN's cache (`TABPFN_MODEL_CACHE_DIR`, file `tabpfn-v3.5-20260909.safetensors`
-  fetched with the cluster's HF login); the licence check runs only on download. Anton: "ignore license, it is research
-  experiment". 3.5's architecture is TabICL-like (column embed, 8 CLS per row, 24-layer ICL over rows).
-- KronLSTM in a tabular FM: Anton asked; condition (more context helps) not met on bulk. Open only for cell context.
-- Open next: RM33 replications (SEA-AD, HIHA), pre-registered before running; RM34 inventory; RM13 draft (no
-  manuscript-skills run without Anton); desk #79 stays as a record.
