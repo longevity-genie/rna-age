@@ -7,36 +7,6 @@ The lead (`docs/seats/LEAD.md`) keeps it. Seeded at the lead's first seating (20
 
 ## Items
 
-## RM36 — Tabular foundation models at full context: TabPFN-3.5 and TabICLv2
-
-**State:** building: arms 1 and 1b failed their bars 2026-11-21 (TabICLv2 stays the single-cell read-out); arm 2 runs (12 h); arm 3 submitted 2026-11-21 (weights via the cluster's HF login; Anton: "ignore license, it is research experiment") ·
-**Owner:**
-lead (code), runner (jobs)
-
-Anton, 2026-11-21, #rna-age > general chat: "Also i heard tabfn did something to scale to millions of rows", "I talk
-about 4", "Is https://huggingface.co/Prior-Labs/tabpfn_3_5 better than Clv2 or similar? I see i have access". TabPFN-4
-is not released (preview report 2026-11-19, waitlist). TabPFN-3.5 (Sept 2026, package `tabpfn` 10.2, `ModelVersion.V3_5`)
-takes up to 1M rows and 20,000 features with regression (README); weights non-commercial research only, outputs
-included. No published comparison with TabICLv2 was found. Our gap: on bulk, TabICLv2 only ever saw 10k random (15.7 y)
-or 4k nearest-study (RM25, 15.3 y) context rows, never the full ~47k training set; in single cell it read 500 genes.
-Code: `tabpfn35` in `train/tabfm.py` (`_estimator`) and `train/sc_tabular.py` (by name, not a default).
-
-- **Arm 1, single cell:** `uv run --with tabpfn rna-age sc-tabular <cohort> --models tabpfn35 --n-genes 500` and
-  `--n-genes 2000`, the 7 D7 cohorts with D7's mappings (blood `broad`, brain `cell_type`). Reused control: TabICLv2
-  `tabicl` / `tabicl-2000g` rows of `sc_tabular_*` (D7/RM14), same folds. Bar: better than TabICLv2 at the same gene
-  count beyond the paired CI in ≥ 4 of 7 cohorts. **Outcome 2026-11-21:** fails, 3 of 7 at both gene counts, worse nowhere,
-  mean −0.3 y (DECISIONS).
-- **Arm 1b, TabPFN-3.5 in the best single-cell recipe** (pre-registered 2026-11-21, after arm 1): `uv run --with tabpfn
-  rna-age sc-recipe agesel_class --models tabpfn35` (500 age-chosen genes per cell class, RM35 step 1b's folds), the 7
-  cohorts. Reused control: `recipe-agesel_class-tabicl` (RM35 step 1b, 5.47 y mean). Bar: the same, better beyond the
-  paired CI in ≥ 4 of 7. Reason to run: arm 1's gain is small but never negative, and the recipe is the clock RM33 uses.
-- **Arm 2, bulk TabICLv2 at full context:** `uv run --with tabicl rna-age tabfm --model tabicl --features hvg
-  --n-genes 2000 --context random --n-context 100000 --cap-per-study 100000` (every eligible training row), one A100.
-  Reused controls: RM25 (job 6439059, 15.30 y) and the 20k-HVG MLP (8.1). Bar: test MAE ≤ 9.1 (RM25's bar).
-- **Arm 3, bulk TabPFN-3.5 at full context:** the same with `--model tabpfn35`, `--n-genes 2000` and `--n-genes 20000`.
-  Same controls and bar. If arm 2 or 3 passes, its health gap (D6's evaluation) follows; TabPFN-4 is swapped in when
-  released.
-
 ## RM34 — Positive-control datasets for system ageing: fetch and check which are usable
 
 **State:** urgent (Anton, 2026-11-13, #rna-age > general chat: "Ok, download these data and validate which is

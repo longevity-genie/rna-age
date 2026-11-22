@@ -436,3 +436,23 @@ is 4x larger, so ~6x per cell). Tuning λ or the views would be a new pre-regist
 RM28 and RM32: self-supervised cell encoders trained on our pool learn cell identity, not age. RM35 is closed: the
 single-cell gain came from what the clock reads (age-chosen genes per cell class, stacked: 5.23 y, steps 1b-1c), not
 from losses or encoders (steps 1 and 2).
+
+**RM36 bulk arms outcome and RM36 closed (2026-11-22, runner's jobs 6587366 / 6587367 / 6587406, logged fc76748,
+21d3710, 756263e; read by the lead):** both fail. Every eligible training row as context (43,958 rows, 1,572 studies),
+test MAE against the bar of ≤ 9.1 y:
+
+| model | genes | test MAE | r | bias slope |
+|---|---|---|---|---|
+| TabPFN-3.5 | 2,000 HVG | 14.99 | 0.55 | −0.69 |
+| TabPFN-3.5 | 20,000 HVG (≤ 6,144 read: 8 estimators × 768) | 15.48 | 0.50 | −0.71 |
+| TabICLv2 | 2,000 HVG | 15.94 | 0.48 | −0.73 |
+| reused: TabICLv2, 4k nearest-study rows (RM25) | 2,000 HVG | 15.30 | | |
+| reused: 20k-HVG MLP | 20,000 HVG | 8.1 | | |
+
+Reading: ten times the context does not help a tabular foundation model on bulk; TabICLv2 is 0.64 y worse at 44k rows
+than at 4k. Both stay ~7 y behind the trained MLP, with strong shrinkage. The full-coverage 20,000-gene TabPFN run
+(≥ 27 estimators, ~4.7 h) was not run: at 2,000 genes, with every feature read, it is 6 y off the bar. With arms 1 and
+1b (single cell: TabPFN-3.5 a small, unbarred edge on variance-chosen genes and a tie on age-chosen genes), RM36 is
+closed: TabICLv2 stays the read-out, TabPFN-3.5 adds nothing we use. The condition the lead set for a linear-memory
+(KronLSTM) in-context model, that more context helps, is not met on bulk; it stays open only for cell-level context,
+untested.
