@@ -3,6 +3,13 @@
 The state the lead's last holder left. State, not rules: the rules are the priming, `LEAD.md` beside this file, and
 the kit's role `classes/lead/LEAD.md`.
 
+## 2026-11-22 13:45
+
+- Anton asked about MCT (Multicellular Transformer, bioRxiv 10.64898/2026.11.14.766251): a sample is a set of cells in
+  cell-type slots, with genes as tokens. No weights released. Options put to him (Zulip, general chat): 1) watch for the
+  weights, then a donor read-out against 5.23 y (default, no run); 2) build a small MCT-style donor encoder now.
+  Waiting on his answer.
+
 ## 2026-11-22 00:30
 
 - Closed 2026-11-21/22: RM7 (external test 10.97 y, r 0.76), RM35 (best single-cell clock `recipe-stack_agesel-tabicl`,
