@@ -7,6 +7,45 @@ The lead (`docs/seats/LEAD.md`) keeps it. Seeded at the lead's first seating (20
 
 ## Items
 
+## RM37 — MCT (Multicellular Transformer) for donor age: frozen read-out, then fine-tuned
+
+**State:** urgent: building the wrapper (Anton, 2026-11-22, #rna-age > general chat: "So let's try it and see if we
+can fine tune for aging"). The runs wait until a checkpoint is on disk: the README's Google Drive link asks for a
+sign-in. Anton was asked in chat the same day to fetch it, have the authors asked, or pretrain our own.
+**Owner:** lead (code), runner (jobs).
+
+MCT (Wiatrak, Andersson et al., bioRxiv 10.64898/2026.11.14.766251; code github.com/almaan/mct, Apache-2.0) reads one
+sample as a bag of 1,024 cells in fixed slots per coarse cell type (54 types, slots proportional to corpus abundance).
+Genes are the tokens (Ensembl vocabulary ~58k), each carrying its log1p CP10k expression across the bag's cells.
+Genes expressed in > 1 % of the bag are kept, at most 12k. The encoder is 12 layers, width 64, 4 heads. Pretraining
+was masked gene identity on 14 M cells from 4,200+ samples. It is the first donor-level, cell-aware encoder we can
+test: our clocks see pseudobulk or one cell at a time.
+
+**Corpus overlap.** The pretraining list (their `run_download_preprocess_datasets.py`) includes OneK1K (sc_eqtl,
+3faad104), AIDA (c838aec3) and the lupus PBMCs (218acb0f). MCT saw those cohorts' cells but never their ages. Every
+result is reported for these 3 and for the other 4 (PsychAD MSSM/HBCC/RADC and Terekhova) separately.
+
+**Step (a), frozen read-out.** Per donor, 4 bags of 1,024 cells, drawn with their stratified slot packing (seeded).
+Each bag gives one 64-dim vector per gene token; a gene's vectors are averaged over the 4 bags. Donor features:
+(i) the mean over genes (64 dims); (ii) per-gene vectors for genes present in ≥ 90 % of a cohort's donors, with 500
+features chosen inside each training fold by |r| with age (RM35's `agesel` rule). Each feature set is read by ridge
+and by TabICLv2, on RM14's folds.
+
+**Step (b), fine-tuned.** The pretrained encoder, mean pooling over gene tokens, and a linear age head. The top 4
+layers and the head train; the rest stays frozen. MSE on standardised age, AdamW lr 1e-4, 30 epochs, one fresh bag
+per training donor per epoch, at most 4,096 genes per bag (a random subset of the expressed genes, also an
+augmentation). Test prediction: the mean over 4 bags. RM14's folds, trained per cohort.
+
+**Reused controls** (same cohorts, folds and metric; no retraining):
+- `recipe-stack_agesel-tabicl`, 5.23 y mean (RM35 step 1c, DECISIONS).
+- `pseudobulk-tabicl-2000g` (RM14).
+- RM28's `scpre-mask-s0` read-outs.
+
+**Bar** (set 2026-11-22, before any run): a step passes if its mean MAE over the 7 cohorts is ≥ 0.3 y below
+`recipe-stack_agesel-tabicl` and it beats it beyond the paired CI in ≥ 4 of 7 cohorts. It counts as useful, but not
+a new best, if it does the same against `pseudobulk-tabicl-2000g`. The in-corpus / out-of-corpus split is reported;
+a pass carried only by the 3 in-corpus cohorts is called that.
+
 ## RM34 — Positive-control datasets for system ageing: fetch and check which are usable
 
 **State:** urgent (Anton, 2026-11-13, #rna-age > general chat: "Ok, download these data and validate which is
