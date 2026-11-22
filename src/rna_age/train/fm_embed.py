@@ -155,8 +155,9 @@ def sample_cells(cells: pl.DataFrame, cap: int, cd4_cap: int, seed: int = 0) -> 
     )
 
 
-def _cohort_cells(dataset_id: str) -> tuple[Path, pl.DataFrame, bool]:
-    """(h5ad, cells table: row, donor, cls, age_ok; whether X holds log1p-CP10k)."""
+def _cohort_cells(dataset_id: str, keep_ct: bool = False) -> tuple[Path, pl.DataFrame, bool]:
+    """(h5ad, cells table: row, donor, cls, age_ok; whether X holds log1p-CP10k). ``keep_ct``: keep the file's own
+    cell-type label as ``ct`` (RM37 maps it to MCT's slots)."""
     from rna_age.sources.bgee import stage_age
     from rna_age.sources.census_pseudobulk import _obs_column
     from rna_age.train.composition import broad_class
@@ -193,7 +194,8 @@ def _cohort_cells(dataset_id: str) -> tuple[Path, pl.DataFrame, bool]:
         }).filter(pl.Series(ok))  # fmt: skip
         log_cp10k = False
     mapping = {c: broad_class(c) if blood else c for c in cells["ct"].unique().to_list()}
-    return h5ad, cells.with_columns(cls=pl.col("ct").replace_strict(mapping)).drop("ct"), log_cp10k
+    cells = cells.with_columns(cls=pl.col("ct").replace_strict(mapping))
+    return h5ad, (cells if keep_ct else cells.drop("ct")), log_cp10k
 
 
 def read_rows(h5ad: Path, rows: np.ndarray, window: int = 200_000):

@@ -946,6 +946,39 @@ def sc_recipe_cmd(
         print(bar(cmp.with_columns(run_id=pl.lit(f"rm35-recipe-{arm}"))))
 
 
+@app.command("mct")
+def mct_cmd(
+    step: str = typer.Argument(..., help="RM37: readout (frozen MCT, ridge / TabICLv2) | finetune (top layers + head)"),
+    cohorts: str = COHORTS_OPT,
+    ckpt: str = typer.Option("", help="MCT checkpoint (default data/interim/mct/multicellular_transformer.ckpt)"),
+    index_dir: str = typer.Option("", help="MCT index JSONs (default data/interim/mct/index)"),
+    seed: int = typer.Option(0),
+    device: str = typer.Option("cuda"),
+    pool_factor: int = typer.Option(4, help="pooled cells per donor and type: this × the type's MCT slots"),
+    epochs: int = typer.Option(30, help="finetune"),
+    lr: float = typer.Option(1e-4, help="finetune"),
+    n_train_layers: int = typer.Option(4, help="finetune: top encoder layers trained"),
+    max_genes: int = typer.Option(4096, help="finetune: genes per bag"),
+    write: bool = typer.Option(True, help="add rows to the summaries"),
+) -> None:
+    """RM37: MCT donor embeddings → age (frozen read-out) or MCT fine-tuned for age, on RM14's folds, against
+    recipe-stack_agesel-tabicl and the pseudobulk clocks."""
+    import polars as pl
+
+    from rna_age.train import mct
+
+    kw = {"factor": pool_factor}
+    if step == "finetune":
+        kw |= {"epochs": epochs, "lr": lr, "n_train_layers": n_train_layers, "max_genes": max_genes}
+    from pathlib import Path
+
+    out = mct.run(step, _cohorts(cohorts), Path(ckpt) if ckpt else mct.CKPT, Path(index_dir) if index_dir else mct.INDEX,
+                  seed=seed, device=device,
+                  write=write, **kw)  # fmt: skip
+    with pl.Config(tbl_rows=-1, tbl_cols=-1, tbl_width_chars=200):
+        print(out)
+
+
 @app.command("sc-pretrain-universal-eval")
 def sc_pretrain_universal_eval_cmd(run_id: str, device: str = typer.Option("")) -> None:
     """RM28 arm universal: bulk predictions of the age head (run dir predictions.parquet, every split) and the
