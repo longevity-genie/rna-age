@@ -76,6 +76,16 @@ data do we miss to train from scratch").
 - **Bar.** Step (a)'s bar for each read-out. It also counts as a falsification of the architecture if both read-outs
   trail RM28's masking arm (+1.71 / +1.41 / +1.78 y against TabICLv2 pseudobulk).
 - **Budget.** About 3-6 GPU-hours for pretraining, measured on the first 500 steps before the full run.
+- Built 2026-11-22 (cdd1f69): `src/rna_age/train/mct_scratch.py`, CLI `mct-pool`, `mct-scratch`, and `mct --tag
+  mct-scratch`.
+  - Smoke on the Sjögren set (df1edb87): 25 samples, 12k pooled cells, 66 MB, 6 s.
+  - 2 CPU steps on that pool: initial loss 11.1 ≈ ln(58k) as expected; the checkpoint reloads through
+    `load_encoder`.
+  - Commands, after Tabula Sapiens is on disk:
+    1. `rna-age mct-pool` (CPU, nice 100; resumes per dataset).
+    2. `rna-age mct-scratch` (one GPU; the seconds per step at step 500 are in `metrics.parquet`).
+    3. `uv run --with tabicl rna-age mct readout --ckpt <checkpoint_dir>/best.ckpt --tag mct-scratch`.
+    4. `rna-age mct finetune --ckpt <checkpoint_dir>/best.ckpt --tag mct-scratch`.
 
 **Reused controls** (same cohorts, folds and metric; no retraining):
 - `recipe-stack_agesel-tabicl`, 5.23 y mean (RM35 step 1c, DECISIONS).
