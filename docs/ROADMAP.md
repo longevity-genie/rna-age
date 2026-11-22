@@ -47,6 +47,36 @@ augmentation). Test prediction: the mean over 4 bags. RM14's folds, trained per 
     `data/interim/mct/index/`): `uv run --with tabicl rna-age mct readout` (one GPU, 64 GB), then `rna-age mct
     finetune` (one GPU per cohort via `--cohorts`).
 
+**Step (c), the same architecture pretrained from scratch on our data** (Anton, 2026-11-22, #rna-age > general
+chat: "While we are waiting for access request please try to modify our own scrna clock architecture and see which
+data do we miss to train from scratch").
+
+- **Data check (lead, 2026-11-22).** We hold 25 CELLxGENE h5ads: 30.7 M cells, ~6,000 donor entries. MCT's corpus is
+  13 datasets, 14 M cells. Of MCT's datasets we lack heart, gut, developing immune (fetal), Tabula Sapiens beyond
+  blood, and two cancer sets (out of scope). The gap is tissue breadth, not volume.
+  - The full Tabula Sapiens (53d208b0, 1.14 M cells, 24 donors) is being fetched (Anton: "Yes lets get whole tabula
+    sapiens"). It replaces our blood-only subset 983d5ec9 in the pool.
+- **Pool.** Every non-evaluation h5ad.
+  - Cells: primary cells of donors aged ≥ 18 whose disease does not match the repo's cancer pattern. Diseased donors
+    stay in, unlike RM28's normal-only pool: the objective never sees age or disease.
+  - Donors sharing an id with an evaluation donor are removed (`exclude_eval`).
+  - A sample is donor × tissue. It keeps ≤ 2 × the slot count of cells per MCT type, stored once as log1p CP10k
+    on MCT's vocabulary.
+  - 2 % of samples are held out for validation.
+- **Model and objective.** MCT's encoder (width 64, 12 layers, 4 heads, MLP 256, 1,024 slots, MCT's 54 types and
+  vocabulary), randomly initialised.
+  - MCT's masked gene identity: 15 % of tokens; of those, 70 % have their id masked, 10 % their expression masked,
+    10 % get a random id, 10 % are unchanged. Cross-entropy over the vocabulary. No reconstruction loss (MCT's
+    recommended checkpoint has none).
+  - One bag per step, ≤ 4,096 genes, 8 bags per optimiser step, 20,000 optimiser steps. AdamW lr 1e-3, 1,000 warm-up
+    steps, then cosine decay.
+  - Validation masked-id accuracy every 1,000 steps; best and last checkpoints kept in MCT's format, so steps (a) and
+    (b) read them with `--ckpt`.
+- **Read-out.** Steps (a) and (b) unchanged, on the from-scratch checkpoint. Rows are named `mct-scratch-*`.
+- **Bar.** Step (a)'s bar for each read-out. It also counts as a falsification of the architecture if both read-outs
+  trail RM28's masking arm (+1.71 / +1.41 / +1.78 y against TabICLv2 pseudobulk).
+- **Budget.** About 3-6 GPU-hours for pretraining, measured on the first 500 steps before the full run.
+
 **Reused controls** (same cohorts, folds and metric; no retraining):
 - `recipe-stack_agesel-tabicl`, 5.23 y mean (RM35 step 1c, DECISIONS).
 - `pseudobulk-tabicl-2000g` (RM14).
