@@ -456,3 +456,33 @@ than at 4k. Both stay ~7 y behind the trained MLP, with strong shrinkage. The fu
 closed: TabICLv2 stays the read-out, TabPFN-3.5 adds nothing we use. The condition the lead set for a linear-memory
 (KronLSTM) in-context model, that more context helps, is not met on bulk; it stays open only for cell-level context,
 untested.
+
+**RM37 step (c) outcome (2026-11-23, runner's jobs 6593818 pretraining, 6594422 read-out, 6594423-6594429 fine-tunes,
+logged 7809bcf; read by the lead): fails.** MCT's architecture was pretrained from scratch on our pool: 19 datasets,
+2,347 samples ≥ 50 cells, 1.03 M cells, full Tabula Sapiens included, evaluation cohorts held out.
+
+- **Run 1 (post-norm, MCT's layout) learned nothing.** Not even a visible id was copied.
+- **Run 2 (pre-norm, the amendment) learned.** Masked-id validation accuracy reached 0.22 and loss 5.64. Most of that
+  is the 20 % of targets with a visible id; little was inferred.
+
+Read-out on our 7 cohorts, against `recipe-stack_agesel-tabicl` (bar: ≤ −0.3 y and ≥ 4 of 7):
+
+| read-out | mean MAE | mean r | diff vs stack_agesel | beats (of 7) | diff vs pseudobulk TabICLv2 |
+|---|---|---|---|---|---|
+| per-gene vectors, age-chosen 500, TabICLv2 | 7.06 | 0.69 | +1.83 | 0 | +0.44 |
+| per-gene vectors, ridge | 7.20 | 0.68 | +1.97 | 0 | +0.58 |
+| mean over genes, TabICLv2 | 9.57 | 0.47 | +4.35 | 0 | +2.95 |
+| mean over genes, ridge | 10.41 | 0.34 | +5.19 | 0 | +3.79 |
+
+- **Fine-tune:** top 4 layers plus a head never fit. Training MSE stayed near 0.94 on standardised age; MAE was
+  10-21 y in the cohorts the logs show.
+- **Falsification clause:** not triggered. The per-gene read-out (+0.44 y vs pseudobulk TabICLv2) trails less than
+  RM28's masked encoder (+1.4 to +1.8 y).
+- **Corpus split:** none here, since nothing in the evaluation cohorts was seen in pretraining.
+
+Reading: a donor-bag encoder trained 3 GPU-hours on our data gives per-gene vectors about as informative as pseudobulk,
+and no better. Its pretraining barely went past copying. The age-chosen-gene recipe stays the single-cell clock.
+
+What remains of RM37 is step (a)/(b) on MCT's own checkpoint (14 M cells, a far longer pretraining), once Anton has
+downloaded it. Step (c) at larger scale would need either many more steps or a working masked objective first; it
+is not planned.

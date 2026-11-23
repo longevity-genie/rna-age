@@ -9,9 +9,8 @@ The lead (`docs/seats/LEAD.md`) keeps it. Seeded at the lead's first seating (20
 
 ## RM37 — MCT (Multicellular Transformer) for donor age: frozen read-out, then fine-tuned
 
-**State:** urgent: building the wrapper (Anton, 2026-11-22, #rna-age > general chat: "So let's try it and see if we
-can fine tune for aging"). The runs wait until a checkpoint is on disk: the README's Google Drive link asks for a
-sign-in. Anton was asked in chat the same day to fetch it, have the authors asked, or pretrain our own.
+**State:** waits until 2026-11-30 (re-check), for MCT's checkpoint on disk: steps (a)/(b) are built; step (c) ran and failed (DECISIONS,
+2026-11-23). The README's Google Drive link asks for a sign-in; Anton was given it on 2026-11-22 to download.
 **Owner:** lead (code), runner (jobs).
 
 MCT (Wiatrak, Andersson et al., bioRxiv 10.64898/2026.11.14.766251; code github.com/almaan/mct, Apache-2.0) reads one
@@ -98,6 +97,16 @@ data do we miss to train from scratch").
 - **Amendment (2026-11-23, before run 2):** the from-scratch encoder is pre-norm, with a final LayerNorm (`norm_first`,
   17d2247). Everything else is unchanged. Stop rule: if training masked-id accuracy at step 2,000 is below 0.05
   (not even the copied 20 %), stop and report.
+
+- **Run 2 and outcome (2026-11-23): step (c) fails (DECISIONS).**
+  - Pre-norm learned, to val accuracy 0.22, mostly copying.
+  - Best read-out: per-gene vectors into TabICLv2 at 7.06 y, +1.83 vs stack_agesel and +0.44 vs pseudobulk
+    TabICLv2, 0 of 7.
+  - The fine-tune never fit.
+  - The step-2,000 stop rule was read on the validation accuracy at that step (0.10), not the windowed training mean
+    (0.017): the rule was meant to catch a model that cannot copy. Agreed with the runner.
+  - Per-cohort jobs had overwritten each other's rows. Fixed in 65241de: one file per job, merged by
+    `rna-age mct-collect`.
 
 **Reused controls** (same cohorts, folds and metric; no retraining):
 - `recipe-stack_agesel-tabicl`, 5.23 y mean (RM35 step 1c, DECISIONS).
