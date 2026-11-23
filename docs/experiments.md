@@ -1334,3 +1334,18 @@ Masked gene identity never leaves chance:
 
 For scale, ln(4,096) = 8.3 and ln(58k) = 11.0. The best checkpoint (`best.ckpt`, step 13,000) is that of a model which
 did not learn the task, so the age read-out and fine-tune on it were not started without the lead's word.
+
+### 2026-11-23 04:47 · RM37 step (c) run 2: pre-norm MCT pretraining learns
+At 17d2247 (pre-norm encoder), the same pool and resources: job 6593818, run 20261123-0140-mct-scratch-s0, 3 h 07 on a
+2080 Ti. Masked gene identity:
+
+| step | train loss | train acc | val loss | val acc |
+|---|---|---|---|---|
+| 2,000 | 8.40 | 0.017 | 7.52 | 0.103 |
+| 5,000 | 6.44 | 0.193 | 6.12 | 0.205 |
+| 10,000 | 6.05 | 0.205 | 5.79 | 0.215 |
+| 20,000 | 5.86 | 0.212 | 5.64 | 0.223 |
+
+The best val loss, 5.64, is at the end. The step-2,000 stop rule (train acc < 0.05) was read on val acc, as agreed
+with the lead: train acc is a mean over steps 1,001–2,000. Note that 20 % of targets keep their id visible, so val acc
+0.22 is not far above copying those. Read-out 6594422 and fine-tunes 6594423–6594429 run from `best.ckpt`.
