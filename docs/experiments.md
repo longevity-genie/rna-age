@@ -1349,3 +1349,23 @@ At 17d2247 (pre-norm encoder), the same pool and resources: job 6593818, run 202
 The best val loss, 5.64, is at the end. The step-2,000 stop rule (train acc < 0.05) was read on val acc, as agreed
 with the lead: train acc is a mean over steps 1,001–2,000. Note that 20 % of targets keep their id visible, so val acc
 0.22 is not far above copying those. Read-out 6594422 and fine-tunes 6594423–6594429 run from `best.ckpt`.
+
+### 2026-11-23 06:20 · RM37 step (c) read-outs: the from-scratch MCT is worse than the recipe in every cohort
+Read-out 6594422 and fine-tunes 6594423–6594429 on run 2's `best.ckpt` (`--tag mct-scratch`), at d892634. Every job
+trained and logged its MAEs, then failed writing the summary: `_merge_summary` (sc_pretrain.py:847) concatenates the
+new out-of-fold rows onto `sc_pretrain_oof.parquet` and polars raised `ComputeError: schema lengths differ`. No rows
+were written. The MAEs below are read from the logs. Fine-tune 37a17b78 (6594427) was cancelled while running, since
+it would hit the same write. Reference: `recipe-agesel_class-tabicl` (RM35 1c, as in RM36 arm 1b's table).
+
+| cohort | mean ridge | mean TabICLv2 | gene ridge | gene TabICLv2 | fine-tune | recipe |
+|---|---|---|---|---|---|---|
+| 218acb0f | 10.14 | 9.29 | 8.31 | 7.92 | 14.14 | 6.67 |
+| 37a17b78 | 9.99 | 9.06 | 7.12 | 7.08 | — | 4.82 |
+| 3faad104 | 9.91 | 9.43 | 8.66 | 8.31 | 10.25 | 7.21 |
+| 5c97eeeb | 14.33 | 11.99 | 6.45 | 6.38 | 21.35 | 3.50 |
+| 5e57cd50 | 6.08 | 6.50 | 5.88 | 5.94 | 6.07 | 5.59 |
+| c838aec3 | 8.67 | 7.99 | 5.72 | 5.86 | 10.33 | 5.39 |
+| terekhova | 13.76 | 12.74 | 8.25 | 7.92 | 18.12 | 5.10 |
+
+The best MCT-scratch arm in each cohort is 0.29 to 2.88 y worse than the recipe. The mean is 7.03 y against 5.47 y. The
+fine-tunes never fit: training MSE on standardised age stays near 0.94 at epoch 30 (terekhova).

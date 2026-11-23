@@ -60,9 +60,9 @@ stop before Anton is back; 07:00 report, then keep updating; one tabbed artifact
   rules: Census 2,356 healthy (3,815 any health), scBaseCount 492 (1,656), recount3 bulk 4,430 (6,380).
 
 ## Running (jobs carry seat / what / eta in their Slurm comment)
-- RM37 step (c) read-outs on run 2 (20261123-0140-mct-scratch-s0, pre-norm, val acc 0.22): `mct readout --tag mct-scratch` 6594422; `mct finetune` one cohort per job, 6594423–6594429, at most 4 GPUs at once.
 
 ## Results so far (details: `docs/experiments.md`, `data/output/summary/experiments.parquet`)
+- **RM37 step (c) read-outs (2026-11-23 06:20, 6594422–6594429 on run 20261123-0140-mct-scratch-s0)**: worse than `recipe-agesel_class-tabicl` in 7 of 7 cohorts; best arm (per-gene vectors) mean 7.03 y vs 5.47; fine-tunes 6–21 y, never fit. MAEs from the logs: the summary write failed in every job (`_merge_summary`, polars "schema lengths differ"), no rows written.
 - **RM37 step (c) run 2, pre-norm (2026-11-23 04:47, 6593818, run 20261123-0140-mct-scratch-s0)**: masked gene identity learns: val acc 0.10 at step 2,000, 0.22 at 20,000; val loss 5.64 (run 1: 9.55, at chance). 3 h 07 on a 2080 Ti.
 - **RM37 step (c), MCT architecture pretrained from scratch (2026-11-22 23:32, 6592753, run 20261122-2025-mct-scratch-s0)**: masked gene identity stays at chance: val loss 9.59 → best 9.55 → 10.27 at the end, accuracy ≤ 0.0003 (pool 2,347 samples with Tabula Sapiens All Cells; 3 h 07 on a 2080 Ti). Read-out and fine-tune held for the lead.
 - **RM36 arm 2, TabICLv2 bulk at full context (2026-11-22 00:36, 6587406, run 20261122-0036-tfm-tabicl-hvg-ctx100k)**: test MAE 15.94 y, r 0.48, bias slope −0.73 (context 43,958 rows from 1,572 studies, 2,000 HVGs, 8 h 11 on a 2080 Ti); bar ≤ 9.1 missed, 0.64 y worse than RM25 at 4k context (15.30 y). The 30k fallback was cancelled unrun.
