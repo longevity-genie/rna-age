@@ -87,6 +87,18 @@ data do we miss to train from scratch").
     3. `uv run --with tabicl rna-age mct readout --ckpt <checkpoint_dir>/best.ckpt --tag mct-scratch`.
     4. `rna-age mct finetune --ckpt <checkpoint_dir>/best.ckpt --tag mct-scratch`.
 
+- **Run 1 (2026-11-22, job 6592753, run 20261122-2025-mct-scratch-s0, MCT's post-norm layout): learned nothing.**
+  - Masked-id accuracy stayed at chance (0.0001-0.0003). Loss sat at 9.5, about the gene-frequency prior.
+  - That is a defect, not too few steps: 20 % of targets have their id visible, and a working model copies them.
+  - CPU checks on one pool dataset, a copy task predicting every token, 400 steps:
+    - 2 layers learn to copy (0.49).
+    - 12 post-norm layers do not (0.00, at lr 1e-3 and 1e-4).
+    - 12 pre-norm layers do (0.19).
+  - Read-outs not run: an encoder that learned nothing has nothing to read.
+- **Amendment (2026-11-23, before run 2):** the from-scratch encoder is pre-norm, with a final LayerNorm (`norm_first`,
+  17d2247). Everything else is unchanged. Stop rule: if training masked-id accuracy at step 2,000 is below 0.05
+  (not even the copied 20 %), stop and report.
+
 **Reused controls** (same cohorts, folds and metric; no retraining):
 - `recipe-stack_agesel-tabicl`, 5.23 y mean (RM35 step 1c, DECISIONS).
 - `pseudobulk-tabicl-2000g` (RM14).
