@@ -148,3 +148,17 @@ def test_pool_cells_caps_per_type():
     n = out.group_by("donor", "slot").len().sort("donor", "slot")
     assert n.rows() == [("a", "B cells", 8), ("a", mct.OTHER, 5), ("b", "B cells", 8)]
     assert (np.diff(out["row"].to_numpy()) > 0).all()
+
+
+def test_prenorm_round_trip(tmp_path):
+    torch.manual_seed(0)
+    enc = mct.MctEncoder(40, 16, emb=8, hidden=16, n_heads=2, n_layers=2, dropout=0.0, transformer_dropout=0.0,
+                         norm_first=True).eval()  # fmt: skip
+    path = tmp_path / "pre.ckpt"
+    torch.save({"state_dict": {f"model.encoder.{k}": v for k, v in enc.state_dict().items()},
+                "hyper_parameters": {"config": {"n_heads": 2, "dropout": 0.0, "transformer_dropout": 0.0}}}, path)  # fmt: skip
+    loaded, _ = mct.load_encoder(path)
+    loaded.eval()
+    assert loaded.encoder.layers[0].norm_first and loaded.encoder.norm is not None
+    x, tok = torch.rand(1, 5, 16), torch.tensor([[2, 3, 7, 9, 11]])
+    assert torch.allclose(enc(x, tok), loaded(x, tok), atol=1e-6)

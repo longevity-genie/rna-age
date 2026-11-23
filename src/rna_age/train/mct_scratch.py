@@ -7,7 +7,8 @@ removed. A sample is donor × tissue, keeping ≤ ``factor`` × the slot count c
 stored once per dataset as log1p CP10k on MCT's vocabulary (CSR, float16 values, token ids as column indices) under
 ``data/interim/mct/pool/<dataset[:8]>/``, cells sorted by sample.
 
-Pretraining (``pretrain``, one GPU): MCT's encoder randomly initialised, MCT's masked gene identity (15 % of tokens:
+Pretraining (``pretrain``, one GPU): MCT's encoder randomly initialised, pre-norm by default (``norm_first``; MCT's own
+12 post-norm layers did not learn at all from scratch here, not even to copy a visible id), MCT's masked gene identity (15 % of tokens:
 70 % id → [MASK], 10 % expression masked, 10 % random id, 10 % unchanged; cross-entropy over the vocabulary), one bag
 per forward, ``accumulate`` bags per optimiser step, AdamW with linear warm-up then cosine. Validation masked-id loss
 and accuracy on fixed bags of held-out samples; best and last checkpoints in MCT's Lightning layout
@@ -195,10 +196,11 @@ def mask_tokens(tok: torch.Tensor, n_vocab: int, gen: torch.Generator, p: float 
 
 class MctPretrain(nn.Module):
     def __init__(self, n_vocab: int, n_input: int = mct.BAG, emb: int = 64, hidden: int = 256, n_heads: int = 4,
-                 n_layers: int = 12, dropout: float = 0.2, transformer_dropout: float = 0.1):  # fmt: skip
+                 n_layers: int = 12, dropout: float = 0.2, transformer_dropout: float = 0.1,
+                 norm_first: bool = True):  # fmt: skip
         super().__init__()
         self.encoder = mct.MctEncoder(n_vocab, n_input, emb, hidden, n_heads, n_layers, 0, dropout,
-                                      transformer_dropout)  # fmt: skip
+                                      transformer_dropout, norm_first=norm_first)  # fmt: skip
         self.gene_id_classifier = mct.MctMGMHead(emb, n_vocab)
 
     def forward(self, x, ids, expr_mask=None):
@@ -225,7 +227,7 @@ def pretrain(steps: int = 20_000, accumulate: int = 8, lr: float = 1e-3, warmup:
              emb: int = 64, n_layers: int = 12, n_heads: int = 4, hidden: int = 256, val_share: float = 0.02,
              n_val_bags: int = 64, eval_every: int = 1000, seed: int = 0, device: str = "cuda",
              pool_root: Path = POOL, name: str | None = None, index_dir: Path = mct.INDEX,
-             min_cells: int = 50) -> dict:  # fmt: skip
+             min_cells: int = 50, norm_first: bool = True) -> dict:  # fmt: skip
     from rna_age.train.runs import has_native_bf16, new_run
 
     torch.manual_seed(seed)
@@ -243,13 +245,13 @@ def pretrain(steps: int = 20_000, accumulate: int = 8, lr: float = 1e-3, warmup:
     config = {"model": "mct-scratch", "arm": "rm37-c", "steps": steps, "accumulate": accumulate, "lr": lr,
               "warmup": warmup, "max_genes": max_genes, "gene_emb_dim": emb, "n_layers": n_layers, "n_heads": n_heads,
               "hidden_dim": hidden, "n_genes": pool.n_vocab, "n_input": n_in, "dropout": 0.2,
-              "transformer_dropout": 0.1, "padding_token_idx": 0, "seed": seed, "min_cells": min_cells, "samples_train": len(tr),
+              "transformer_dropout": 0.1, "padding_token_idx": 0, "seed": seed, "min_cells": min_cells, "norm_first": norm_first, "samples_train": len(tr),
               "samples_val": len(va), "datasets": pool.samples["dataset_id"].unique().sort().to_list()}  # fmt: skip
     run_dir = new_run(name or f"mct-scratch-s{seed}", config)
     cfg = json.loads((run_dir / "config.json").read_text())
     ckpt = Path(cfg["checkpoint_dir"])
     ckpt.mkdir(parents=True, exist_ok=True)
-    model = MctPretrain(pool.n_vocab, n_in, emb, hidden, n_heads, n_layers).to(device)
+    model = MctPretrain(pool.n_vocab, n_in, emb, hidden, n_heads, n_layers, norm_first=norm_first).to(device)
     on_gpu = device.startswith("cuda")
     amp = (torch.bfloat16 if has_native_bf16() else torch.float16) if on_gpu else None
     scaler = torch.amp.GradScaler(enabled=amp == torch.float16)

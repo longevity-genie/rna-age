@@ -128,7 +128,7 @@ class MctEncoder(nn.Module):
 
     def __init__(self, n_genes: int, n_input: int = BAG, emb: int = 64, hidden: int = 256, n_heads: int = 4,
                  n_layers: int = 12, n_tissues: int = 0, dropout: float = 0.2, transformer_dropout: float = 0.1,
-                 pad: int = 0):  # fmt: skip
+                 pad: int = 0, norm_first: bool = False):  # fmt: skip
         super().__init__()
         self.gene_id_emb = nn.Embedding(n_genes, emb, padding_idx=pad)
         if n_tissues > 0:
@@ -139,9 +139,12 @@ class MctEncoder(nn.Module):
         self.gene_expression_mask_emb = nn.Embedding(1, emb)
         self.layer_norm = nn.LayerNorm(emb)
         self.dropout = nn.Dropout(dropout)
+        # MCT is post-norm; ``norm_first`` (pre-norm with a final LayerNorm) is for training from scratch: 12 post-norm
+        # layers at width 64 did not even learn to copy a visible gene id (RM37 step c, 2026-11-23)
         layer = nn.TransformerEncoderLayer(emb, n_heads, emb * 4, transformer_dropout, activation="gelu",
-                                           batch_first=True)  # fmt: skip
-        self.encoder = nn.TransformerEncoder(layer, n_layers, enable_nested_tensor=False)
+                                           batch_first=True, norm_first=norm_first)  # fmt: skip
+        self.encoder = nn.TransformerEncoder(layer, n_layers, norm=nn.LayerNorm(emb) if norm_first else None,
+                                             enable_nested_tensor=False)  # fmt: skip
 
     def forward(self, x: torch.Tensor, gene_ids: torch.Tensor, pad_mask: torch.Tensor | None = None,
                 expr_mask: torch.Tensor | None = None) -> torch.Tensor:  # fmt: skip
@@ -182,7 +185,7 @@ def load_encoder(path: Path = CKPT) -> tuple[MctEncoder, dict]:
     n_tissues = enc["tissue_emb.weight"].shape[0] if "tissue_emb.weight" in enc else 0
     model = MctEncoder(n_genes, n_input, emb, hidden, int(cfg.get("n_heads", 4)), n_layers, n_tissues,
                        float(cfg.get("dropout", 0.2)), float(cfg.get("transformer_dropout", 0.1)),
-                       int(cfg.get("padding_token_idx", 0)))  # fmt: skip
+                       int(cfg.get("padding_token_idx", 0)), norm_first="encoder.norm.weight" in enc)  # fmt: skip
     model.load_state_dict(enc, strict=True)
     return model, cfg
 

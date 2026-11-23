@@ -1013,6 +1013,7 @@ def mct_scratch_cmd(
     seed: int = typer.Option(0),
     device: str = typer.Option("cuda"),
     pool: str = typer.Option("", help="pool directory (default data/interim/mct/pool)"),
+    norm_first: bool = typer.Option(True, "--pre-norm/--post-norm", help="pre-norm (default) or MCT's post-norm"),
 ) -> None:
     """RM37 step (c): pretrain MCT's architecture from scratch (masked gene identity) on the pool; then
     `rna-age mct readout|finetune --ckpt <checkpoint_dir>/best.ckpt --tag mct-scratch`."""
@@ -1022,7 +1023,7 @@ def mct_scratch_cmd(
     from rna_age.train import mct_scratch
 
     status = mct_scratch.pretrain(steps, accumulate, lr, warmup, max_genes, n_layers=n_layers,
-                                  eval_every=eval_every, seed=seed, device=device,
+                                  eval_every=eval_every, seed=seed, device=device, norm_first=norm_first,
                                   pool_root=Path(pool) if pool else mct_scratch.POOL)  # fmt: skip
     print(json.dumps(status, indent=2))
 
