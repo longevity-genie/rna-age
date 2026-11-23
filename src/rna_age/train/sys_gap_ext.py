@@ -102,6 +102,16 @@ CMV_EXT = replace(
     predictions=(("CD8 T", "accelerates"), ("CD8 T - monocyte", "accelerates"), ("B", "no_acceleration"),
                  ("CD4 T", "exploratory"), ("monocyte", "exploratory"), ("NK", "exploratory")),
 )  # fmt: skip
+# RM33 replication (pre-registered 2026-11-23): SEA-AD DLPFC, cases and controls by neuropathology (ADNC). As
+# pre-registered: Intermediate/High against Not AD (Low left out). Added before any gap was computed, once the donor
+# table showed only 4 Not AD donors with exact ages (min_controls is 10): the NIA-AA split, Not AD/Low/Reference
+# (young neurotypical) against Intermediate/High. Both are reported. ``label_rx`` lets dementia through on both sides:
+# the arms are by pathology, not by the clinical label.
+SEA_AD = "6f7fd0f1-a2ed-4ff1-80d3-33dde731cbc3"
+AD_ADNC = replace(AD_EXT, name="Alzheimer disease (ADNC)", disease_rx=None, column="ADNC",
+                  positive=("Intermediate", "High"), negative=("Not AD",), label_rx=r"dementia")  # fmt: skip
+AD_ADNC_NIAAA = replace(AD_ADNC, name="Alzheimer disease (ADNC, NIA-AA split)",
+                        negative=("Not AD", "Low", "Reference"))  # fmt: skip
 COVID = CaseDef(
     "COVID-19", r"covid-19",
     pairs=(("CD8 T", "monocyte"), ("CD8 T", "B"), ("NK", "monocyte")),
@@ -131,6 +141,8 @@ TARGETS = {
     # RM33 pre-registered rerun (2026-11-21, desk #79 default): every region a donor has, summed per type
     "cff99df2_pooled": Target(AD_RESILIENCE, "brain", AD_EXT, by_donor=True, tag="cff99df2-pooled"),
     "altra": Target(ALTRA, "blood", CMV_EXT),
+    "seaad": Target(SEA_AD, "brain", AD_ADNC, tag="seaad-adnc"),
+    "seaad_niaaa": Target(SEA_AD, "brain", AD_ADNC_NIAAA, tag="seaad-niaaa"),
     "covid": Target(COVID_PBMC, "blood", COVID, counted=False, tissues=("blood",), guards=False),
     "allen": Target(ALLEN, "blood", CMV, counted=False, guards=False),
 }

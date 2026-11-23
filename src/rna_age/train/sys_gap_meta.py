@@ -34,6 +34,12 @@ POOLS = (
     Pool("Alzheimer disease",
          (("37a17b78", ("own",)), ("5e57cd50", ("own", "external:brain")), ("cff99df2", ("own", "external:brain"))),
          (("astrocyte", "accelerates"), ("astrocyte - OPC", "accelerates"), ("microglia", "accelerates"))),
+    # RM33 replication (pre-registered 2026-11-23): the Alzheimer's pool with SEA-AD added, once per SEA-AD arm
+    *(Pool(f"Alzheimer disease + SEA-AD ({arm})",
+           (("37a17b78", ("own",)), ("5e57cd50", ("own", "external:brain")), ("cff99df2", ("own", "external:brain")),
+            (f"seaad-{arm}", ("external:brain",))),
+           (("astrocyte", "accelerates"), ("astrocyte - OPC", "accelerates"), ("microglia", "accelerates")))
+      for arm in ("adnc", "niaaa")),
     Pool("CMV seropositive",
          (("ff4235bb", ("own", "external:blood")), ("789ad837", ("own", "external:blood"))),
          (("CD8 T", "accelerates"), ("CD4 T", "accelerates"), ("CD8 T - monocyte", "accelerates"),
