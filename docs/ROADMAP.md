@@ -472,6 +472,23 @@ finding). Inconclusive 3: CMV CD4 T −0.06 [−0.30, 0.18], monocyte −0.15 [�
 its own; pooling's new information is that the smaller cohorts agree in direction (no heterogeneity), and that CMV's
 CD8 T and B results replicate. With pooling, the pooled predictions meet Anton's bar for these systems (most hold, the
 failure reproducible); the conditions with one cohort (T2D, Parkinson's, Down syndrome) stay as they were.
+Replications (pre-registered 2026-11-23 by the lead, Anton away, before any download or computation).
+- **HIHA dropped as a CMV replication.**
+  - Its adult cells are all `is_primary_data` false: they duplicate another Census dataset. Very likely the Allen
+    cohort (ff4235bb) that already carries the CMV result, under other donor ids.
+  - Its 16 primary donors are 11-12 years old.
+  - The CMV pool stays Allen + ALTRA.
+- **SEA-AD (DLPFC, "Whole Taxonomy", 6f7fd0f1, 1.40 M cells, 83 donors, 53 GB) as an Alzheimer's replication.**
+  - Its donors (Seattle ACT/ADRC) share no cohort with PsychAD, RADC or cff99df2.
+  - Cases and controls by neuropathology if the obs carries ADNC: Intermediate or High against Not AD, Low left out.
+    Else the clinical label, dementia against normal. Which one applied is said with the result.
+  - Read by the external brain clock (`sys-gap-external`, a new target `seaad`), with AD_EXT's counted predictions:
+    astrocyte `accelerates`, astrocyte − OPC `accelerates`; microglia exploratory as in RADC.
+  - Scored with the z rules, then added to the Alzheimer's pools (`sys-gap-meta`).
+  - Bar: a replication holds if SEA-AD's own verdict is not a fail and the pooled verdict stays `holds` with SEA-AD in.
+    Inconclusive alone (expected with ~80 donors and few young controls) is reported as such.
+  - Steps: runner fetches (`positive-controls-fetch 6f7fd0f1-a2ed-4ff1-80d3-33dde731cbc3`), then `census-donor-obs` and
+    `census-pseudobulk --by-cell-type` for it. The lead adds the target once the obs columns are seen.
 
 ## RM13 — A manuscript draft of the results (plan line 5)
 
