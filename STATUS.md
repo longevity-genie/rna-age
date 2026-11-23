@@ -60,7 +60,7 @@ stop before Anton is back; 07:00 report, then keep updating; one tabbed artifact
   rules: Census 2,356 healthy (3,815 any health), scBaseCount 492 (1,656), recount3 bulk 4,430 (6,380).
 
 ## Running (jobs carry seat / what / eta in their Slurm comment)
-- RM33 replication (lead 642869607): SEA-AD DLPFC Whole Taxonomy (6f7fd0f1, 53 GB): fetch 6595939, then `census-donor-obs` 6595940 and `census-pseudobulk --by-cell-type` 6595941 (afterok).
+- RM33 replication SEA-AD DLPFC (6f7fd0f1): fetched, donor obs (83 donors, ADNC per donor) and pseudobulk by cell type done; `sys-gap-external --targets seaad,seaad_niaaa` 6596009, then `sys-gap-meta` 6596010 (afterok), at 35bc88d.
 
 ## Results so far (details: `docs/experiments.md`, `data/output/summary/experiments.parquet`)
 - **RM37 step (c) read-outs (2026-11-23 06:20, 6594422–6594429 on run 20261123-0140-mct-scratch-s0)**: worse than `recipe-agesel_class-tabicl` in 7 of 7 cohorts; best arm (per-gene vectors) mean 7.03 y vs 5.47; fine-tunes 6–21 y, never fit. The comparison merge failed in every job (polars "schema lengths differ"); the prediction rows were written and the lead merged the comparisons with `rna-age mct-collect` (65241de). Verdict: fails (5780228).
