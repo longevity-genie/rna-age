@@ -303,13 +303,14 @@ def donor_obs(dataset_id: str, donor_ids: list[str], columns: list[str]) -> dict
 
 def load_cohort(
     dataset_id: str, min_cells: int = 20, by_donor: bool = False, keep_censored: bool = False, level: str = "coarse",
-    where: pl.Expr | None = None,
+    where: pl.Expr | None = None, obs_columns: tuple[str, ...] = (),
 ) -> Cohort:  # fmt: skip
     """Donor metadata and, per system (``level`` coarse: ``coarse_type``; fine: ``fine_type``), the summed counts of
     donors with at least ``min_cells`` cells. ``by_donor`` sums a donor's tissues (default: one unit per donor ×
     tissue); ``keep_censored`` keeps donors whose age is only a bound (age = the bound, flagged in ``age_censored``);
     used for DE, never for clocks. ``where`` keeps only the groups (rows of ``groups.parquet`` with ``age`` added)
-    it is true on, e.g. healthy adults or one tissue."""
+    it is true on, e.g. healthy adults or one tissue. ``obs_columns``: more ``donor_obs`` columns to load (a target's
+    case column when its case definition is not in ``CONDITIONS``)."""
     d = _cohort_dir(dataset_id)
     g = pl.read_parquet(d / "groups.parquet")
     if "sex" not in g.columns and "Sex" in g.columns:
@@ -371,7 +372,8 @@ def load_cohort(
         genes=pl.read_parquet(d / "counts.parquet", columns=["gene_id"])["gene_id"].to_list(),
         age_censored=meta["censored"].to_numpy(),
         donor_ids=ids,
-        obs=donor_obs(dataset_id, ids, [cd.column] if cd is not None and cd.column else []),
+        obs=donor_obs(dataset_id, ids, list(dict.fromkeys(([cd.column] if cd is not None and cd.column else [])
+                                                          + list(obs_columns)))),  # fmt: skip
         label_cells=g.group_by("donor", "cell_type").agg(pl.col("n_cells").sum()),
     )
     dix = {x: i for i, x in enumerate(donors)}

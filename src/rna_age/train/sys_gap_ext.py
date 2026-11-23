@@ -252,8 +252,9 @@ def run_target(
     if any(co.name == t.dataset_id for co in pool):
         raise ValueError(f"{t.dataset_id}: the target is in its own pool")
     where = pl.col("tissue").is_in(list(t.tissues)) if t.tissues else None
-    co = load_cohort(t.dataset_id, min_cells, by_donor=t.by_donor, where=where)
     cd = t.cd
+    co = load_cohort(t.dataset_id, min_cells, by_donor=t.by_donor, where=where,
+                     obs_columns=(cd.column,) if cd.column else ())  # fmt: skip
     case_all, ctrl_all = arms(cd, co.disease, co.obs.get(cd.column) if cd.column else None)
     visits = t.dataset_id in PERSON_COLUMNS  # as stage 0: repeat visits leave clock line and contrast
     primary = first_visits(co.person, co.age) if visits else np.ones(len(co.donors), dtype=bool)
