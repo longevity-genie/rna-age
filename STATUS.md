@@ -60,9 +60,9 @@ stop before Anton is back; 07:00 report, then keep updating; one tabbed artifact
   rules: Census 2,356 healthy (3,815 any health), scBaseCount 492 (1,656), recount3 bulk 4,430 (6,380).
 
 ## Running (jobs carry seat / what / eta in their Slurm comment)
-- RM33 replication SEA-AD DLPFC (6f7fd0f1): fetched, donor obs (83 donors, ADNC per donor) and pseudobulk by cell type done; `sys-gap-external --targets seaad,seaad_niaaa` 6596009, failed: `run_target` reads ADNC from the cohort's own CONDITIONS column, not the target's (reported to the lead); `sys-gap-meta` 6596010 cancelled; fixed (8e74d51); rerun 6596030, then `sys-gap-meta` 6596031 (afterok).
 
 ## Results so far (details: `docs/experiments.md`, `data/output/summary/experiments.parquet`)
+- **RM33 replication, SEA-AD DLPFC (2026-11-23 13:40, 6596030/6596031 at 8e74d51)**: ADNC arm unmeasurable (4 exact-age Not AD donors); NIA-AA arm (24 vs 11) inconclusive, astrocyte +3.52 y [−0.33, 9.65]; Alzheimer pools with it unchanged and holding: astrocyte z 0.71 [0.51, 0.92], microglia 0.44, astrocyte − OPC 0.33 (3 cohorts).
 - **RM37 step (c) read-outs (2026-11-23 06:20, 6594422–6594429 on run 20261123-0140-mct-scratch-s0)**: worse than `recipe-agesel_class-tabicl` in 7 of 7 cohorts; best arm (per-gene vectors) mean 7.03 y vs 5.47; fine-tunes 6–21 y, never fit. The comparison merge failed in every job (polars "schema lengths differ"); the prediction rows were written and the lead merged the comparisons with `rna-age mct-collect` (65241de). Verdict: fails (5780228).
 - **RM37 step (c) run 2, pre-norm (2026-11-23 04:47, 6593818, run 20261123-0140-mct-scratch-s0)**: masked gene identity learns: val acc 0.10 at step 2,000, 0.22 at 20,000; val loss 5.64 (run 1: 9.55, at chance). 3 h 07 on a 2080 Ti.
 - **RM37 step (c), MCT architecture pretrained from scratch (2026-11-22 23:32, 6592753, run 20261122-2025-mct-scratch-s0)**: masked gene identity stays at chance: val loss 9.59 → best 9.55 → 10.27 at the end, accuracy ≤ 0.0003 (pool 2,347 samples with Tabula Sapiens All Cells; 3 h 07 on a 2080 Ti). Read-out and fine-tune held for the lead.

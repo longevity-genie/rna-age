@@ -1369,3 +1369,17 @@ it would hit the same write. Reference: `recipe-agesel_class-tabicl` (RM35 1c, a
 
 The best MCT-scratch arm in each cohort is 0.29 to 2.88 y worse than the recipe. The mean is 7.03 y against 5.47 y. The
 fine-tunes never fit: training MSE on standardised age stays near 0.94 at epoch 30 (terekhova).
+
+### 2026-11-23 13:40 · RM33 replication on SEA-AD DLPFC: inconclusive alone, the Alzheimer pools hold
+SEA-AD DLPFC Whole Taxonomy (6f7fd0f1): fetch 6595939 (53 GB, 15 min), donor obs 6595940 (83 donors, ADNC per donor),
+pseudobulk by cell type 6595941 (8.5 min). `sys-gap-external --targets seaad,seaad_niaaa` 6596030 and `sys-gap-meta`
+6596031, at 8e74d51 (8e74d51 fixed the loading of a target's case column; the first try, 6596009, failed on it).
+
+- **`seaad` (ADNC: Not AD against High, as pre-registered):** unmeasurable, every row NaN. Only 4 "Not AD" donors have
+  exact ages, as the lead expected.
+- **`seaad_niaaa` (Not AD + Low + Reference against Intermediate + High; 24 vs 11 donors with exact ages):** every
+  verdict is inconclusive. The counted predictions are astrocyte gap +3.52 y [−0.33, 9.65] and astrocyte − OPC
+  +0.66 [−7.90, 9.07]. Exploratory: microglia +4.42 [−1.15, 12.84], oligodendrocyte +3.74, inhibitory neuron −2.24.
+- **Pools on the z scale (`sys-gap-meta`), Alzheimer disease + SEA-AD (NIA-AA), 3 cohorts:** astrocyte 0.71
+  [0.51, 0.92], microglia 0.44 [0.27, 0.62], astrocyte − OPC 0.33 [0.11, 0.56], all "hold". Without SEA-AD they are
+  0.71 / 0.44 / 0.33. The ADNC pool equals the 2-cohort pool, since SEA-AD adds nothing to it.
