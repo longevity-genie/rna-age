@@ -42,7 +42,7 @@ from sklearn.model_selection import GroupKFold
 from torch import nn
 
 from rna_age.paths import INTERIM
-from rna_age.train.sc_pretrain import EVAL_COHORTS, SUMMARY, TEREKHOVA, _merge_summary
+from rna_age.train.sc_pretrain import EVAL_COHORTS, SUMMARY, TEREKHOVA
 
 log = logging.getLogger(__name__)
 
@@ -569,9 +569,35 @@ def run(step: str, cohorts: tuple[str, ...] = EVAL_COHORTS, ckpt: Path = CKPT, i
                  {m: round(float((g["pred"] - g["age"]).abs().mean()), 2) for (m,), g in o.group_by("model")},
                  time.time() - t0)  # fmt: skip
     oof = pl.concat(parts)
-    cmp = compare_reference(oof)
+    run_id = f"rm37-{tag}-{step}" + (f"-s{seed}" if seed else "")
+    if write:  # one file per job, first: per-cohort jobs run side by side and must not overwrite each other
+        RM37_DIR.mkdir(parents=True, exist_ok=True)
+        oof.with_columns(run_id=pl.lit(run_id)).write_parquet(
+            RM37_DIR / f"{run_id}_{'_'.join(c[:8] for c in cohorts)}.parquet", compression="zstd")  # fmt: skip
+    return bar(compare_reference(oof))
+
+
+RM37_DIR = SUMMARY / "rm37"
+
+
+def collect(write: bool = True) -> pl.DataFrame:
+    """Merge every job's predictions (``data/output/summary/rm37/*.parquet``) into ``sc_pretrain_oof.parquet`` and
+    their comparisons into ``sc_pretrain_clock.parquet``, keyed by run, model and cohort; returns the bar table."""
+    oof = pl.concat([pl.read_parquet(f) for f in sorted(RM37_DIR.glob("*.parquet"))], how="diagonal_relaxed")
+    oof = oof.unique(["run_id", "model", "cohort", "donor"], keep="last", maintain_order=True)
+    cmps = [compare_reference(g.drop("run_id")).with_columns(run_id=pl.lit(r))
+            for (r,), g in oof.group_by("run_id", maintain_order=True)]  # fmt: skip
+    cmp = pl.concat(cmps, how="diagonal_relaxed")
     if write:
-        run_id = f"rm37-{tag}-{step}" + (f"-s{seed}" if seed else "")
-        _merge_summary(oof.with_columns(run_id=pl.lit(run_id)), SUMMARY / "sc_pretrain_oof.parquet")
-        _merge_summary(cmp.with_columns(run_id=pl.lit(run_id)), SUMMARY / "sc_pretrain_clock.parquet")
-    return bar(cmp)
+        keys = ("run_id", "model", "cohort")
+        _merge(oof, SUMMARY / "sc_pretrain_oof.parquet", keys)
+        _merge(cmp, SUMMARY / "sc_pretrain_clock.parquet", keys)
+    return pl.concat([bar(g).with_columns(run_id=pl.lit(r)) for (r,), g in cmp.group_by("run_id")])
+
+
+def _merge(new: pl.DataFrame, path: Path, keys: tuple[str, ...]) -> None:
+    """Replace ``new``'s (run, model, cohort) rows in a shared summary; columns may differ (diagonal)."""
+    if path.exists():
+        old = pl.read_parquet(path)
+        new = pl.concat([old.join(new.select(keys).unique(), on=list(keys), how="anti"), new], how="diagonal_relaxed")
+    new.write_parquet(path, compression="zstd")

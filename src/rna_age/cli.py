@@ -980,6 +980,17 @@ def mct_cmd(
         print(out)
 
 
+@app.command("mct-collect")
+def mct_collect_cmd(write: bool = typer.Option(True, help="merge into the shared summaries")) -> None:
+    """RM37: merge every mct job's predictions into sc_pretrain_{oof,clock}.parquet and print the bar."""
+    import polars as pl
+
+    from rna_age.train import mct
+
+    with pl.Config(tbl_rows=-1, tbl_cols=-1, tbl_width_chars=200):
+        print(mct.collect(write))
+
+
 @app.command("mct-pool")
 def mct_pool_cmd(
     datasets: str = typer.Option("", help="comma-separated dataset ids (default: every non-evaluation h5ad)"),
