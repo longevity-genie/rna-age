@@ -1320,3 +1320,17 @@ eligible row, 43,958 rows from 1,572 studies, 2,000 HVGs. It took 8 h 11. Run 20
 
 Bar (≤ 9.1 y): **missed**. Against the reused RM25 TabICLv2 at 4k context (15.30 y, 6439059), 11× the context is
 0.64 y worse. The 30k fallback (6587407) was cancelled unrun because arm 2 succeeded.
+
+### 2026-11-22 23:32 · RM37 step (c): MCT architecture pretrained from scratch learns nothing
+Code at 9f4769f. Pool `mct-pool` 6592246: 18 non-evaluation h5ads plus Tabula Sapiens All Cells (53d208b0, fetched by
+6592220), 2,383 samples, 2,347 kept at load (≥ 50 cells). Pretraining `mct-scratch` 6592753 on a 2080 Ti: run
+20261122-2025-mct-scratch-s0, 20,000 steps × 8 bags, 0.56 s per step, 3 h 07.
+
+Masked gene identity never leaves chance:
+
+- **Validation loss:** 9.59 at step 500, best 9.55 at step 13,000, then up to 10.27 at step 20,000.
+- **Accuracy:** 0.0001 to 0.0003 throughout.
+- **Training loss:** 9.53 at step 1,000 and 9.44 at the end.
+
+For scale, ln(4,096) = 8.3 and ln(58k) = 11.0. The best checkpoint (`best.ckpt`, step 13,000) is that of a model which
+did not learn the task, so the age read-out and fine-tune on it were not started without the lead's word.
