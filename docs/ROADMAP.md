@@ -489,6 +489,15 @@ Replications (pre-registered 2026-11-23 by the lead, Anton away, before any down
     Inconclusive alone (expected with ~80 donors and few young controls) is reported as such.
   - Steps: runner fetches (`positive-controls-fetch 6f7fd0f1-a2ed-4ff1-80d3-33dde731cbc3`), then `census-donor-obs` and
     `census-pseudobulk --by-cell-type` for it. The lead adds the target once the obs columns are seen.
+  - Amendment (2026-11-23, after the donor table, before any gap was computed). The obs carries ADNC: High 39,
+    Intermediate 20, Low 12, Not AD 9, Reference 3 (young neurotypical).
+    - Exact ages: 45 donors are 90+ (binned). Not AD has only 4 exact ages, below `min_controls` 10, so the arm as
+      pre-registered is expected to be unmeasurable.
+    - Added and reported beside it: the NIA-AA split, Not AD + Low + Reference against Intermediate + High
+      (24 controls, 14 with exact ages; 59 cases).
+    - Built in 6c66b27: targets `seaad` (as pre-registered) and `seaad_niaaa`, plus the pools "Alzheimer disease +
+      SEA-AD (adnc|niaaa)".
+    - Commands: `sys-gap-external --targets seaad,seaad_niaaa`, then `sys-gap-meta`.
 
 ## RM13 — A manuscript draft of the results (plan line 5)
 
