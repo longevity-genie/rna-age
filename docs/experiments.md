@@ -1353,8 +1353,8 @@ with the lead: train acc is a mean over steps 1,001–2,000. Note that 20 % of t
 ### 2026-11-23 06:20 · RM37 step (c) read-outs: the from-scratch MCT is worse than the recipe in every cohort
 Read-out 6594422 and fine-tunes 6594423–6594429 on run 2's `best.ckpt` (`--tag mct-scratch`), at d892634. Every job
 trained and logged its MAEs, then failed writing the summary: `_merge_summary` (sc_pretrain.py:847) concatenates the
-new out-of-fold rows onto `sc_pretrain_oof.parquet` and polars raised `ComputeError: schema lengths differ`. No rows
-were written. The MAEs below are read from the logs. Fine-tune 37a17b78 (6594427) was cancelled while running, since
+new out-of-fold rows onto `sc_pretrain_oof.parquet` and polars raised `ComputeError: schema lengths differ`. The prediction rows were
+written (the first merge succeeded), and the lead merged the comparisons afterwards with `rna-age mct-collect` (65241de). Fine-tune 37a17b78 (6594427) was cancelled while running, since
 it would hit the same write. Reference: `recipe-agesel_class-tabicl` (RM35 1c, as in RM36 arm 1b's table).
 
 | cohort | mean ridge | mean TabICLv2 | gene ridge | gene TabICLv2 | fine-tune | recipe |
