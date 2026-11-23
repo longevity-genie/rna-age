@@ -498,6 +498,13 @@ Replications (pre-registered 2026-11-23 by the lead, Anton away, before any down
     - Built in 6c66b27: targets `seaad` (as pre-registered) and `seaad_niaaa`, plus the pools "Alzheimer disease +
       SEA-AD (adnc|niaaa)".
     - Commands: `sys-gap-external --targets seaad,seaad_niaaa`, then `sys-gap-meta`.
+  - **Outcome (2026-11-23, DECISIONS): holds.**
+    - The ADNC arm is unmeasurable (4 controls).
+    - The NIA-AA arm (24 vs 11) is inconclusive alone, in the predicted direction: astrocyte +0.74 z, astrocyte − OPC
+      +0.46, microglia +0.55.
+    - All three Alzheimer's pools hold with SEA-AD in, I² 0.
+    - RM33's open work is now the conditions with one cohort (T2D, Parkinson's, Down syndrome) and a CMV
+      replication. No independent adult CMV cohort is on disk.
 
 ## RM13 — A manuscript draft of the results (plan line 5)
 

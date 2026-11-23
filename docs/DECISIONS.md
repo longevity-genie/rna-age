@@ -486,3 +486,22 @@ and no better. Its pretraining barely went past copying. The age-chosen-gene rec
 What remains of RM37 is step (a)/(b) on MCT's own checkpoint (14 M cells, a far longer pretraining), once Anton has
 downloaded it. Step (c) at larger scale would need either many more steps or a working masked objective first; it
 is not planned.
+
+**RM33 SEA-AD replication outcome (2026-11-23, runner's jobs 6596030 / 6596031 at 8e74d51, logged 2c74626; read by the
+lead): holds by the pre-registered bar.** SEA-AD DLPFC (83 donors, 38 with exact ages; 45 are only "90+") was read by
+the external brain clock.
+
+- **ADNC arm as pre-registered (Intermediate/High vs Not AD):** unmeasurable. It had 4 controls, below the minimum
+  of 10.
+- **NIA-AA arm (added before any gap was computed):** 24 cases against 11 controls with measured types. Every own
+  verdict is inconclusive, all pointing the predicted way:
+
+| type | SEA-AD Δz [95 % CI] | pool without SEA-AD | pool with SEA-AD (3 cohorts) |
+|---|---|---|---|
+| astrocyte | +0.74 [−0.10, 1.83] | +0.71 [0.50, 0.93] holds | +0.71 [0.50, 0.92] holds |
+| astrocyte − OPC | +0.46 [−0.51, 1.63] | +0.33 [0.09, 0.56] holds | +0.33 [0.11, 0.56] holds |
+| microglia | +0.55 [−0.21, 1.47] | +0.44 [0.26, 0.61] holds | +0.44 [0.27, 0.62] holds |
+
+I² stays 0. Reading: a third, independent Alzheimer's cohort, defined by neuropathology rather than diagnosis, agrees
+in direction and size with PsychAD and RADC. It is too small to narrow the pooled intervals. The CMV pool has no
+independent replication on disk: HIHA's adult cells duplicate Allen, and its primary donors are children.
